@@ -5,33 +5,43 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
-import { ShoppingCart, ShieldCheck, User, LogOut, LayoutDashboard, Zap, Menu, X } from 'lucide-react';
+import { ShoppingCart, ShieldCheck, User, LogOut, Zap, Menu, X } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        if (data) setProfile(data as Profile);
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          if (data) setProfile(data as Profile);
+        }
+      } catch (err) {
+        console.error('Navbar user load error:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadUser();
-  }, [supabase]);
+  }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Signout error:', err);
+    }
     window.location.href = '/';
   };
 
