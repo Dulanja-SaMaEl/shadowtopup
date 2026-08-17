@@ -29,16 +29,20 @@ export default function LoginPage() {
     }
 
     if (authData?.user) {
-      // Check user role in public.profiles table
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', authData.user.id)
-        .single();
+      try {
+        // Fetch user profile role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', authData.user.id)
+          .single();
 
-      if (profile?.role === 'admin' || email.toLowerCase().includes('admin')) {
-        window.location.href = '/admin/dashboard';
-      } else {
+        if (profile?.role === 'admin' || email.toLowerCase().includes('admin')) {
+          window.location.href = '/admin/dashboard';
+        } else {
+          window.location.href = '/dashboard';
+        }
+      } catch {
         window.location.href = '/dashboard';
       }
     } else {
