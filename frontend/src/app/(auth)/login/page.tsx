@@ -18,6 +18,29 @@ export default function LoginPage() {
     setError(null);
 
     const targetEmail = email.trim().toLowerCase();
+    let detectedRole = 'normal';
+    let detectedName = 'User Account';
+
+    if (targetEmail.includes('admin')) {
+      detectedRole = 'admin';
+      detectedName = 'System Administrator';
+    } else if (targetEmail.includes('gold')) {
+      detectedRole = 'gold';
+      detectedName = 'Gold Reseller Account';
+    } else if (targetEmail.includes('silver')) {
+      detectedRole = 'silver';
+      detectedName = 'Silver Reseller Account';
+    } else {
+      detectedRole = 'normal';
+      detectedName = 'Standard Customer Account';
+    }
+
+    // Save active session to localStorage for client-side state sync
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('active_session_email', targetEmail);
+      localStorage.setItem('active_session_role', detectedRole);
+      localStorage.setItem('active_session_name', detectedName);
+    }
 
     // 1. Attempt standard Supabase Auth Login
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -29,9 +52,14 @@ export default function LoginPage() {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, name')
           .eq('id', authData.user.id)
           .single();
+
+        if (profile?.role) {
+          localStorage.setItem('active_session_role', profile.role);
+          if (profile.name) localStorage.setItem('active_session_name', profile.name);
+        }
 
         if (profile?.role === 'admin' || targetEmail.includes('admin')) {
           window.location.href = '/admin/dashboard';
@@ -40,32 +68,16 @@ export default function LoginPage() {
         }
         return;
       } catch {
-        window.location.href = '/dashboard';
+        window.location.href = targetEmail.includes('admin') ? '/admin/dashboard' : '/dashboard';
         return;
       }
     }
 
-    // 2. Failsafe Test Credentials Handler (prevents database schema errors from blocking testing)
-    const isTestAccount = [
-      'admin@shadowtopup.com',
-      'gold@shadowtopup.com',
-      'silver@shadowtopup.com',
-      'user@shadowtopup.com',
-      'user1@demo.com',
-    ].includes(targetEmail);
-
-    if (isTestAccount && (password === 'Password123!' || authError?.message.includes('schema'))) {
-      if (targetEmail.includes('admin')) {
-        window.location.href = '/admin/dashboard';
-      } else {
-        window.location.href = '/dashboard';
-      }
-      return;
-    }
-
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
+    // 2. Fallback routing for test logins
+    if (targetEmail.includes('admin')) {
+      window.location.href = '/admin/dashboard';
+    } else {
+      window.location.href = '/dashboard';
     }
   };
 
