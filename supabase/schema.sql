@@ -2,6 +2,9 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Grant Schema Permissions
+GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
+
 -- 1. PROFILES TABLE (Linked to Supabase Auth)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -19,14 +22,17 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- Trigger to create profile automatically on auth signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
 BEGIN
   INSERT INTO public.profiles (id, name, email, role)
   VALUES (new.id, COALESCE(new.raw_user_meta_data->>'name', 'User'), new.email, 'normal')
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -151,6 +157,18 @@ CREATE TABLE IF NOT EXISTS public.pricing_settings (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Table Grants
+GRANT ALL ON TABLE public.profiles TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.games TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.products TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.packages TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.shell_accounts TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.purchase_transactions TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.orders TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.order_items TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.cart_items TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.pricing_settings TO postgres, anon, authenticated, service_role;
+
 -- Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
@@ -171,85 +189,10 @@ CREATE POLICY "Orders viewable by owner or admin" ON public.orders
 
 
 -- ====================================================================
--- SEED DATA & PRE-CONFIGURED TEST USER ACCOUNTS (PASSWORD: Password123!)
+-- SEED DATA (GAMES, PACKAGES, SHELL ACCOUNTS & PRICING SETTINGS)
 -- ====================================================================
 
--- 1. Seed Demo Auth Accounts into Supabase auth.users
-INSERT INTO auth.users (
-  id,
-  instance_id,
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  raw_app_meta_data,
-  raw_user_meta_data,
-  created_at,
-  updated_at,
-  role,
-  aud
-)
-VALUES
-(
-  '00000000-0000-0000-0000-000000000001',
-  '00000000-0000-0000-0000-000000000000',
-  'admin@shadowtopup.com',
-  crypt('Password123!', gen_salt('bf')),
-  NOW(),
-  '{"provider":"email","providers":["email"]}',
-  '{"name":"Admin Dulanja"}',
-  NOW(),
-  NOW(),
-  'authenticated',
-  'authenticated'
-),
-(
-  '00000000-0000-0000-0000-000000000002',
-  '00000000-0000-0000-0000-000000000000',
-  'gold@reseller.com',
-  crypt('Password123!', gen_salt('bf')),
-  NOW(),
-  '{"provider":"email","providers":["email"]}',
-  '{"name":"Gold Wholesaler"}',
-  NOW(),
-  NOW(),
-  'authenticated',
-  'authenticated'
-),
-(
-  '00000000-0000-0000-0000-000000000003',
-  '00000000-0000-0000-0000-000000000000',
-  'silver@reseller.com',
-  crypt('Password123!', gen_salt('bf')),
-  NOW(),
-  '{"provider":"email","providers":["email"]}',
-  '{"name":"Silver Merchant"}',
-  NOW(),
-  NOW(),
-  'authenticated',
-  'authenticated'
-),
-(
-  '00000000-0000-0000-0000-000000000004',
-  '00000000-0000-0000-0000-000000000000',
-  'user@shadowtopup.com',
-  crypt('Password123!', gen_salt('bf')),
-  NOW(),
-  '{"provider":"email","providers":["email"]}',
-  '{"name":"Casual Gamer"}',
-  NOW(),
-  NOW(),
-  'authenticated',
-  'authenticated'
-)
-ON CONFLICT (id) DO NOTHING;
-
--- 2. Assign User Roles & Reseller Statuses in Profiles
-UPDATE public.profiles SET role = 'admin' WHERE email = 'admin@shadowtopup.com';
-UPDATE public.profiles SET role = 'gold', reseller_status = 'approved' WHERE email = 'gold@reseller.com';
-UPDATE public.profiles SET role = 'silver', reseller_status = 'approved' WHERE email = 'silver@reseller.com';
-UPDATE public.profiles SET role = 'normal' WHERE email = 'user@shadowtopup.com';
-
--- 3. Seed Games Catalog
+-- 1. Seed Games Catalog
 INSERT INTO public.games (title, slug, category, developer, description, image_path, is_active)
 VALUES
 ('Garena Free Fire', 'free-fire', 'Mobile', 'Garena', 'Instant Garena Shell top-up for Free Fire diamonds with automated player UID verification.', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000', true),
@@ -257,7 +200,7 @@ VALUES
 ('PUBG Mobile', 'pubg-mobile', 'Mobile', 'Tencent Games', 'Instant Unknown Cash (UC) top-up via Character ID.', 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=1000', true)
 ON CONFLICT (slug) DO NOTHING;
 
--- 4. Seed Free Fire Diamond Packages (with Reseller Tier Pricing Matrix)
+-- 2. Seed Free Fire Diamond Packages (with Reseller Tier Pricing Matrix)
 INSERT INTO public.packages (package_name, package_type, diamond_amount, shell_cost, normal_price, silver_price, gold_price, is_active)
 VALUES
 ('100 Diamonds', 'diamond', 100, 100, 1.20, 1.10, 1.00, true),
@@ -267,13 +210,13 @@ VALUES
 ('2180 Diamonds', 'diamond', 2180, 2000, 22.80, 21.20, 20.00, true),
 ('5600 Diamonds', 'diamond', 5600, 5000, 56.00, 52.00, 49.00, true);
 
--- 5. Seed Main Garena Shell Account Pool
+-- 3. Seed Main Garena Shell Account Pool
 INSERT INTO public.shell_accounts (account_username, password, available_balance, is_main, last_synced_at)
 VALUES
 ('garena_main_supplier', 'EncryptedPass123!', 14500, true, NOW()),
 ('garena_secondary_reseller', 'EncryptedPass456!', 3200, false, NOW());
 
--- 6. Seed Global Pricing Settings
+-- 4. Seed Global Pricing Settings
 INSERT INTO public.pricing_settings (setting_key, setting_value)
 VALUES
 ('tier_discounts', '{"silver_discount_percent": 8, "gold_discount_percent": 15}'::jsonb),
