@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. PROFILES TABLE (Linked to Supabase Auth)
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -21,17 +21,19 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.profiles (id, name, email, role)
-  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'name', 'User'), new.email, 'normal');
+  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'name', 'User'), new.email, 'normal')
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- 2. GAMES TABLE
-CREATE TABLE public.games (
+CREATE TABLE IF NOT EXISTS public.games (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
@@ -45,7 +47,7 @@ CREATE TABLE public.games (
 );
 
 -- 3. PRODUCTS TABLE
-CREATE TABLE public.products (
+CREATE TABLE IF NOT EXISTS public.products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     game_id UUID REFERENCES public.games(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -59,7 +61,7 @@ CREATE TABLE public.products (
 );
 
 -- 4. PACKAGES TABLE (Free Fire Diamond & Shell Pricing)
-CREATE TABLE public.packages (
+CREATE TABLE IF NOT EXISTS public.packages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     package_name TEXT NOT NULL,
     package_type TEXT DEFAULT 'diamond',
@@ -74,7 +76,7 @@ CREATE TABLE public.packages (
 );
 
 -- 5. SHELL ACCOUNTS TABLE
-CREATE TABLE public.shell_accounts (
+CREATE TABLE IF NOT EXISTS public.shell_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_username TEXT NOT NULL,
     password TEXT NOT NULL,
@@ -87,7 +89,7 @@ CREATE TABLE public.shell_accounts (
 );
 
 -- 6. PURCHASE TRANSACTIONS TABLE
-CREATE TABLE public.purchase_transactions (
+CREATE TABLE IF NOT EXISTS public.purchase_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     package_id UUID REFERENCES public.packages(id) ON DELETE RESTRICT,
@@ -105,7 +107,7 @@ CREATE TABLE public.purchase_transactions (
 );
 
 -- 7. ORDERS & ORDER ITEMS TABLES
-CREATE TABLE public.orders (
+CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     total_amount NUMERIC(10, 2) NOT NULL,
@@ -117,7 +119,7 @@ CREATE TABLE public.orders (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE public.order_items (
+CREATE TABLE IF NOT EXISTS public.order_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
     product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
@@ -130,7 +132,7 @@ CREATE TABLE public.order_items (
 );
 
 -- 8. CART ITEMS & PRICING SETTINGS
-CREATE TABLE public.cart_items (
+CREATE TABLE IF NOT EXISTS public.cart_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
@@ -140,7 +142,7 @@ CREATE TABLE public.cart_items (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE public.pricing_settings (
+CREATE TABLE IF NOT EXISTS public.pricing_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     setting_key TEXT UNIQUE NOT NULL,
     setting_value JSONB NOT NULL,
@@ -154,11 +156,50 @@ ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.purchase_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Profiles readable by self or admin" ON public.profiles;
 CREATE POLICY "Profiles readable by self or admin" ON public.profiles
   FOR SELECT USING (auth.uid() = id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
+DROP POLICY IF EXISTS "Cart accessible by owner" ON public.cart_items;
 CREATE POLICY "Cart accessible by owner" ON public.cart_items
   FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Orders viewable by owner or admin" ON public.orders;
 CREATE POLICY "Orders viewable by owner or admin" ON public.orders
   FOR SELECT USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+
+-- ====================================================================
+-- SEED DATA (INITIAL CATALOG, PACKAGES, SHELL ACCOUNTS & PRICING)
+-- ====================================================================
+
+-- 1. Seed Games Catalog
+INSERT INTO public.games (title, slug, category, developer, description, image_path, is_active)
+VALUES
+('Garena Free Fire', 'free-fire', 'Mobile', 'Garena', 'Instant Garena Shell top-up for Free Fire diamonds with automated player UID verification.', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000', true),
+('Mobile Legends: Bang Bang', 'mobile-legends', 'Mobile', 'Moonton', 'Direct top-up for Mobile Legends Diamonds and Weekly Diamond Pass.', 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1000', true),
+('PUBG Mobile', 'pubg-mobile', 'Mobile', 'Tencent Games', 'Instant Unknown Cash (UC) top-up via Character ID.', 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=1000', true)
+ON CONFLICT (slug) DO NOTHING;
+
+-- 2. Seed Free Fire Diamond Packages (with Reseller Tier Pricing Matrix)
+INSERT INTO public.packages (package_name, package_type, diamond_amount, shell_cost, normal_price, silver_price, gold_price, is_active)
+VALUES
+('100 Diamonds', 'diamond', 100, 100, 1.20, 1.10, 1.00, true),
+('310 Diamonds', 'diamond', 310, 300, 3.50, 3.25, 3.00, true),
+('520 Diamonds', 'diamond', 520, 500, 5.80, 5.40, 5.00, true),
+('1060 Diamonds', 'diamond', 1060, 1000, 11.50, 10.80, 10.00, true),
+('2180 Diamonds', 'diamond', 2180, 2000, 22.80, 21.20, 20.00, true),
+('5600 Diamonds', 'diamond', 5600, 5000, 56.00, 52.00, 49.00, true);
+
+-- 3. Seed Main Garena Shell Account Pool
+INSERT INTO public.shell_accounts (account_username, password, available_balance, is_main, last_synced_at)
+VALUES
+('garena_main_supplier', 'EncryptedPass123!', 14500, true, NOW()),
+('garena_secondary_reseller', 'EncryptedPass456!', 3200, false, NOW());
+
+-- 4. Seed Global Pricing Settings
+INSERT INTO public.pricing_settings (setting_key, setting_value)
+VALUES
+('tier_discounts', '{"silver_discount_percent": 8, "gold_discount_percent": 15}'::jsonb),
+('bank_payment_details', '{"bank_name": "Commercial Bank", "account_name": "ShadowTopUp", "account_number": "8009123456", "branch": "Colombo"}'::jsonb)
+ON CONFLICT (setting_key) DO NOTHING;
