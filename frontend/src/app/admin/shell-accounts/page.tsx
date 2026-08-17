@@ -1,107 +1,79 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { ShellAccount } from '@/types/database';
-import { ArrowLeft, RefreshCw, Plus, CheckCircle2, ShieldAlert, Loader2 } from 'lucide-react';
-
-const mockShellAccounts: ShellAccount[] = [
-  {
-    id: 'acc-1',
-    account_username: 'garena_main_supplier',
-    password: '••••••••',
-    available_balance: 14500,
-    is_main: true,
-    last_synced_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'acc-2',
-    account_username: 'garena_secondary_reseller',
-    password: '••••••••',
-    available_balance: 3200,
-    is_main: false,
-    last_synced_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
+import { Database, Plus, Eye, Edit2, Trash2 } from 'lucide-react';
 
 export default function AdminShellAccountsPage() {
-  const [accounts, setAccounts] = useState<ShellAccount[]>(mockShellAccounts);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
-
-  const handleSyncBalance = async (accId: string) => {
-    setSyncingId(accId);
-    setTimeout(() => {
-      setAccounts(accounts.map(a => a.id === accId ? { ...a, last_synced_at: new Date().toISOString() } : a));
-      setSyncingId(null);
-    }, 1500);
-  };
+  const [shellAccounts] = useState([
+    {
+      id: '1',
+      accountName: 'Shdaow topup shell 1',
+      transactionsCount: 0,
+      username: 'SHADOW_TOPUP1',
+      liveBalance: '2,213 Shells',
+      status: 'MAIN ACCOUNT',
+    },
+  ]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/admin/dashboard" className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-extrabold text-white">Garena Shell Accounts Ledger</h1>
-            <p className="text-xs text-slate-400">Manage automated shell balance pools and credentials</p>
-          </div>
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-black text-white uppercase tracking-wider">Shell Accounts</h1>
+          <p className="text-xs text-slate-400 mt-1">Manage Garena Shell API accounts and monitor real-time stock balances.</p>
         </div>
 
-        <button className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/20">
+        <button className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-600/30">
           <Plus className="w-4 h-4" /> Add Shell Account
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {accounts.map((acc) => (
-          <div key={acc.id} className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-[10px] font-mono text-slate-500 uppercase">Garena Account</span>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  {acc.account_username}
-                  {acc.is_main && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                      MAIN POOL
+      {/* Accounts Table */}
+      <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-[#0e0c1f] text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="p-4">Account Name</th>
+                <th className="p-4">Username</th>
+                <th className="p-4">Live Balance</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {shellAccounts.map((acc) => (
+                <tr key={acc.id} className="hover:bg-slate-900/40">
+                  <td className="p-4">
+                    <div>
+                      <h5 className="font-bold text-white text-xs">{acc.accountName}</h5>
+                      <p className="text-[10px] text-slate-400 font-mono">{acc.transactionsCount} Transactions</p>
+                    </div>
+                  </td>
+                  <td className="p-4 font-mono font-bold text-slate-300 uppercase">{acc.username}</td>
+                  <td className="p-4 font-mono font-bold text-purple-400 text-sm">{acc.liveBalance}</td>
+                  <td className="p-4">
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
+                      {acc.status}
                     </span>
-                  )}
-                </h3>
-              </div>
-
-              <div className="text-right">
-                <span className="text-[10px] font-mono text-slate-500 uppercase">Available Shells</span>
-                <h4 className="text-2xl font-extrabold text-cyan-400 font-mono">
-                  {acc.available_balance.toLocaleString()}
-                </h4>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-mono">
-                Synced: {new Date(acc.last_synced_at!).toLocaleTimeString()}
-              </span>
-
-              <button
-                onClick={() => handleSyncBalance(acc.id)}
-                disabled={syncingId === acc.id}
-                className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-cyan-400 text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {syncingId === acc.id ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                Sync Scraper Balance
-              </button>
-            </div>
-          </div>
-        ))}
+                  </td>
+                  <td className="p-4 flex items-center gap-2">
+                    <button className="p-2 rounded-xl bg-[#121024] border border-purple-950/60 text-purple-300 hover:text-white">
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+                    <button className="p-2 rounded-xl bg-[#121024] border border-purple-950/60 text-purple-300 hover:text-white">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
