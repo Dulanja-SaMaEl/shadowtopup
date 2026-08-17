@@ -99,83 +99,61 @@ CREATE TABLE IF NOT EXISTS public.shell_accounts (
     password TEXT NOT NULL,
     available_balance INTEGER DEFAULT 0,
     is_main BOOLEAN DEFAULT FALSE,
-    session_cookie TEXT,
-    last_synced_at TIMESTAMPTZ,
+    last_synced_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. PURCHASE TRANSACTIONS TABLE
-CREATE TABLE IF NOT EXISTS public.purchase_transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    package_id UUID REFERENCES public.packages(id) ON DELETE RESTRICT,
-    shell_account_id UUID REFERENCES public.shell_accounts(id) ON DELETE SET NULL,
-    free_fire_player_id TEXT NOT NULL,
-    shells_deducted INTEGER NOT NULL,
-    price_paid NUMERIC(10, 2) NOT NULL,
-    price_tier TEXT NOT NULL,
-    status TEXT CHECK (status IN ('pending', 'payment_pending', 'success', 'failed')) DEFAULT 'pending',
-    payment_method TEXT NOT NULL,
-    receipt_path TEXT, -- ImgBB direct URL
-    paypal_order_id TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+-- 6. PRICING SETTINGS TABLE
+CREATE TABLE IF NOT EXISTS public.pricing_settings (
+    setting_key TEXT PRIMARY KEY,
+    setting_value JSONB NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. ORDERS & ORDER ITEMS TABLES
+-- 7. ORDERS TABLE
 CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     total_amount NUMERIC(10, 2) NOT NULL,
-    status TEXT CHECK (status IN ('pending', 'verified', 'completed', 'rejected')) DEFAULT 'pending',
-    receipt_path TEXT, -- ImgBB direct URL
-    admin_note TEXT,
-    verified_at TIMESTAMPTZ,
+    payment_method TEXT NOT NULL,
+    payment_status TEXT CHECK (payment_status IN ('pending', 'completed', 'failed', 'refunded')) DEFAULT 'pending',
+    receipt_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.order_items (
+-- 8. PURCHASE TRANSACTIONS TABLE
+CREATE TABLE IF NOT EXISTS public.purchase_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
-    product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
-    product_name TEXT NOT NULL,
-    unit_price NUMERIC(10, 2) NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    player_id TEXT,
-    server_id TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    package_id UUID REFERENCES public.packages(id) ON DELETE SET NULL,
+    free_fire_player_id TEXT NOT NULL,
+    price_paid NUMERIC(10, 2) NOT NULL,
+    shell_account_id UUID REFERENCES public.shell_accounts(id) ON DELETE SET NULL,
+    status TEXT CHECK (status IN ('pending', 'processing', 'success', 'failed')) DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. CART ITEMS & PRICING SETTINGS
+-- 9. CART ITEMS TABLE
 CREATE TABLE IF NOT EXISTS public.cart_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
     quantity INTEGER DEFAULT 1,
-    player_id TEXT,
-    server_id TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.pricing_settings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    setting_key TEXT UNIQUE NOT NULL,
-    setting_value JSONB NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Table Grants
+-- Permissions
 GRANT ALL ON TABLE public.profiles TO postgres, anon, authenticated, service_role;
 GRANT ALL ON TABLE public.games TO postgres, anon, authenticated, service_role;
 GRANT ALL ON TABLE public.products TO postgres, anon, authenticated, service_role;
 GRANT ALL ON TABLE public.packages TO postgres, anon, authenticated, service_role;
 GRANT ALL ON TABLE public.shell_accounts TO postgres, anon, authenticated, service_role;
-GRANT ALL ON TABLE public.purchase_transactions TO postgres, anon, authenticated, service_role;
 GRANT ALL ON TABLE public.orders TO postgres, anon, authenticated, service_role;
-GRANT ALL ON TABLE public.order_items TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.purchase_transactions TO postgres, anon, authenticated, service_role;
 GRANT ALL ON TABLE public.cart_items TO postgres, anon, authenticated, service_role;
 GRANT ALL ON TABLE public.pricing_settings TO postgres, anon, authenticated, service_role;
 
@@ -197,7 +175,6 @@ DROP POLICY IF EXISTS "Orders viewable by owner or admin" ON public.orders;
 CREATE POLICY "Orders viewable by owner or admin" ON public.orders
   FOR SELECT USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
-
 -- ====================================================================
 -- SEED DATA (GAMES, PACKAGES, SHELL ACCOUNTS & PRICING SETTINGS)
 -- ====================================================================
@@ -210,7 +187,7 @@ VALUES
 ('PUBG Mobile', 'pubg-mobile', 'Mobile', 'Tencent Games', 'Instant Unknown Cash (UC) top-up via Character ID.', 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=1000', true)
 ON CONFLICT (slug) DO NOTHING;
 
--- 2. Seed Free Fire Diamond Packages (with Reseller Tier Pricing Matrix)
+-- 2. Seed Free Fire Diamond Packages
 INSERT INTO public.packages (package_name, package_type, diamond_amount, shell_cost, normal_price, silver_price, gold_price, is_active)
 VALUES
 ('100 Diamonds', 'diamond', 100, 100, 1.20, 1.10, 1.00, true),
@@ -226,9 +203,9 @@ VALUES
 ('garena_main_supplier', 'EncryptedPass123!', 14500, true, NOW()),
 ('garena_secondary_reseller', 'EncryptedPass456!', 3200, false, NOW());
 
--- 4. Seed Global Pricing Settings
-INSERT INTO public.pricing_settings (setting_key, setting_value)
-VALUES
-('tier_discounts', '{"silver_discount_percent": 8, "gold_discount_percent": 15}'::jsonb),
-('bank_payment_details', '{"bank_name": "Commercial Bank", "account_name": "ShadowTopUp", "account_number": "8009123456", "branch": "Colombo"}'::jsonb)
-ON CONFLICT (setting_key) DO NOTHING;
+-- 4. Helper Script to Set Roles for Test User Accounts
+-- Run this in Supabase SQL Editor after creating users via registration page:
+-- UPDATE public.profiles SET role = 'admin' WHERE email = 'admin@shadowtopup.com';
+-- UPDATE public.profiles SET role = 'gold' WHERE email = 'gold@shadowtopup.com';
+-- UPDATE public.profiles SET role = 'silver' WHERE email = 'silver@shadowtopup.com';
+-- UPDATE public.profiles SET role = 'normal' WHERE email = 'user@shadowtopup.com';
