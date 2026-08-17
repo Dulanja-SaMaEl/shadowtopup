@@ -91,6 +91,15 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {profile?.role === 'admin' && (
+              <Link
+                href="/admin/dashboard"
+                className="text-xs font-bold text-purple-400 bg-purple-950/60 border border-purple-800/80 px-3 py-1.5 rounded-xl hover:bg-purple-900 flex items-center gap-1.5 transition-all"
+              >
+                <ShieldCheck className="w-4 h-4 text-purple-400" /> Admin Panel
+              </Link>
+            )}
           </nav>
 
           {/* Right Action Icons & Profile */}
@@ -125,16 +134,6 @@ export default function Navbar() {
                   <User className="w-4 h-4 text-cyan-400" />
                   <span>{profile.name}</span>
                 </Link>
-
-                {profile.role === 'admin' && (
-                  <Link
-                    href="/admin/dashboard"
-                    className="p-2 rounded-xl bg-purple-950/60 border border-purple-800/80 text-purple-300 hover:text-purple-100 transition-all"
-                    title="Admin Panel"
-                  >
-                    <ShieldCheck className="w-5 h-5" />
-                  </Link>
-                )}
 
                 <button
                   onClick={handleSignOut}
@@ -187,6 +186,15 @@ export default function Navbar() {
               {link.name}
             </Link>
           ))}
+          {profile?.role === 'admin' && (
+            <Link
+              href="/admin/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-base font-bold text-purple-400 bg-purple-950/60"
+            >
+              Admin Control Panel
+            </Link>
+          )}
           {profile ? (
             <>
               <Link

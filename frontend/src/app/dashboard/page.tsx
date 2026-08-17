@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, PurchaseTransaction } from '@/types/database';
 import {
@@ -13,6 +14,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  ArrowRight,
 } from 'lucide-react';
 import {
   LineChart,
@@ -116,6 +118,27 @@ export default function UserDashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+      {/* Admin Panel Quick Access Banner */}
+      {profile?.role === 'admin' && (
+        <div className="bg-purple-950/60 border border-purple-800 p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-purple-300">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">System Admin Account Detected</h3>
+              <p className="text-xs text-purple-300">You have administrator privileges to manage store packages, users, shell accounts, and orders.</p>
+            </div>
+          </div>
+          <Link
+            href="/admin/dashboard"
+            className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all shrink-0"
+          >
+            Open Admin Dashboard <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 backdrop-blur-md">
         <div>
@@ -168,7 +191,7 @@ export default function UserDashboardPage() {
           </div>
           <div>
             <span className="text-xs text-slate-400 uppercase font-mono">Total Spent</span>
-            <h3 className="text-2xl font-extrabold text-white">${totalSpent.toFixed(2)}</h3>
+            <h3 className="text-2xl font-extrabold text-white">Rs. {totalSpent.toFixed(2)}</h3>
           </div>
         </div>
 
@@ -259,7 +282,7 @@ export default function UserDashboardPage() {
                   <tr key={tx.id} className="hover:bg-slate-950/50">
                     <td className="p-4 font-bold text-white">{tx.package?.package_name || 'Free Fire Package'}</td>
                     <td className="p-4 font-mono text-cyan-400">{tx.free_fire_player_id}</td>
-                    <td className="p-4 font-mono text-white">${Number(tx.price_paid).toFixed(2)}</td>
+                    <td className="p-4 font-mono text-white">Rs. {Number(tx.price_paid).toFixed(2)}</td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold uppercase flex items-center gap-1 w-fit ${
                         tx.status === 'success'
