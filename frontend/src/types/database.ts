@@ -60,6 +60,7 @@ export interface Package {
 export interface ShellAccount {
   id: string;
   account_username: string;
+  password?: string;
   available_balance: number;
   is_main: boolean;
   last_synced_at?: string | null;

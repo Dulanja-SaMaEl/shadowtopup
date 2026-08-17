@@ -61,7 +61,7 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 border-t border-slate-900 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>© {new Date().getFullYear()} ShadowTopUp. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} ShadowTopUp by Dulanja Abeysinghe. All Rights Reserved.</p>
           <p className="font-mono text-cyan-500/80">Powered by Next.js & Supabase</p>
         </div>
       </div>
