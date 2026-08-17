@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Filter, Eye, FileText, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { Search, Filter, Eye, FileText, CheckCircle2, AlertCircle, XCircle, X } from 'lucide-react';
 
 interface OrderItem {
   id: string;
@@ -18,7 +19,7 @@ export default function AdminOrdersPage() {
   const [activeFilter, setActiveFilter] = useState('ALL ORDERS');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [orders] = useState<OrderItem[]>([
+  const [orders, setOrders] = useState<OrderItem[]>([
     { id: '#41', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://i.ibb.co/receipt1.jpg', date: 'May 22, 2026 07:33' },
     { id: '#40', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://i.ibb.co/receipt2.jpg', date: 'May 16, 2026 15:56' },
     { id: '#39', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'PENDING', paymentReceipt: null, date: 'May 16, 2026 05:51' },
@@ -31,7 +32,57 @@ export default function AdminOrdersPage() {
     { id: '#22', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '660 UC', totalAmount: 10.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: null, date: 'May 03, 2026 10:16' },
   ]);
 
+  const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function loadOrders() {
+      const { data } = await supabase.from('purchase_transactions').select('*, package:packages(*)');
+      if (data && data.length > 0) {
+        setOrders(
+          data.map((tx) => ({
+            id: `#${tx.id.substring(0, 4)}`,
+            customerName: tx.free_fire_player_id ? `Player: ${tx.free_fire_player_id}` : 'Customer',
+            customerEmail: 'customer@shadowtopup.com',
+            itemSummary: tx.package?.package_name || 'Free Fire Package',
+            totalAmount: Number(tx.price_paid || 1.00),
+            fulfillmentStatus: (tx.status || 'pending').toUpperCase() as any,
+            paymentReceipt: tx.receipt_url || null,
+            date: new Date(tx.created_at || Date.now()).toLocaleString(),
+          }))
+        );
+      }
+    }
+    loadOrders();
+  }, []);
+
   const filterTabs = ['ALL ORDERS', 'PENDING PAYMENT', 'PROOF SUBMITTED', 'VERIFIED', 'COMPLETED', 'REJECTED'];
+
+  // Filter Logic
+  const filteredOrders = orders.filter((ord) => {
+    const matchesSearch =
+      ord.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ord.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ord.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ord.itemSummary.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (activeFilter === 'ALL ORDERS') return true;
+    if (activeFilter === 'COMPLETED') return ord.fulfillmentStatus === 'COMPLETED';
+    if (activeFilter === 'PENDING PAYMENT' || activeFilter === 'PROOF SUBMITTED') return ord.fulfillmentStatus === 'PENDING';
+    if (activeFilter === 'REJECTED') return ord.fulfillmentStatus === 'REJECTED';
+
+    return true;
+  });
+
+  const handleUpdateStatus = (status: 'COMPLETED' | 'PENDING' | 'REJECTED') => {
+    if (!selectedOrder) return;
+    setOrders(
+      orders.map((o) => (o.id === selectedOrder.id ? { ...o, fulfillmentStatus: status } : o))
+    );
+    setSelectedOrder(null);
+  };
 
   return (
     <div className="space-y-8">
@@ -50,7 +101,7 @@ export default function AdminOrdersPage() {
               placeholder="Search ID, User, or Ref..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-[#121024] border border-purple-950/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+              className="w-full pl-9 pr-4 py-2 bg-[#121024] border border-purple-950/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 font-mono"
             />
           </div>
           <button className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30">
@@ -93,7 +144,7 @@ export default function AdminOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {orders.map((ord) => (
+              {filteredOrders.map((ord) => (
                 <tr key={ord.id} className="hover:bg-slate-900/40 transition-colors">
                   <td className="p-4 font-mono font-bold text-purple-400">{ord.id}</td>
                   <td className="p-4">
@@ -133,7 +184,10 @@ export default function AdminOrdersPage() {
                   </td>
                   <td className="p-4 text-slate-400 font-mono text-[10px]">{ord.date}</td>
                   <td className="p-4">
-                    <button className="px-4 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 text-[10px] font-bold uppercase tracking-wider">
+                    <button
+                      onClick={() => setSelectedOrder(ord)}
+                      className="px-4 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 text-[10px] font-bold uppercase tracking-wider"
+                    >
                       Review ›
                     </button>
                   </td>
@@ -143,6 +197,65 @@ export default function AdminOrdersPage() {
           </table>
         </div>
       </div>
+
+      {/* Review Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#141229] border border-purple-950/80 rounded-3xl p-6 space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                Review Order {selectedOrder.id}
+              </h3>
+              <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs bg-[#0e0c1f] p-4 rounded-2xl border border-slate-800">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Customer:</span>
+                <span className="text-white font-bold">{selectedOrder.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Item:</span>
+                <span className="text-purple-300 font-bold">{selectedOrder.itemSummary}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Total:</span>
+                <span className="text-emerald-400 font-bold">LKR {selectedOrder.totalAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Current Status:</span>
+                <span className="text-amber-400 font-bold">{selectedOrder.fulfillmentStatus}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Update Status</span>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleUpdateStatus('COMPLETED')}
+                  className="py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold text-xs uppercase"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus('PENDING')}
+                  className="py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold text-xs uppercase"
+                >
+                  Hold
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus('REJECTED')}
+                  className="py-2 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 font-bold text-xs uppercase"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
