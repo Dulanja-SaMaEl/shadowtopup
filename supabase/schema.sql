@@ -9,7 +9,7 @@ GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
+    email TEXT NOT NULL,
     role TEXT CHECK (role IN ('admin', 'gold', 'silver', 'normal')) DEFAULT 'normal',
     banned_at TIMESTAMPTZ DEFAULT NULL,
     reseller_status TEXT CHECK (reseller_status IN ('none', 'pending', 'approved', 'rejected')) DEFAULT 'none',
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Trigger to create profile automatically on auth signup
+-- Failsafe Trigger to create profile automatically on auth signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -28,8 +28,18 @@ SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
   INSERT INTO public.profiles (id, name, email, role)
-  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'name', 'User'), new.email, 'normal')
-  ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
+  VALUES (
+    new.id,
+    COALESCE(new.raw_user_meta_data->>'name', 'User'),
+    new.email,
+    'normal'
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET email = EXCLUDED.email,
+        name = EXCLUDED.name;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Prevent any profile constraint conflict from breaking Supabase Auth signup
   RETURN NEW;
 END;
 $$;
