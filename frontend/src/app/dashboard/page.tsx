@@ -13,6 +13,13 @@ import {
   BarChart3,
   Star,
   CheckCircle2,
+  X,
+  Edit2,
+  User as UserIcon,
+  Mail,
+  Receipt,
+  Clock,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   LineChart,
@@ -39,36 +46,45 @@ export default function UserDashboardPage() {
   });
 
   const [transactions, setTransactions] = useState<any[]>([
-    { id: '25', package_name: '25 Diamond Pack', items: '2X ITEMS', amount: 5.00, status: 'COMPLETED', time: '11:30 AM', date: 'MAY 11, 2026' },
-    { id: '22', package_name: '100 Diamonds', items: '1X ITEMS', amount: 10.00, status: 'COMPLETED', time: '10:00 AM', date: 'MAY 03, 2026' },
-    { id: '18', package_name: '50 Diamonds', items: '1X ITEMS', amount: 5.00, status: 'PENDING', time: '10:15 AM', date: 'APR 23, 2026' },
+    { id: '25', package_name: '25 Diamond Pack', items: '2X ITEMS', amount: 5.00, status: 'COMPLETED', time: '11:30 AM', date: 'MAY 11, 2026', player_uid: '1092837465' },
+    { id: '22', package_name: '100 Diamonds', items: '1X ITEMS', amount: 10.00, status: 'COMPLETED', time: '10:00 AM', date: 'MAY 03, 2026', player_uid: '8876543219' },
+    { id: '18', package_name: '50 Diamonds', items: '1X ITEMS', amount: 5.00, status: 'PENDING', time: '10:15 AM', date: 'APR 23, 2026', player_uid: '4455667788' },
   ]);
 
   const [resellerTier, setResellerTier] = useState<'silver' | 'gold'>('silver');
   const [applying, setApplying] = useState(false);
   const [resellerMsg, setResellerMsg] = useState<string | null>(null);
 
+  // Modals state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
   const supabase = createClient();
 
   useEffect(() => {
-    // 1. Read session from localStorage first
+    // 1. Sync from localStorage session
     if (typeof window !== 'undefined') {
       const storedEmail = localStorage.getItem('active_session_email');
       const storedRole = localStorage.getItem('active_session_role') as any;
       const storedName = localStorage.getItem('active_session_name');
 
       if (storedEmail) {
+        const nameVal = storedName ? storedName.toUpperCase() : storedEmail.split('@')[0].toUpperCase();
         setProfile((prev) => ({
           ...prev!,
           email: storedEmail.toUpperCase(),
-          name: storedName ? storedName.toUpperCase() : storedEmail.split('@')[0].toUpperCase(),
+          name: nameVal,
           role: storedRole || 'normal',
           reseller_status: ['gold', 'silver'].includes(storedRole) ? 'approved' : 'none',
         }));
+        setEditName(nameVal);
+        setEditEmail(storedEmail.toUpperCase());
       }
     }
 
-    // 2. Sync with Supabase Auth session if logged in
+    // 2. Sync from Supabase Auth
     async function syncSupabaseUser() {
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -80,12 +96,16 @@ export default function UserDashboardPage() {
           .single();
 
         if (prof) {
+          const profName = prof.name ? prof.name.toUpperCase() : user.email?.split('@')[0].toUpperCase() || 'USER ACCOUNT';
+          const profEmail = prof.email ? prof.email.toUpperCase() : user.email?.toUpperCase() || 'USER@SHADOWTOPUP.COM';
           setProfile({
             ...prof,
-            name: prof.name ? prof.name.toUpperCase() : user.email?.split('@')[0].toUpperCase() || 'USER ACCOUNT',
-            email: prof.email ? prof.email.toUpperCase() : user.email?.toUpperCase() || 'USER@SHADOWTOPUP.COM',
+            name: profName,
+            email: profEmail,
             role: prof.role || 'normal',
           } as Profile);
+          setEditName(profName);
+          setEditEmail(profEmail);
         }
 
         const { data: txs } = await supabase
@@ -104,6 +124,7 @@ export default function UserDashboardPage() {
               status: (tx.status || 'completed').toUpperCase(),
               time: '10:00 AM',
               date: new Date(tx.created_at).toLocaleDateString(),
+              player_uid: tx.free_fire_player_id || '9876543210',
             }))
           );
         }
@@ -111,6 +132,32 @@ export default function UserDashboardPage() {
     }
     syncSupabaseUser();
   }, []);
+
+  // Handle Edit Profile Save
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editName) return;
+
+    if (profile?.id && profile.id !== 'demo-user') {
+      await supabase
+        .from('profiles')
+        .update({ name: editName, email: editEmail })
+        .eq('id', profile.id);
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('active_session_name', editName);
+      localStorage.setItem('active_session_email', editEmail);
+    }
+
+    setProfile({
+      ...profile!,
+      name: editName.toUpperCase(),
+      email: editEmail.toUpperCase(),
+    });
+
+    setEditModalOpen(false);
+  };
 
   const handleApplyReseller = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,8 +268,15 @@ export default function UserDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">
-            <button className="flex-1 md:flex-none px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider border border-slate-700">
-              EDIT PROFILE
+            <button
+              onClick={() => {
+                setEditName(profile?.name || '');
+                setEditEmail(profile?.email || '');
+                setEditModalOpen(true);
+              }}
+              className="flex-1 md:flex-none px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider border border-slate-700 flex items-center justify-center gap-2"
+            >
+              <Edit2 className="w-4 h-4" /> EDIT PROFILE
             </button>
             <button
               onClick={handleLogout}
@@ -269,7 +323,7 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* 5. DYNAMIC RESELLER STATUS CARD (Silver / Gold / Normal) */}
+        {/* 5. RESELLER STATUS CARD */}
         <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
           <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
             <Award className="w-4 h-4 text-red-500" /> RESELLER STATUS
@@ -383,7 +437,8 @@ export default function UserDashboardPage() {
             {transactions.map((tx) => (
               <div
                 key={tx.id}
-                className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 flex items-center justify-between hover:border-purple-500/40 transition-colors"
+                onClick={() => setSelectedOrder(tx)}
+                className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 flex items-center justify-between hover:border-purple-500/60 cursor-pointer transition-all hover:bg-slate-900/40"
               >
                 <div className="flex items-center gap-4">
                   <span className="w-8 h-8 rounded-xl bg-slate-900 text-slate-300 font-mono text-xs font-bold flex items-center justify-center border border-slate-800">
@@ -413,6 +468,125 @@ export default function UserDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* EDIT PROFILE MODAL */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#141229] border border-purple-950/60 rounded-3xl p-6 space-y-6 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-cyan-400" /> EDIT USER PROFILE
+              </h3>
+              <button onClick={() => setEditModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Full Name</label>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="email"
+                    required
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 font-bold text-xs uppercase"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs uppercase shadow-lg shadow-cyan-600/30"
+                >
+                  Save Profile
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ORDER DETAILS RECEIPT MODAL */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#141229] border border-purple-950/60 rounded-3xl p-6 space-y-6 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-emerald-400" /> ORDER RECEIPT #{selectedOrder.id}
+              </h3>
+              <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-slate-400 font-mono">PACKAGE</span>
+                  <span className="font-bold text-white uppercase">{selectedOrder.package_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400 font-mono">PLAYER UID</span>
+                  <span className="font-mono font-bold text-cyan-400">{selectedOrder.player_uid}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400 font-mono">DATE & TIME</span>
+                  <span className="font-mono text-slate-300">{selectedOrder.date} • {selectedOrder.time}</span>
+                </div>
+                <div className="flex justify-between border-t border-slate-800 pt-2">
+                  <span className="text-slate-400 font-mono">TOTAL PAID</span>
+                  <span className="font-mono font-black text-emerald-400 text-sm">LKR {Number(selectedOrder.amount).toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <span className="text-slate-400 font-mono text-[10px]">VERIFICATION STATUS</span>
+                <span className={`px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
+                  selectedOrder.status === 'COMPLETED'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                }`}>
+                  {selectedOrder.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="w-full py-2.5 rounded-xl bg-purple-950/80 border border-purple-800 text-purple-300 font-bold text-xs uppercase"
+              >
+                Close Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

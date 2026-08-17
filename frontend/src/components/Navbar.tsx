@@ -14,6 +14,25 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    // 1. Sync with localStorage first
+    if (typeof window !== 'undefined') {
+      const storedEmail = localStorage.getItem('active_session_email');
+      const storedRole = localStorage.getItem('active_session_role') as any;
+      const storedName = localStorage.getItem('active_session_name');
+
+      if (storedEmail) {
+        setProfile({
+          id: 'active-session',
+          email: storedEmail,
+          name: storedName || storedEmail.split('@')[0].toUpperCase(),
+          role: storedRole || 'normal',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as Profile);
+      }
+    }
+
+    // 2. Sync with Supabase Auth
     async function loadUser() {
       try {
         const supabase = createClient();
@@ -36,13 +55,18 @@ export default function Navbar() {
   }, []);
 
   const handleSignOut = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('active_session_email');
+      localStorage.removeItem('active_session_role');
+      localStorage.removeItem('active_session_name');
+    }
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
     } catch (err) {
       console.error('Signout error:', err);
     }
-    window.location.href = '/';
+    window.location.href = '/login';
   };
 
   const navLinks = [
@@ -53,7 +77,7 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 text-white">
+    <header className="sticky top-0 z-50 bg-[#0a0814]/90 backdrop-blur-md border-b border-purple-950/40 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -112,7 +136,7 @@ export default function Navbar() {
               <ShoppingCart className="w-5 h-5" />
             </Link>
 
-            {!loading && profile ? (
+            {profile ? (
               <div className="flex items-center gap-3">
                 {/* Reseller Badge */}
                 {profile.role !== 'normal' && (
@@ -121,7 +145,7 @@ export default function Navbar() {
                       ? 'bg-purple-500/10 border border-purple-500/30 text-purple-400'
                       : profile.role === 'gold'
                       ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
-                      : 'bg-slate-400/10 border border-slate-400/30 text-slate-300'
+                      : 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-400'
                   }`}>
                     {profile.role}
                   </span>
@@ -129,10 +153,10 @@ export default function Navbar() {
 
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 text-slate-200 hover:text-white transition-all text-sm"
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-600/30 hover:from-red-500 hover:to-rose-500 transition-all"
                 >
-                  <User className="w-4 h-4 text-cyan-400" />
-                  <span>{profile.name}</span>
+                  <User className="w-4 h-4" />
+                  <span>DASHBOARD</span>
                 </Link>
 
                 <button
