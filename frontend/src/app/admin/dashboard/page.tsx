@@ -4,11 +4,34 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
-import { ShieldCheck, Users, Package, Database, Check, X, Loader2, ShoppingBag } from 'lucide-react';
+import { ShieldCheck, Users, Package, Database, Check, X, Loader2, ShoppingBag, Activity, RefreshCw, Server } from 'lucide-react';
+
+interface ServiceHealth {
+  status: string;
+  latencyMs: number;
+  label: string;
+}
 
 export default function AdminDashboardPage() {
   const [resellerApps, setResellerApps] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [healthData, setHealthData] = useState<Record<string, ServiceHealth>>({});
+  const [healthLoading, setHealthLoading] = useState(false);
+
+  const fetchHealthStatus = async () => {
+    setHealthLoading(true);
+    try {
+      const res = await fetch('/api/admin/health');
+      if (res.ok) {
+        const json = await res.json();
+        setHealthData(json.services || {});
+      }
+    } catch (err) {
+      console.error('Health fetch error:', err);
+    } finally {
+      setHealthLoading(false);
+    }
+  };
 
   useEffect(() => {
     async function loadAdminData() {
@@ -38,6 +61,7 @@ export default function AdminDashboardPage() {
       }
     }
     loadAdminData();
+    fetchHealthStatus();
   }, []);
 
   const handleApproveReseller = async (userId: string, targetTier: 'silver' | 'gold') => {
@@ -118,6 +142,46 @@ export default function AdminDashboardPage() {
           >
             User Roles
           </Link>
+        </div>
+      </div>
+
+      {/* Real-time Infrastructure & Services Health Pointers */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-lg font-bold text-white">Live System Diagnostics & Service Status</h3>
+          </div>
+          <button
+            onClick={fetchHealthStatus}
+            disabled={healthLoading}
+            className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-cyan-400 text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {healthLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            Refresh Diagnostics
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {Object.entries(healthData).map(([key, service]) => (
+            <div key={key} className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono text-slate-400 truncate">{service.label}</span>
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    service.status === 'online' ? 'bg-emerald-400' : service.status === 'standby' ? 'bg-amber-400' : 'bg-red-400'
+                  }`}></span>
+                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                    service.status === 'online' ? 'bg-emerald-500' : service.status === 'standby' ? 'bg-amber-500' : 'bg-red-500'
+                  }`}></span>
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between pt-1">
+                <span className="text-sm font-bold text-white capitalize">{service.status}</span>
+                <span className="text-[10px] font-mono text-slate-500">{service.latencyMs}ms</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
