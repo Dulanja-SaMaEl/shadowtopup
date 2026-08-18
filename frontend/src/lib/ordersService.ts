@@ -84,12 +84,12 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
   return [];
 }
 
-export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETED' | 'PENDING' | 'REJECTED'): Promise<boolean> {
+export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETED' | 'PENDING' | 'REJECTED', shortId?: string): Promise<boolean> {
   try {
     const res = await fetch('/api/admin/orders/status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: rawId, status }),
+      body: JSON.stringify({ orderId: rawId, shortId, status }),
     });
     const json = await res.json();
     return Boolean(json.success);
@@ -99,12 +99,12 @@ export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETE
   }
 }
 
-export async function updateDatabaseOrderReceipt(rawId: string, receiptUrl: string): Promise<boolean> {
+export async function updateDatabaseOrderReceipt(rawId: string, receiptUrl: string, shortId?: string): Promise<boolean> {
   try {
     const res = await fetch('/api/orders/upload-receipt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: rawId, receiptUrl }),
+      body: JSON.stringify({ orderId: rawId, shortId, receiptUrl }),
     });
     const json = await res.json();
     return Boolean(json.success);

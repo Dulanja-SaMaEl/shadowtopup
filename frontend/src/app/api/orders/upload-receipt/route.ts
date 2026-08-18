@@ -10,9 +10,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Missing server environment keys' }, { status: 500 });
     }
 
-    const { orderId, receiptUrl } = await request.json();
+    const { orderId, shortId, receiptUrl } = await request.json();
 
-    if (!orderId || !receiptUrl) {
+    const targetId = (orderId || shortId || '').replace('#', '').trim();
+
+    if (!targetId || !receiptUrl) {
       return NextResponse.json({ success: false, message: 'orderId and receiptUrl are required' }, { status: 400 });
     }
 
@@ -22,42 +24,53 @@ export async function POST(request: NextRequest) {
     let updatedTxCount = 0;
     let errors: string[] = [];
 
-    // Helper to update a table safely
     const updateTableReceipt = async (tableName: string) => {
+      // First find matching row ID (handles full UUID or short prefix ID like 'D191')
+      let matchedId = targetId;
+
+      const { data: searchRows } = await adminSupabase
+        .from(tableName)
+        .select('id')
+        .or(`id.eq.${targetId},id.ilike.${targetId}%`);
+
+      if (searchRows && searchRows.length > 0) {
+        matchedId = searchRows[0].id;
+      }
+
       // 1. Try updating receipt_path first
       let { data, error: err1 } = await adminSupabase
         .from(tableName)
         .update({ receipt_path: receiptUrl })
-        .eq('id', orderId)
+        .eq('id', matchedId)
         .select();
 
-      if (err1) {
-        // Try updating receipt_url if receipt_path failed
+      if (err1 || !data || data.length === 0) {
+        // Try updating receipt_url if receipt_path failed or returned 0
         const { data: data2, error: err2 } = await adminSupabase
           .from(tableName)
           .update({ receipt_url: receiptUrl })
-          .eq('id', orderId)
+          .eq('id', matchedId)
           .select();
         
-        if (err2) {
-          errors.push(`Table ${tableName} receipt update error: ${err1.message} / ${err2.message}`);
-        } else if (data2 && data2.length > 0) {
+        if (data2 && data2.length > 0) {
           data = data2;
+        } else if (err2) {
+          errors.push(`Table ${tableName} receipt update error: ${err1?.message || ''} / ${err2.message}`);
         }
       }
 
-      // 2. Try updating status to proof_submitted
+      // 2. Update status to proof_submitted
       const { error: statusErr } = await adminSupabase
         .from(tableName)
         .update({ status: 'proof_submitted' })
-        .eq('id', orderId);
+        .eq('id', matchedId);
 
       if (statusErr) {
-        // If proof_submitted violates constraint, try status: 'pending' or 'submitted'
+        // Fallback to pending if proof_submitted is constrained by ENUM
         await adminSupabase
           .from(tableName)
           .update({ status: 'pending' })
-          .eq('id', orderId);
+          .eq('id', matchedId);
         errors.push(`Table ${tableName} status update note: ${statusErr.message}`);
       }
 
@@ -69,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Receipt update processed',
+      message: 'Receipt update processed successfully',
       receiptUrl,
       updatedOrdersCount,
       updatedTxCount,

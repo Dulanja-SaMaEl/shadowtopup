@@ -10,10 +10,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Missing server environment keys' }, { status: 500 });
     }
 
-    const { orderId, status } = await request.json();
+    const { orderId, shortId, status } = await request.json();
+    const targetId = (orderId || shortId || '').replace('#', '').trim();
 
-    if (!orderId || !status) {
-      return NextResponse.json({ success: false, message: 'orderId and status are required' }, { status: 400 });
+    if (!targetId || !status) {
+      return NextResponse.json({ success: false, message: 'targetId and status are required' }, { status: 400 });
     }
 
     const orderStatusVal = status === 'COMPLETED' ? 'completed' : status === 'REJECTED' ? 'rejected' : 'pending';
@@ -21,18 +22,27 @@ export async function POST(request: NextRequest) {
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
-    const { error: orderErr } = await adminSupabase
-      .from('orders')
-      .update({ status: orderStatusVal })
-      .eq('id', orderId);
+    const updateTableStatus = async (tableName: string, statusVal: string) => {
+      let matchedId = targetId;
+      const { data: searchRows } = await adminSupabase
+        .from(tableName)
+        .select('id')
+        .or(`id.eq.${targetId},id.ilike.${targetId}%`);
 
-    const { error: txErr } = await adminSupabase
-      .from('purchase_transactions')
-      .update({ status: txStatusVal })
-      .eq('id', orderId);
+      if (searchRows && searchRows.length > 0) {
+        matchedId = searchRows[0].id;
+      }
 
-    if (orderErr) console.error('Error updating orders status:', orderErr);
-    if (txErr) console.error('Error updating purchase_transactions status:', txErr);
+      const { error } = await adminSupabase
+        .from(tableName)
+        .update({ status: statusVal })
+        .eq('id', matchedId);
+
+      if (error) console.error(`Error updating status for ${tableName}:`, error);
+    };
+
+    await updateTableStatus('orders', orderStatusVal);
+    await updateTableStatus('purchase_transactions', txStatusVal);
 
     return NextResponse.json({
       success: true,

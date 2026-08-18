@@ -203,8 +203,8 @@ export default function UserDashboardPage() {
       if (json.success && json.url) {
         const receiptUrl = json.url;
 
-        if (selectedOrder.raw_id) {
-          await updateDatabaseOrderReceipt(selectedOrder.raw_id, receiptUrl);
+        if (selectedOrder) {
+          await updateDatabaseOrderReceipt(selectedOrder.raw_id || selectedOrder.id, receiptUrl, selectedOrder.id);
         }
 
         setSelectedOrder({
