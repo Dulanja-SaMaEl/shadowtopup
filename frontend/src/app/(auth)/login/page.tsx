@@ -20,20 +20,43 @@ export default function LoginPage() {
 
     const targetEmail = email.trim().toLowerCase();
 
-    // 1. Check if email is one of the designated test accounts
+    // Set cookie for session persistence across server routes
+    document.cookie = `active_session_email=${targetEmail}; path=/; max-age=86400; SameSite=Lax`;
+
+    // Attempt Supabase Auth login
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: targetEmail,
+      password,
+    });
+
+    if (authData?.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, name')
+        .eq('id', authData.user.id)
+        .single();
+
+      const userRole = profile?.role || 'normal';
+      const userName = profile?.name || targetEmail.split('@')[0].toUpperCase();
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('active_session_email', targetEmail);
+        localStorage.setItem('active_session_role', userRole);
+        localStorage.setItem('active_session_name', userName);
+      }
+
+      window.location.href = userRole === 'admin' ? '/admin/dashboard' : '/dashboard';
+      return;
+    }
+
+    // Fallback check for test accounts if Supabase Auth user wasn't initialized with password
     const isTestAccount =
       targetEmail.includes('admin@shadow') ||
       targetEmail.includes('gold@shadow') ||
       targetEmail.includes('silver@shadow') ||
       targetEmail.includes('user@shadow');
 
-    if (isTestAccount) {
-      if (password !== 'Password123!') {
-        setLoading(false);
-        setError('Invalid password for test account! (Required: Password123!)');
-        return;
-      }
-
+    if (isTestAccount && password === 'Password123!') {
       let detectedRole = 'normal';
       let detectedName = 'User Account';
 
@@ -61,39 +84,8 @@ export default function LoginPage() {
       return;
     }
 
-    // 2. Standard Supabase Auth Password Verification
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: targetEmail,
-      password,
-    });
-
-    if (authError || !authData?.user) {
-      setLoading(false);
-      setError(authError?.message || 'Invalid login credentials. Please check your email and password.');
-      return;
-    }
-
-    // Successful Supabase Authentication
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, name')
-        .eq('id', authData.user.id)
-        .single();
-
-      const userRole = profile?.role || 'normal';
-      const userName = profile?.name || targetEmail.split('@')[0].toUpperCase();
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('active_session_email', targetEmail);
-        localStorage.setItem('active_session_role', userRole);
-        localStorage.setItem('active_session_name', userName);
-      }
-
-      window.location.href = userRole === 'admin' ? '/admin/dashboard' : '/dashboard';
-    } catch {
-      window.location.href = '/dashboard';
-    }
+    setLoading(false);
+    setError(authError?.message || 'Invalid login credentials. Please check your email and password.');
   };
 
   return (
