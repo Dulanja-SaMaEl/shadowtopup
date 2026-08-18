@@ -29,14 +29,51 @@ function generateSecureCode(): string {
 export async function GET() {
   try {
     const adminSupabase = getAdminClient();
-    const { data: codes, error } = await adminSupabase
+
+    // 1. Fetch raw redeem codes
+    const { data: rawCodes, error } = await adminSupabase
       .from('redeem_codes')
-      .select('*, profiles:redeemed_by(email, name)')
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        return NextResponse.json({
+          success: false,
+          needsMigration: true,
+          message: 'Table "public.redeem_codes" does not exist in Supabase database yet. Please run the SQL migration query.',
+          codes: [],
+        }, { status: 400 });
+      }
+      throw error;
+    }
 
-    return NextResponse.json({ success: true, codes: codes || [] });
+    const codesList = rawCodes || [];
+    const redeemedUserIds = Array.from(
+      new Set(codesList.map((c) => c.redeemed_by).filter(Boolean))
+    ) as string[];
+
+    let profilesMap: Record<string, { email?: string; name?: string }> = {};
+
+    if (redeemedUserIds.length > 0) {
+      const { data: userProfiles } = await adminSupabase
+        .from('profiles')
+        .select('id, email, name')
+        .in('id', redeemedUserIds);
+
+      if (userProfiles) {
+        userProfiles.forEach((p) => {
+          profilesMap[p.id] = { email: p.email, name: p.name };
+        });
+      }
+    }
+
+    const formattedCodes = codesList.map((c) => ({
+      ...c,
+      profiles: c.redeemed_by ? profilesMap[c.redeemed_by] || null : null,
+    }));
+
+    return NextResponse.json({ success: true, codes: formattedCodes });
   } catch (err: any) {
     console.error('Error fetching redeem codes:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
@@ -72,7 +109,16 @@ export async function POST(request: NextRequest) {
       .insert(newCodes)
       .select();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        return NextResponse.json({
+          success: false,
+          needsMigration: true,
+          message: 'Table "public.redeem_codes" does not exist in your Supabase database yet! Please run the SQL migration script in your Supabase SQL Editor.',
+        }, { status: 400 });
+      }
+      throw error;
+    }
 
     return NextResponse.json({
       success: true,

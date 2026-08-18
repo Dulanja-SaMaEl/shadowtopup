@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Wallet, Ticket, Plus, Copy, Check, Search, RefreshCw, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Wallet, Ticket, Plus, Copy, Check, Search, RefreshCw, AlertCircle, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 interface RedeemCode {
   id: string;
@@ -23,17 +23,22 @@ export default function AdminWalletPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const loadCodes = async () => {
     setLoading(true);
+    setApiError(null);
     try {
       const res = await fetch('/api/admin/redeem-codes');
       const data = await res.json();
       if (data.success && data.codes) {
         setCodes(data.codes);
+      } else if (data.message) {
+        setApiError(data.message);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching redeem codes:', err);
+      setApiError('Failed to fetch redeem codes from API');
     }
     setLoading(false);
   };
@@ -45,6 +50,7 @@ export default function AdminWalletPage() {
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setGenerating(true);
+    setApiError(null);
     try {
       const res = await fetch('/api/admin/redeem-codes', {
         method: 'POST',
@@ -59,10 +65,11 @@ export default function AdminWalletPage() {
       if (data.success) {
         await loadCodes();
       } else {
-        alert(data.message || 'Error generating codes');
+        setApiError(data.message || 'Error generating codes');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error generating codes:', err);
+      setApiError('Network connection error');
     }
     setGenerating(false);
   };
@@ -104,6 +111,20 @@ export default function AdminWalletPage() {
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh Codes
         </button>
       </div>
+
+      {apiError && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-2">
+          <div className="flex items-center gap-2 font-bold text-sm text-amber-400">
+            <AlertTriangle className="w-5 h-5 shrink-0" /> Supabase Database Notice
+          </div>
+          <p className="text-xs font-mono">{apiError}</p>
+          {apiError.includes('does not exist') && (
+            <p className="text-xs text-slate-300 font-sans">
+              👉 Please copy and run the SQL migration script (found in <code className="bg-slate-900 px-1 py-0.5 rounded text-cyan-300">supabase_shadow_wallet.sql</code>) inside your <strong>Supabase SQL Editor</strong> to create the <code className="bg-slate-900 px-1 py-0.5 rounded text-cyan-300">redeem_codes</code> table!
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Generator Card & Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

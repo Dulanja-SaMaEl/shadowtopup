@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.redeem_codes (
   code TEXT UNIQUE NOT NULL,
   amount NUMERIC(10, 2) NOT NULL CHECK (amount > 0),
   is_redeemed BOOLEAN DEFAULT FALSE NOT NULL,
-  redeemed_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  redeemed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   redeemed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.redeem_codes (
 -- 3. Create public.wallet_transactions audit table
 CREATE TABLE IF NOT EXISTS public.wallet_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('REDEEM_CODE', 'PACKAGE_PURCHASE', 'ADMIN_ADJUSTMENT')),
   amount NUMERIC(10, 2) NOT NULL,
   balance_after NUMERIC(10, 2) NOT NULL,
@@ -33,7 +33,6 @@ ALTER TABLE public.redeem_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;
 
 -- 5. RLS Policies
--- Allow public select on unredeemed code verification (or via service role)
 CREATE POLICY "Allow service role full access on redeem_codes" 
 ON public.redeem_codes FOR ALL USING (true);
 
