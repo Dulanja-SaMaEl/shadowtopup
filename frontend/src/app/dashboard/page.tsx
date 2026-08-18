@@ -333,14 +333,25 @@ export default function UserDashboardPage() {
 
         {/* User Profile Header Card */}
         <div className="p-8 rounded-3xl bg-[#141229] border border-purple-950/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-white text-2xl font-black">
-              {profile?.name?.charAt(0) || 'U'}
+          <div className="flex items-center gap-5">
+            {/* Animated Profile Avatar Icon */}
+            <div className="relative group">
+              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 opacity-70 blur-md group-hover:opacity-100 transition duration-500 group-hover:duration-200 animate-pulse" />
+              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900 border border-cyan-500/40 flex items-center justify-center text-2xl font-black shadow-xl transform transition-all duration-300 group-hover:scale-105 group-hover:rotate-2">
+                <span className="bg-clip-text text-transparent bg-gradient-to-tr from-cyan-300 via-white to-purple-200 drop-shadow-[0_2px_8px_rgba(6,182,212,0.6)] group-hover:scale-110 transition-transform duration-300">
+                  {(profile?.name?.charAt(0) || profile?.email?.charAt(0) || 'U').toUpperCase()}
+                </span>
+              </div>
+              <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#141229]" />
+              </span>
             </div>
+
             <div>
               <h2 className="text-xl font-black text-white uppercase tracking-wider">{profile?.name}</h2>
               <p className="text-xs text-slate-400 font-mono">{profile?.email}</p>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1.5 flex items-center gap-2">
                 <span className={`px-3 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider ${
                   profile?.role === 'gold'
                     ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
@@ -348,7 +359,7 @@ export default function UserDashboardPage() {
                     ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
                     : profile?.role === 'admin'
                     ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700'
+                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-sm shadow-blue-500/20'
                 }`}>
                   {profile?.role === 'gold' ? 'GOLD RESELLER' : profile?.role === 'silver' ? 'SILVER RESELLER' : profile?.role === 'admin' ? 'ADMIN' : 'NORMAL USER'}
                 </span>
@@ -554,9 +565,9 @@ export default function UserDashboardPage() {
                   <YAxis stroke="#64748b" tick={{ fontSize: 9 }} />
                   <Tooltip contentStyle={{ backgroundColor: '#0e0c1f', borderColor: '#334155', fontSize: '10px' }} />
                   <Legend wrapperStyle={{ fontSize: '10px' }} />
-                  <Bar dataKey="Normal" fill="#64748b" />
-                  <Bar dataKey="Silver" fill="#cbd5e1" />
-                  <Bar dataKey="Gold" fill="#eab308" />
+                  <Bar dataKey="Normal" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Silver" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Gold" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
