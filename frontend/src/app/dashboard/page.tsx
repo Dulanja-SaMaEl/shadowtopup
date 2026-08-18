@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { fetchDatabaseOrders, updateDatabaseOrderReceipt, DatabaseOrder } from '@/lib/ordersService';
 import { Profile } from '@/types/database';
 import {
   Award,
@@ -48,12 +49,7 @@ export default function UserDashboardPage() {
     updated_at: '2026-05-11T00:00:00Z',
   });
 
-  const [transactions, setTransactions] = useState<any[]>([
-    { id: '25', package_name: '25 Diamond Pack', items: '2X ITEMS', amount: 5.00, status: 'COMPLETED', time: '11:30 AM', date: 'MAY 11, 2026', player_uid: '1092837465', receipt_url: null },
-    { id: '22', package_name: '100 Diamonds', items: '1X ITEMS', amount: 10.00, status: 'COMPLETED', time: '10:00 AM', date: 'MAY 03, 2026', player_uid: '8876543219', receipt_url: null },
-    { id: '18', package_name: '50 Diamonds', items: '1X ITEMS', amount: 5.00, status: 'PENDING', time: '10:15 AM', date: 'APR 23, 2026', player_uid: '4455667788', receipt_url: null },
-  ]);
-
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [resellerTier, setResellerTier] = useState<'silver' | 'gold'>('silver');
   const [applying, setApplying] = useState(false);
   const [resellerMsg, setResellerMsg] = useState<string | null>(null);
@@ -68,6 +64,8 @@ export default function UserDashboardPage() {
   const supabase = createClient();
 
   useEffect(() => {
+    let currentEmail = 'USER@SHADOWSTORE.COM';
+
     // 1. Sync from localStorage session
     if (typeof window !== 'undefined') {
       const storedEmail = localStorage.getItem('active_session_email');
@@ -75,67 +73,47 @@ export default function UserDashboardPage() {
       const storedName = localStorage.getItem('active_session_name');
 
       if (storedEmail) {
+        currentEmail = storedEmail.toUpperCase();
         const nameVal = storedName ? storedName.toUpperCase() : storedEmail.split('@')[0].toUpperCase();
         setProfile((prev) => ({
           ...prev!,
-          email: storedEmail.toUpperCase(),
+          email: currentEmail,
           name: nameVal,
           role: storedRole || 'normal',
           reseller_status: ['gold', 'silver'].includes(storedRole) ? 'approved' : 'none',
         }));
         setEditName(nameVal);
-        setEditEmail(storedEmail.toUpperCase());
+        setEditEmail(currentEmail);
       }
     }
 
-    // 2. Sync from Supabase Auth
-    async function syncSupabaseUser() {
-      const { data: { user } } = await supabase.auth.getUser();
+    // 2. Fetch Database Orders from Supabase
+    async function loadUserDatabaseOrders() {
+      const dbOrders = await fetchDatabaseOrders();
+      
+      // Filter for active user or show relevant user orders
+      const userDbOrders = dbOrders.filter((o) => 
+        o.customerEmail.toUpperCase() === currentEmail || currentEmail === 'USER@SHADOWSTORE.COM'
+      );
 
-      if (user) {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+      const targetList = userDbOrders.length > 0 ? userDbOrders : dbOrders;
 
-        if (prof) {
-          const profName = prof.name ? prof.name.toUpperCase() : user.email?.split('@')[0].toUpperCase() || 'USER ACCOUNT';
-          const profEmail = prof.email ? prof.email.toUpperCase() : user.email?.toUpperCase() || 'USER@SHADOWSTORE.COM';
-          setProfile({
-            ...prof,
-            name: profName,
-            email: profEmail,
-            role: prof.role || 'normal',
-          } as Profile);
-          setEditName(profName);
-          setEditEmail(profEmail);
-        }
-
-        const { data: txs } = await supabase
-          .from('purchase_transactions')
-          .select('*, package:packages(*)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (txs && txs.length > 0) {
-          setTransactions(
-            txs.map((tx: any, idx: number) => ({
-              id: (txs.length - idx).toString(),
-              package_name: tx.package?.package_name || 'Free Fire Diamonds',
-              items: '1X ITEMS',
-              amount: Number(tx.price_paid || 5.00),
-              status: (tx.status || 'completed').toUpperCase(),
-              time: '10:00 AM',
-              date: new Date(tx.created_at).toLocaleDateString(),
-              player_uid: tx.free_fire_player_id || '9876543210',
-              receipt_url: tx.receipt_url || null,
-            }))
-          );
-        }
-      }
+      setTransactions(
+        targetList.map((o) => ({
+          id: o.id.replace('#', ''),
+          raw_id: o.raw_id,
+          package_name: o.package_name,
+          items: '1X ITEMS',
+          amount: o.totalAmount,
+          status: o.fulfillmentStatus,
+          time: '11:30 AM',
+          date: o.date.toUpperCase(),
+          player_uid: o.free_fire_player_id,
+          receipt_url: o.paymentReceipt,
+        }))
+      );
     }
-    syncSupabaseUser();
+    loadUserDatabaseOrders();
   }, []);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -205,11 +183,9 @@ export default function UserDashboardPage() {
       if (json.success && json.url) {
         const receiptUrl = json.url;
 
-        if (profile?.id && profile.id !== 'demo-user') {
-          await supabase
-            .from('purchase_transactions')
-            .update({ receipt_url: receiptUrl })
-            .eq('id', selectedOrder.id);
+        // Update database directly in Supabase
+        if (selectedOrder.raw_id) {
+          await updateDatabaseOrderReceipt(selectedOrder.raw_id, receiptUrl);
         }
 
         setSelectedOrder({
@@ -241,23 +217,24 @@ export default function UserDashboardPage() {
   };
 
   const lineData = [
-    { date: 'Jul 18', spent: 0 },
-    { date: 'Jul 24', spent: 0 },
-    { date: 'Jul 29', spent: 0 },
-    { date: 'Aug 03', spent: 10 },
-    { date: 'Aug 08', spent: 10 },
-    { date: 'Aug 13', spent: 22 },
+    { date: 'Aug 12', spent: 6800 },
+    { date: 'Aug 15', spent: 1200 },
+    { date: 'Aug 16', spent: 3450 },
+    { date: 'Aug 17', spent: 2100 },
+    { date: 'Aug 18', spent: 750 },
   ];
 
   const barData = [
-    { name: '25 Diamond Pack', Normal: 75, Silver: 73, Gold: 72 },
+    { name: '100 Diamonds', Normal: 750, Silver: 690, Gold: 637 },
+    { name: '310 Diamonds', Normal: 2100, Silver: 1932, Gold: 1785 },
   ];
 
-  const totalSpent = transactions.reduce((acc, t) => acc + Number(t.amount || 0), 42.00);
+  const totalSpent = transactions.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const activeOrdersCount = transactions.filter((t) => t.status === 'PENDING').length;
 
   return (
     <div className="min-h-screen bg-[#0a0814] pb-20 space-y-8">
-      {/* 1. Top Banner matching screenshot 2 */}
+      {/* Top Banner Header */}
       <div className="relative h-48 bg-[#120f26] border-b border-purple-950/40 overflow-hidden flex flex-col items-center justify-center text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/20 via-purple-950/30 to-transparent" />
         <div className="relative z-10 space-y-2">
@@ -337,16 +314,16 @@ export default function UserDashboardPage() {
         {/* 3. Metrics Summary Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">TOTAL ORDERS</span>
-            <h3 className="text-3xl font-black text-white">{transactions.length > 0 ? transactions.length : 3}</h3>
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">TOTAL DB ORDERS</span>
+            <h3 className="text-3xl font-black text-white">{transactions.length}</h3>
           </div>
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
             <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">TOTAL SPENT</span>
-            <h3 className="text-3xl font-black text-white">LKR {totalSpent.toFixed(2)}</h3>
+            <h3 className="text-3xl font-black text-white">LKR {totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
           </div>
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">ACTIVE ORDERS</span>
-            <h3 className="text-3xl font-black text-cyan-400">2</h3>
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">ACTIVE PENDING ORDERS</span>
+            <h3 className="text-3xl font-black text-cyan-400">{activeOrdersCount}</h3>
           </div>
         </div>
 
@@ -478,7 +455,7 @@ export default function UserDashboardPage() {
 
         {/* 7. Recent Orders List */}
         <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
-          <h3 className="text-xs font-black text-white uppercase tracking-wider">RECENT ORDERS</h3>
+          <h3 className="text-xs font-black text-white uppercase tracking-wider">RECENT DATABASE ORDERS</h3>
 
           <div className="space-y-3">
             {transactions.map((tx) => (
@@ -488,23 +465,25 @@ export default function UserDashboardPage() {
                 className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 flex items-center justify-between hover:border-purple-500/60 cursor-pointer transition-all hover:bg-slate-900/40"
               >
                 <div className="flex items-center gap-4">
-                  <span className="w-8 h-8 rounded-xl bg-slate-900 text-slate-300 font-mono text-xs font-bold flex items-center justify-center border border-slate-800">
+                  <span className="w-12 h-8 rounded-xl bg-slate-900 text-purple-400 font-mono text-xs font-bold flex items-center justify-center border border-slate-800">
                     #{tx.id}
                   </span>
                   <div>
                     <h5 className="font-bold text-white text-xs uppercase">{tx.package_name}</h5>
-                    <p className="text-[10px] text-slate-400 font-mono">{tx.items} • {tx.time}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">PLAYER UID: {tx.player_uid} • {tx.date}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <span className="font-mono font-bold text-white text-xs">
+                  <span className="font-mono font-bold text-emerald-400 text-xs">
                     LKR {Number(tx.amount).toFixed(2)}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
                     tx.status === 'COMPLETED'
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      : tx.status === 'PENDING'
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
                   }`}>
                     {tx.status}
                   </span>
@@ -602,8 +581,8 @@ export default function UserDashboardPage() {
                   <span className="font-mono font-bold text-cyan-400">{selectedOrder.player_uid}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400 font-mono">DATE & TIME</span>
-                  <span className="font-mono text-slate-300">{selectedOrder.date} • {selectedOrder.time}</span>
+                  <span className="text-slate-400 font-mono">DATE</span>
+                  <span className="font-mono text-slate-300">{selectedOrder.date}</span>
                 </div>
                 <div className="flex justify-between border-t border-slate-800 pt-2">
                   <span className="text-slate-400 font-mono">TOTAL PAID</span>
@@ -651,7 +630,7 @@ export default function UserDashboardPage() {
                 </div>
                 {uploadingReceipt && (
                   <p className="text-[10px] text-cyan-400 font-mono flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Uploading receipt...
+                    <Loader2 className="w-3 h-3 animate-spin" /> Uploading receipt & updating Supabase database...
                   </p>
                 )}
               </div>
@@ -661,7 +640,9 @@ export default function UserDashboardPage() {
                 <span className={`px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
                   selectedOrder.status === 'COMPLETED'
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : selectedOrder.status === 'PENDING'
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
                 }`}>
                   {selectedOrder.status}
                 </span>

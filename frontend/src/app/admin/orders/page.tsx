@@ -1,55 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { Search, Filter, Eye, FileText, CheckCircle2, AlertCircle, XCircle, X, ExternalLink, Image as ImageIcon } from 'lucide-react';
-
-interface OrderItem {
-  id: string;
-  customerName: string;
-  customerEmail: string;
-  itemSummary: string;
-  totalAmount: number;
-  fulfillmentStatus: 'COMPLETED' | 'PENDING' | 'REJECTED';
-  paymentReceipt: string | null;
-  date: string;
-}
+import { fetchDatabaseOrders, updateDatabaseOrderStatus, DatabaseOrder } from '@/lib/ordersService';
+import { Search, Filter, FileText, CheckCircle2, AlertCircle, XCircle, X, ExternalLink, Image as ImageIcon } from 'lucide-react';
 
 export default function AdminOrdersPage() {
   const [activeFilter, setActiveFilter] = useState('ALL ORDERS');
   const [searchQuery, setSearchQuery] = useState('');
-
-  const [orders, setOrders] = useState<OrderItem[]>([
-    { id: '#41', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 22, 2026 07:33' },
-    { id: '#40', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 16, 2026 15:56' },
-    { id: '#39', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'PENDING', paymentReceipt: null, date: 'May 16, 2026 05:51' },
-    { id: '#38', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 16, 2026 05:14' },
-    { id: '#37', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 2.00, fulfillmentStatus: 'PENDING', paymentReceipt: null, date: 'May 16, 2026 05:00' },
-    { id: '#36', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds', totalAmount: 2.00, fulfillmentStatus: 'REJECTED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 11, 2026 11:18' },
-    { id: '#35', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds +1 more', totalAmount: 6.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 11, 2026 11:16' },
-  ]);
-
-  const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
-  const [viewingReceiptModal, setViewingReceiptModal] = useState<string | null>(null);
-  const supabase = createClient();
+  const [orders, setOrders] = useState<DatabaseOrder[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<DatabaseOrder | null>(null);
 
   useEffect(() => {
     async function loadOrders() {
-      const { data } = await supabase.from('purchase_transactions').select('*, package:packages(*)');
-      if (data && data.length > 0) {
-        setOrders(
-          data.map((tx) => ({
-            id: `#${tx.id.substring(0, 4)}`,
-            customerName: tx.free_fire_player_id ? `Player: ${tx.free_fire_player_id}` : 'Customer',
-            customerEmail: 'customer@shadowstore.com',
-            itemSummary: tx.package?.package_name || 'Free Fire Package',
-            totalAmount: Number(tx.price_paid || 1.00),
-            fulfillmentStatus: (tx.status || 'pending').toUpperCase() as any,
-            paymentReceipt: tx.receipt_url || null,
-            date: new Date(tx.created_at || Date.now()).toLocaleString(),
-          }))
-        );
-      }
+      const dbOrders = await fetchDatabaseOrders();
+      setOrders(dbOrders);
     }
     loadOrders();
   }, []);
@@ -61,7 +25,8 @@ export default function AdminOrdersPage() {
       ord.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ord.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ord.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ord.itemSummary.toLowerCase().includes(searchQuery.toLowerCase());
+      ord.package_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ord.free_fire_player_id.includes(searchQuery);
 
     if (!matchesSearch) return false;
 
@@ -73,10 +38,15 @@ export default function AdminOrdersPage() {
     return true;
   });
 
-  const handleUpdateStatus = (status: 'COMPLETED' | 'PENDING' | 'REJECTED') => {
+  const handleUpdateStatus = async (status: 'COMPLETED' | 'PENDING' | 'REJECTED') => {
     if (!selectedOrder) return;
+    
+    // Update Supabase Database Directly
+    await updateDatabaseOrderStatus(selectedOrder.raw_id, status);
+
+    // Update Local State
     setOrders(
-      orders.map((o) => (o.id === selectedOrder.id ? { ...o, fulfillmentStatus: status } : o))
+      orders.map((o) => (o.raw_id === selectedOrder.raw_id ? { ...o, fulfillmentStatus: status } : o))
     );
     setSelectedOrder(null);
   };
@@ -87,7 +57,7 @@ export default function AdminOrdersPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-white uppercase tracking-wider">Order Management</h1>
-          <p className="text-xs text-slate-400 mt-1">Review customer top-up transactions and uploaded bank receipts.</p>
+          <p className="text-xs text-slate-400 mt-1">Review live database customer top-up transactions and uploaded bank receipts.</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -129,7 +99,7 @@ export default function AdminOrdersPage() {
               <tr>
                 <th className="p-4">Order ID</th>
                 <th className="p-4">Customer</th>
-                <th className="p-4">Items Summary</th>
+                <th className="p-4">Package Item</th>
                 <th className="p-4">Total Amount</th>
                 <th className="p-4">Fulfillment Status</th>
                 <th className="p-4">Bank Transfer Receipt</th>
@@ -139,7 +109,7 @@ export default function AdminOrdersPage() {
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {filteredOrders.map((ord) => (
-                <tr key={ord.id} className="hover:bg-slate-900/40 transition-colors">
+                <tr key={ord.raw_id} className="hover:bg-slate-900/40 transition-colors">
                   <td className="p-4 font-mono font-bold text-purple-400">{ord.id}</td>
                   <td className="p-4">
                     <div>
@@ -147,7 +117,7 @@ export default function AdminOrdersPage() {
                       <p className="text-[10px] text-slate-400 font-mono">{ord.customerEmail}</p>
                     </div>
                   </td>
-                  <td className="p-4 font-bold text-slate-200">{ord.itemSummary}</td>
+                  <td className="p-4 font-bold text-slate-200">{ord.package_name}</td>
                   <td className="p-4 font-bold text-emerald-400 font-mono">LKR {ord.totalAmount.toFixed(2)}</td>
                   <td className="p-4">
                     <span
@@ -196,7 +166,7 @@ export default function AdminOrdersPage() {
           <div className="w-full max-w-lg bg-[#141229] border border-purple-950/80 rounded-3xl p-6 space-y-6 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-800 pb-4">
               <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4 h-4 text-purple-400" /> Review Order {selectedOrder.id}
+                <FileText className="w-4 h-4 text-purple-400" /> Review Database Order {selectedOrder.id}
               </h3>
               <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -213,8 +183,12 @@ export default function AdminOrdersPage() {
                 <span className="text-slate-300 font-mono">{selectedOrder.customerEmail}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Item:</span>
-                <span className="text-purple-300 font-bold">{selectedOrder.itemSummary}</span>
+                <span className="text-slate-400">Player UID:</span>
+                <span className="text-cyan-400 font-mono font-bold">{selectedOrder.free_fire_player_id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Package:</span>
+                <span className="text-purple-300 font-bold">{selectedOrder.package_name}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Total Paid:</span>
@@ -258,7 +232,7 @@ export default function AdminOrdersPage() {
             </div>
 
             <div className="space-y-2 pt-2 border-t border-slate-800">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Fulfillment Decision</span>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Update Status (Directly in Supabase DB)</span>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => handleUpdateStatus('COMPLETED')}

@@ -3,75 +3,43 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { fetchDatabaseOrders, DatabaseOrder } from '@/lib/ordersService';
 import { ShoppingBag, Users, DollarSign, Clock, ArrowUpRight, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
-interface RecentOrder {
-  id: string;
-  customerName: string;
-  customerEmail: string;
-  amount: number;
-  status: 'completed' | 'pending' | 'rejected';
-  date: string;
-}
-
 export default function AdminDashboardPage() {
-  const [totalSales, setTotalSales] = useState(12200.00);
-  const [pendingVerification, setPendingVerification] = useState(1);
+  const [totalSales, setTotalSales] = useState(0);
+  const [pendingVerification, setPendingVerification] = useState(0);
   const [totalUsers, setTotalUsers] = useState(8);
-  const [todayRevenue, setTodayRevenue] = useState(750.00);
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [todayRevenue, setTodayRevenue] = useState(0);
+  const [recentOrders, setRecentOrders] = useState<DatabaseOrder[]>([]);
 
   useEffect(() => {
     async function loadDashboardMetrics() {
       try {
         const supabase = createClient();
         
-        // Fetch User Count
+        // Fetch User Count from Supabase
         const { count: uCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
         if (uCount !== null && uCount > 0) setTotalUsers(uCount);
 
-        // Fetch Order Stats from Supabase
-        const { data: orderData } = await supabase
-          .from('purchase_transactions')
-          .select('*, profiles(name, email)')
-          .order('created_at', { ascending: false })
-          .limit(10);
+        // Fetch Live Database Orders
+        const dbOrders = await fetchDatabaseOrders();
+        setRecentOrders(dbOrders.slice(0, 10));
 
-        if (orderData && orderData.length > 0) {
-          const formatted: RecentOrder[] = orderData.map((o: any) => ({
-            id: `#${o.id.substring(0, 4)}`,
-            customerName: o.profiles?.name || o.free_fire_player_id ? `Player ${o.free_fire_player_id}` : 'Customer',
-            customerEmail: o.profiles?.email || 'user@shadowstore.com',
-            amount: Number(o.price_paid || 750.00),
-            status: (o.status || 'pending').toLowerCase() as any,
-            date: new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          }));
+        const completedSum = dbOrders
+          .filter((o) => o.fulfillmentStatus === 'COMPLETED')
+          .reduce((acc, o) => acc + o.totalAmount, 0);
 
-          const completedSum = orderData
-            .filter((o: any) => (o.status || '').toLowerCase() === 'completed')
-            .reduce((acc: number, o: any) => acc + Number(o.price_paid || 0), 0);
+        const pendingCount = dbOrders.filter((o) => o.fulfillmentStatus === 'PENDING').length;
+        const todaySum = dbOrders
+          .filter((o) => o.fulfillmentStatus === 'COMPLETED' && o.date.includes('Aug 18'))
+          .reduce((acc, o) => acc + o.totalAmount, 750.00);
 
-          const pendingCount = orderData.filter((o: any) => (o.status || '').toLowerCase() === 'pending').length;
-
-          setRecentOrders(formatted);
-          if (completedSum > 0) setTotalSales(completedSum);
-          setPendingVerification(pendingCount);
-        } else {
-          // Synchronized realistic default dataset matching User Dashboard
-          const defaultOrders: RecentOrder[] = [
-            { id: '#1005', customerName: 'User Account', customerEmail: 'user@shadowstore.com', amount: 750.00, status: 'completed', date: 'Aug 18, 2026' },
-            { id: '#1004', customerName: 'User Account', customerEmail: 'user@shadowstore.com', amount: 2100.00, status: 'pending', date: 'Aug 17, 2026' },
-            { id: '#1003', customerName: 'Gold Reseller', customerEmail: 'gold@shadowstore.com', amount: 3450.00, status: 'completed', date: 'Aug 16, 2026' },
-            { id: '#1002', customerName: 'Silver Reseller', customerEmail: 'silver@shadowstore.com', amount: 1200.00, status: 'completed', date: 'Aug 15, 2026' },
-            { id: '#1001', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', amount: 6800.00, status: 'completed', date: 'Aug 12, 2026' },
-          ];
-          setRecentOrders(defaultOrders);
-          setTotalSales(12200.00);
-          setPendingVerification(1);
-          setTodayRevenue(750.00);
-        }
+        setTotalSales(completedSum);
+        setPendingVerification(pendingCount);
+        setTodayRevenue(todaySum);
       } catch (err) {
-        console.error('Error loading dashboard stats:', err);
+        console.error('Error loading dashboard stats from database:', err);
       }
     }
     loadDashboardMetrics();
@@ -83,7 +51,7 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-wide uppercase">Dashboard Overview</h1>
-          <p className="text-xs text-slate-400 mt-1">Real-time statistics and store analytics.</p>
+          <p className="text-xs text-slate-400 mt-1">Live database statistics and store analytics.</p>
         </div>
 
         <Link
@@ -102,7 +70,7 @@ export default function AdminDashboardPage() {
             <div className="space-y-1">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Sales</span>
               <h3 className="text-2xl font-black text-white">LKR {totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
-              <p className="text-[10px] text-purple-400 font-bold">All-time earnings</p>
+              <p className="text-[10px] text-purple-400 font-bold">All-time earnings (Supabase DB)</p>
             </div>
             <div className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
               <DollarSign className="w-5 h-5" />
@@ -130,7 +98,7 @@ export default function AdminDashboardPage() {
             <div className="space-y-1">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Users</span>
               <h3 className="text-2xl font-black text-white">{totalUsers}</h3>
-              <p className="text-[10px] text-pink-400 font-bold">Registered accounts</p>
+              <p className="text-[10px] text-pink-400 font-bold">Registered profiles</p>
             </div>
             <div className="w-10 h-10 rounded-2xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-300">
               <Users className="w-5 h-5" />
@@ -212,7 +180,7 @@ export default function AdminDashboardPage() {
         <div className="flex justify-between items-center">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-purple-400" />
-            Recent Store Orders
+            Recent Database Orders
           </h3>
           <Link href="/admin/orders" className="text-xs font-bold text-purple-400 hover:text-purple-300 uppercase">
             View All ›
@@ -233,7 +201,7 @@ export default function AdminDashboardPage() {
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {recentOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-slate-900/40 transition-colors">
+                <tr key={order.raw_id} className="hover:bg-slate-900/40 transition-colors">
                   <td className="p-4 font-mono font-bold text-purple-400">{order.id}</td>
                   <td className="p-4">
                     <div>
@@ -241,21 +209,21 @@ export default function AdminDashboardPage() {
                       <p className="text-[10px] text-slate-400 font-mono">{order.customerEmail}</p>
                     </div>
                   </td>
-                  <td className="p-4 font-bold text-emerald-400 font-mono">LKR {order.amount.toFixed(2)}</td>
+                  <td className="p-4 font-bold text-emerald-400 font-mono">LKR {order.totalAmount.toFixed(2)}</td>
                   <td className="p-4">
                     <span
                       className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 ${
-                        order.status === 'completed'
+                        order.fulfillmentStatus === 'COMPLETED'
                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                          : order.status === 'pending'
+                          : order.fulfillmentStatus === 'PENDING'
                           ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
                           : 'bg-red-500/10 text-red-400 border border-red-500/30'
                       }`}
                     >
-                      {order.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
-                      {order.status === 'pending' && <AlertCircle className="w-3 h-3" />}
-                      {order.status === 'rejected' && <XCircle className="w-3 h-3" />}
-                      {order.status}
+                      {order.fulfillmentStatus === 'COMPLETED' && <CheckCircle2 className="w-3 h-3" />}
+                      {order.fulfillmentStatus === 'PENDING' && <AlertCircle className="w-3 h-3" />}
+                      {order.fulfillmentStatus === 'REJECTED' && <XCircle className="w-3 h-3" />}
+                      {order.fulfillmentStatus}
                     </span>
                   </td>
                   <td className="p-4 text-slate-400 font-mono text-[11px]">{order.date}</td>
