@@ -96,34 +96,30 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         const uploadData = await uploadRes.json();
         if (uploadData.success && uploadData.url) {
           
-          // Insert into Database!
+          // Insert into Database via Server API!
           const receiptUrl = uploadData.url;
-          
-          // 1. Insert into orders table
-          const { error: orderErr } = await supabase.from('orders').insert([{
-            user_id: userId,
-            total_amount: price,
-            status: 'pending',
-            receipt_path: receiptUrl
-          }]);
 
-          // 2. Insert into purchase_transactions table
-          const { error: txErr } = await supabase.from('purchase_transactions').insert([{
-            user_id: userId,
-            package_id: selectedPkg.id,
-            package_name: selectedPkg.package_name, // Some schemas use this if package_id isn't strictly enforced
-            free_fire_player_id: verifiedPlayerUid,
-            shells_deducted: selectedPkg.shell_cost,
-            price_paid: price,
-            price_tier: tier,
-            status: 'pending',
-            payment_method: 'bank_transfer',
-            receipt_path: receiptUrl
-          }]);
+          const createRes = await fetch('/api/orders/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId,
+              packageId: selectedPkg.id,
+              packageName: selectedPkg.package_name,
+              playerUid: verifiedPlayerUid,
+              totalAmount: price,
+              paymentMethod: 'bank_transfer',
+              receiptUrl,
+              priceTier: tier,
+              shellCost: selectedPkg.shell_cost,
+            }),
+          });
 
-          if (orderErr || txErr) {
-            console.error('DB Insert Error:', orderErr, txErr);
-            setMessage({ type: 'error', text: 'Order created but database insertion failed due to strict constraints.' });
+          const createData = await createRes.json();
+
+          if (!createData.success) {
+            console.error('DB Insert Error:', createData.message);
+            setMessage({ type: 'error', text: createData.message || 'Order creation failed.' });
           } else {
             setMessage({
               type: 'success',
