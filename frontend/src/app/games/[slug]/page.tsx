@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import PlayerVerificationForm from '@/components/PlayerVerificationForm';
 import PackageSelector from '@/components/PackageSelector';
@@ -157,6 +157,28 @@ export default function GameDetailPage() {
     nickname: string;
   } | null>(null);
 
+  const [packagesList, setPackagesList] = useState<Package[]>(mockPackages);
+
+  useEffect(() => {
+    async function fetchDbPackages() {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('packages')
+          .select('*')
+          .eq('is_active', true);
+
+        if (!error && data && data.length > 0) {
+          setPackagesList(data as Package[]);
+        }
+      } catch (e) {
+        console.log('Using fallback package list');
+      }
+    }
+    fetchDbPackages();
+  }, []);
+
   const gameTitle = slug === 'free-fire' ? 'Garena Free Fire ( SG / MY )' : slug.toUpperCase().replace('-', ' ');
 
   return (
@@ -185,7 +207,7 @@ export default function GameDetailPage() {
 
       {/* Step 2: Package Selection */}
       <PackageSelector
-        packages={mockPackages}
+        packages={packagesList}
         verifiedPlayerUid={verifiedPlayer?.uid}
       />
     </div>
