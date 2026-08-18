@@ -10,6 +10,7 @@ export interface Profile {
   role: UserRole;
   banned_at?: string | null;
   reseller_status: ResellerStatus;
+  store_name?: string | null;
   requested_tier?: 'silver' | 'gold' | null;
   reseller_expires_at?: string | null;
   preferences?: Record<string, any>;

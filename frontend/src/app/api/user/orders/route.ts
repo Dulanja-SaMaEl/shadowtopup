@@ -156,10 +156,12 @@ export async function GET(request: NextRequest) {
       success: true,
       data: mappedOrders,
       user: {
+        id: profileUserId || effectiveUserId || '',
         email: effectiveEmail,
         name: userName,
         role: userRole,
         reseller_status: resellerStatus,
+        store_name: currentUserProfile?.store_name || null,
       },
     });
   } catch (err: any) {

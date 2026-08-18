@@ -57,6 +57,11 @@ export default function UserDashboardPage() {
   const [applying, setApplying] = useState(false);
   const [resellerMsg, setResellerMsg] = useState<string | null>(null);
 
+  // Reseller Store Name state
+  const [storeName, setStoreName] = useState('');
+  const [savingStoreName, setSavingStoreName] = useState(false);
+  const [storeNameMsg, setStoreNameMsg] = useState<string | null>(null);
+
   // Modals & Upload state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editName, setEditName] = useState('');
@@ -74,24 +79,37 @@ export default function UserDashboardPage() {
   useEffect(() => {
     async function loadUserDatabaseOrders() {
       try {
+        const { data: authData } = await supabase.auth.getUser();
+        const authUser = authData?.user;
+
+        if (authUser) {
+          setProfile((prev) => ({
+            ...prev!,
+            id: authUser.id,
+            email: (authUser.email || '').toUpperCase(),
+          }));
+        }
+
         const res = await fetch('/api/user/orders');
         const json = await res.json();
 
         if (json.success && json.user) {
-          const userEmail = (json.user.email || '').toUpperCase();
+          const userEmail = (json.user.email || authUser?.email || '').toUpperCase();
           const userName = (json.user.name || '').toUpperCase();
 
           setProfile((prev) => ({
             ...prev!,
-            id: json.user.id,
+            id: json.user.id || authUser?.id || 'demo-user',
             email: userEmail,
             name: userName,
             role: json.user.role || 'normal',
             reseller_status: json.user.reseller_status || 'none',
+            store_name: json.user.store_name || null,
           }));
 
           setEditName(userName);
           setEditEmail(userEmail);
+          setStoreName(json.user.store_name || '');
 
           if (Array.isArray(json.data)) {
             setTransactions(
@@ -113,7 +131,8 @@ export default function UserDashboardPage() {
           // Unauthenticated view
           setProfile((prev) => ({
             ...prev!,
-            email: 'GUEST (NOT LOGGED IN)',
+            id: authUser?.id || 'demo-user',
+            email: authUser?.email || 'GUEST USER',
             name: 'GUEST USER',
             role: 'normal',
             reseller_status: 'none',
@@ -126,6 +145,28 @@ export default function UserDashboardPage() {
     }
     loadUserDatabaseOrders();
   }, []);
+
+  const handleSaveStoreName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!storeName.trim()) return;
+    setSavingStoreName(true);
+    setStoreNameMsg(null);
+
+    try {
+      if (profile?.id && profile.id !== 'demo-user') {
+        await supabase
+          .from('profiles')
+          .update({ store_name: storeName.trim() })
+          .eq('id', profile.id);
+      }
+
+      setProfile((prev) => (prev ? { ...prev, store_name: storeName.trim() } : null));
+      setStoreNameMsg('Reseller store name saved successfully!');
+    } catch (err) {
+      setStoreNameMsg('Failed to update store name.');
+    }
+    setSavingStoreName(false);
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,7 +394,7 @@ export default function UserDashboardPage() {
         </div>
 
         {/* SHADOW WALLET WIDGET */}
-        {profile?.id && <ShadowWalletWidget userId={profile.id} />}
+        <ShadowWalletWidget userId={profile?.id || 'demo-user'} />
 
         {/* Details Info Grid Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -367,7 +408,7 @@ export default function UserDashboardPage() {
           </div>
           <div className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/60">
             <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">ACCOUNT ROLE</span>
-            <p className="text-xs font-bold text-white uppercase mt-1 font-mono">{profile?.role.toUpperCase()}</p>
+            <p className="text-xs font-bold text-white uppercase mt-1 font-mono">{profile?.role?.toUpperCase()}</p>
           </div>
           <div className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/60">
             <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">MEMBER SINCE</span>
@@ -375,10 +416,17 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* RESELLER STATUS CARD */}
-        <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
-          <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
-            <Award className="w-4 h-4 text-red-500" /> RESELLER STATUS
+        {/* RESELLER STATUS & STORE NAME BRANDING CARD */}
+        <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
+              <Award className="w-4 h-4 text-red-500" /> RESELLER STATUS & STORE BRANDING
+            </div>
+            {profile?.store_name && (
+              <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] border border-purple-500/30">
+                Store: {profile.store_name}
+              </span>
+            )}
           </div>
 
           {profile?.role === 'gold' ? (
@@ -407,7 +455,40 @@ export default function UserDashboardPage() {
                 SUBSCRIPTION VALID UNTIL JUL 23, 2026
               </span>
             </div>
-          ) : (
+          ) : null}
+
+          {/* STORE NAME EDIT FORM FOR RESELLERS / ADMINS / USERS */}
+          <form onSubmit={handleSaveStoreName} className="p-5 rounded-2xl bg-[#0e0c1f] border border-purple-950/60 space-y-4">
+            <div className="flex items-center gap-2">
+              <UserIcon className="w-4 h-4 text-purple-400" />
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Reseller Store Name Customization</h4>
+            </div>
+            <p className="text-[10px] text-slate-400 font-mono">Customize your personal storefront name displayed on customer receipts & top-up vouchers.</p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                required
+                placeholder="Enter Reseller Store Name (e.g. Shadow Store SL)"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                className="flex-1 px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-cyan-400 uppercase"
+              />
+              <button
+                type="submit"
+                disabled={savingStoreName}
+                className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 transition-all disabled:opacity-50"
+              >
+                {savingStoreName ? 'Saving...' : 'Save Store Name'}
+              </button>
+            </div>
+
+            {storeNameMsg && (
+              <p className="text-xs text-emerald-400 font-mono font-bold">{storeNameMsg}</p>
+            )}
+          </form>
+
+          {profile?.role === 'normal' && (
             <div className="p-6 rounded-2xl bg-[#0e0c1f] border border-slate-800 space-y-4">
               <h4 className="text-xs font-black text-white uppercase tracking-wider">BECOME A RESELLER</h4>
               <p className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
