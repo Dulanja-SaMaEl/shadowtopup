@@ -17,7 +17,7 @@ import {
 
 const featuredGames = [
   {
-    title: 'FREE FIRE',
+    title: 'GARENA FREE FIRE ( SG / MY )',
     slug: 'free-fire',
     category: 'BATTLE ROYALE',
     image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000',

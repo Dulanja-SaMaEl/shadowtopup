@@ -71,7 +71,7 @@ export default function GameDetailPage() {
     nickname: string;
   } | null>(null);
 
-  const gameTitle = slug === 'free-fire' ? 'Garena Free Fire' : slug.toUpperCase().replace('-', ' ');
+  const gameTitle = slug === 'free-fire' ? 'Garena Free Fire ( SG / MY )' : slug.toUpperCase().replace('-', ' ');
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">

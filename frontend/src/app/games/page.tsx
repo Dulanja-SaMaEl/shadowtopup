@@ -3,7 +3,7 @@ import { Gamepad2, Zap } from 'lucide-react';
 
 const gamesList = [
   {
-    title: 'Garena Free Fire',
+    title: 'Garena Free Fire ( SG / MY )',
     slug: 'free-fire',
     category: 'Battle Royale',
     status: 'Automated Shell Topup',
