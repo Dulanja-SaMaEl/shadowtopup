@@ -457,36 +457,38 @@ export default function UserDashboardPage() {
             </div>
           ) : null}
 
-          {/* STORE NAME EDIT FORM FOR RESELLERS / ADMINS / USERS */}
-          <form onSubmit={handleSaveStoreName} className="p-5 rounded-2xl bg-[#0e0c1f] border border-purple-950/60 space-y-4">
-            <div className="flex items-center gap-2">
-              <UserIcon className="w-4 h-4 text-purple-400" />
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Reseller Store Name Customization</h4>
-            </div>
-            <p className="text-[10px] text-slate-400 font-mono">Customize your personal storefront name displayed on customer receipts & top-up vouchers.</p>
+          {/* STORE NAME EDIT FORM EXCLUSIVELY FOR ACTIVE RESELLERS & ADMINS */}
+          {(profile?.role === 'silver' || profile?.role === 'gold' || profile?.role === 'admin') && (
+            <form onSubmit={handleSaveStoreName} className="p-5 rounded-2xl bg-[#0e0c1f] border border-purple-950/60 space-y-4">
+              <div className="flex items-center gap-2">
+                <UserIcon className="w-4 h-4 text-purple-400" />
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Reseller Store Name Customization</h4>
+              </div>
+              <p className="text-[10px] text-slate-400 font-mono">Customize your personal storefront name displayed on customer receipts & top-up vouchers.</p>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                required
-                placeholder="Enter Reseller Store Name (e.g. Shadow Store SL)"
-                value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
-                className="flex-1 px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-cyan-400 uppercase"
-              />
-              <button
-                type="submit"
-                disabled={savingStoreName}
-                className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 transition-all disabled:opacity-50"
-              >
-                {savingStoreName ? 'Saving...' : 'Save Store Name'}
-              </button>
-            </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter Reseller Store Name (e.g. Shadow Store SL)"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  className="flex-1 px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-cyan-400 uppercase"
+                />
+                <button
+                  type="submit"
+                  disabled={savingStoreName}
+                  className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 transition-all disabled:opacity-50"
+                >
+                  {savingStoreName ? 'Saving...' : 'Save Store Name'}
+                </button>
+              </div>
 
-            {storeNameMsg && (
-              <p className="text-xs text-emerald-400 font-mono font-bold">{storeNameMsg}</p>
-            )}
-          </form>
+              {storeNameMsg && (
+                <p className="text-xs text-emerald-400 font-mono font-bold">{storeNameMsg}</p>
+              )}
+            </form>
+          )}
 
           {profile?.role === 'normal' && (
             <div className="p-6 rounded-2xl bg-[#0e0c1f] border border-slate-800 space-y-4">
