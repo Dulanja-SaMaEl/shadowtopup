@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Search, Filter, Eye, FileText, CheckCircle2, AlertCircle, XCircle, X } from 'lucide-react';
+import { Search, Filter, Eye, FileText, CheckCircle2, AlertCircle, XCircle, X, ExternalLink, Image as ImageIcon } from 'lucide-react';
 
 interface OrderItem {
   id: string;
@@ -20,19 +20,17 @@ export default function AdminOrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [orders, setOrders] = useState<OrderItem[]>([
-    { id: '#41', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://i.ibb.co/receipt1.jpg', date: 'May 22, 2026 07:33' },
-    { id: '#40', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://i.ibb.co/receipt2.jpg', date: 'May 16, 2026 15:56' },
+    { id: '#41', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 22, 2026 07:33' },
+    { id: '#40', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 16, 2026 15:56' },
     { id: '#39', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'PENDING', paymentReceipt: null, date: 'May 16, 2026 05:51' },
-    { id: '#38', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://i.ibb.co/receipt3.jpg', date: 'May 16, 2026 05:14' },
+    { id: '#38', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 1.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 16, 2026 05:14' },
     { id: '#37', customerName: 'Dulanja Abeysinghe', customerEmail: 'dulanja150abeysinghe@gmail.com', itemSummary: '100 Diamonds', totalAmount: 2.00, fulfillmentStatus: 'PENDING', paymentReceipt: null, date: 'May 16, 2026 05:00' },
-    { id: '#36', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds', totalAmount: 2.00, fulfillmentStatus: 'REJECTED', paymentReceipt: 'https://i.ibb.co/receipt4.jpg', date: 'May 11, 2026 11:18' },
-    { id: '#35', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds +1 more', totalAmount: 6.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://i.ibb.co/receipt5.jpg', date: 'May 11, 2026 11:16' },
-    { id: '#32', customerName: 'User Three', customerEmail: 'user3@demo.com', itemSummary: '325 UC', totalAmount: 5.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: null, date: 'May 10, 2026 10:16' },
-    { id: '#27', customerName: 'User Three', customerEmail: 'user3@demo.com', itemSummary: '660 UC', totalAmount: 10.00, fulfillmentStatus: 'PENDING', paymentReceipt: null, date: 'May 04, 2026 10:16' },
-    { id: '#22', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '660 UC', totalAmount: 10.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: null, date: 'May 03, 2026 10:16' },
+    { id: '#36', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds', totalAmount: 2.00, fulfillmentStatus: 'REJECTED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 11, 2026 11:18' },
+    { id: '#35', customerName: 'User One', customerEmail: 'user1@demo.com', itemSummary: '100 Diamonds +1 more', totalAmount: 6.00, fulfillmentStatus: 'COMPLETED', paymentReceipt: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80', date: 'May 11, 2026 11:16' },
   ]);
 
   const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
+  const [viewingReceiptModal, setViewingReceiptModal] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -43,7 +41,7 @@ export default function AdminOrdersPage() {
           data.map((tx) => ({
             id: `#${tx.id.substring(0, 4)}`,
             customerName: tx.free_fire_player_id ? `Player: ${tx.free_fire_player_id}` : 'Customer',
-            customerEmail: 'customer@shadowtopup.com',
+            customerEmail: 'customer@shadowstore.com',
             itemSummary: tx.package?.package_name || 'Free Fire Package',
             totalAmount: Number(tx.price_paid || 1.00),
             fulfillmentStatus: (tx.status || 'pending').toUpperCase() as any,
@@ -58,7 +56,6 @@ export default function AdminOrdersPage() {
 
   const filterTabs = ['ALL ORDERS', 'PENDING PAYMENT', 'PROOF SUBMITTED', 'VERIFIED', 'COMPLETED', 'REJECTED'];
 
-  // Filter Logic
   const filteredOrders = orders.filter((ord) => {
     const matchesSearch =
       ord.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,7 +87,7 @@ export default function AdminOrdersPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-white uppercase tracking-wider">Order Management</h1>
-          <p className="text-xs text-slate-400 mt-1">Review customer top-up transactions and payment proofs.</p>
+          <p className="text-xs text-slate-400 mt-1">Review customer top-up transactions and uploaded bank receipts.</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -104,9 +101,6 @@ export default function AdminOrdersPage() {
               className="w-full pl-9 pr-4 py-2 bg-[#121024] border border-purple-950/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 font-mono"
             />
           </div>
-          <button className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30">
-            Filter
-          </button>
         </div>
       </div>
 
@@ -138,7 +132,7 @@ export default function AdminOrdersPage() {
                 <th className="p-4">Items Summary</th>
                 <th className="p-4">Total Amount</th>
                 <th className="p-4">Fulfillment Status</th>
-                <th className="p-4">Payment Receipt</th>
+                <th className="p-4">Bank Transfer Receipt</th>
                 <th className="p-4">Date</th>
                 <th className="p-4">Action</th>
               </tr>
@@ -170,16 +164,14 @@ export default function AdminOrdersPage() {
                   </td>
                   <td className="p-4">
                     {ord.paymentReceipt ? (
-                      <a
-                        href={ord.paymentReceipt}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-emerald-400 hover:underline font-mono text-[10px] font-bold inline-flex items-center gap-1 uppercase"
+                      <button
+                        onClick={() => setSelectedOrder(ord)}
+                        className="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 font-mono text-[10px] font-bold inline-flex items-center gap-1 uppercase transition-all"
                       >
-                        <FileText className="w-3 h-3" /> View Receipt
-                      </a>
+                        <ImageIcon className="w-3.5 h-3.5" /> View Receipt
+                      </button>
                     ) : (
-                      <span className="text-slate-500 font-mono text-[10px] uppercase">No File</span>
+                      <span className="text-slate-500 font-mono text-[10px] uppercase">No Receipt</span>
                     )}
                   </td>
                   <td className="p-4 text-slate-400 font-mono text-[10px]">{ord.date}</td>
@@ -198,13 +190,13 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* Review Modal */}
+      {/* Review & Receipt Inspector Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#141229] border border-purple-950/80 rounded-3xl p-6 space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                Review Order {selectedOrder.id}
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-[#141229] border border-purple-950/80 rounded-3xl p-6 space-y-6 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <FileText className="w-4 h-4 text-purple-400" /> Review Order {selectedOrder.id}
               </h3>
               <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -217,12 +209,16 @@ export default function AdminOrdersPage() {
                 <span className="text-white font-bold">{selectedOrder.customerName}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-slate-400">Email:</span>
+                <span className="text-slate-300 font-mono">{selectedOrder.customerEmail}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-slate-400">Item:</span>
                 <span className="text-purple-300 font-bold">{selectedOrder.itemSummary}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Total:</span>
-                <span className="text-emerald-400 font-bold">LKR {selectedOrder.totalAmount.toFixed(2)}</span>
+                <span className="text-slate-400">Total Paid:</span>
+                <span className="text-emerald-400 font-bold font-mono">LKR {selectedOrder.totalAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Current Status:</span>
@@ -230,26 +226,57 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
+            {/* Bank Transfer Receipt Section */}
             <div className="space-y-2">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Update Status</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Uploaded Bank Payment Receipt</span>
+                {selectedOrder.paymentReceipt && (
+                  <a
+                    href={selectedOrder.paymentReceipt}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-cyan-400 hover:underline text-[10px] font-bold flex items-center gap-1"
+                  >
+                    Open Full Image <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+
+              {selectedOrder.paymentReceipt ? (
+                <div className="rounded-2xl bg-slate-950 border border-slate-800 p-2 overflow-hidden h-52 flex items-center justify-center">
+                  <img
+                    src={selectedOrder.paymentReceipt}
+                    alt="Bank Transfer Receipt"
+                    className="max-h-full max-w-full object-contain rounded-xl"
+                  />
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-slate-950 border border-slate-800/80 p-8 text-center text-slate-500 text-xs font-mono">
+                  No bank receipt uploaded yet for this order.
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Fulfillment Decision</span>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => handleUpdateStatus('COMPLETED')}
-                  className="py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold text-xs uppercase"
+                  className="py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 font-bold text-xs uppercase shadow-lg shadow-emerald-500/10 transition-all"
                 >
-                  Approve
+                  Approve Order
                 </button>
                 <button
                   onClick={() => handleUpdateStatus('PENDING')}
-                  className="py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold text-xs uppercase"
+                  className="py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-400 font-bold text-xs uppercase transition-all"
                 >
                   Hold
                 </button>
                 <button
                   onClick={() => handleUpdateStatus('REJECTED')}
-                  className="py-2 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 font-bold text-xs uppercase"
+                  className="py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 font-bold text-xs uppercase shadow-lg shadow-red-500/10 transition-all"
                 >
-                  Reject
+                  Reject Order
                 </button>
               </div>
             </div>

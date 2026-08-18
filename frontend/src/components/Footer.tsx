@@ -24,13 +24,13 @@ export default function Footer() {
             <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Features</h4>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-cyan-400" /> Instant Shell Processing
+                <Zap className="w-4 h-4 text-cyan-400" /> Instant Diamond Processing
               </li>
               <li className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-indigo-400" /> Secure Player Verification
               </li>
               <li className="flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-emerald-400" /> PayPal & Bank Transfer
+                <CreditCard className="w-4 h-4 text-emerald-400" /> Visa, Mastercard, Ez Cash & Bank Transfer
               </li>
               <li className="flex items-center gap-2">
                 <Headset className="w-4 h-4 text-amber-400" /> 24/7 Support Desk

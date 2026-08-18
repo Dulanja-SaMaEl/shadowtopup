@@ -19,7 +19,10 @@ import {
   Mail,
   Receipt,
   Clock,
-  ShieldAlert,
+  UploadCloud,
+  ImageIcon,
+  Loader2,
+  ExternalLink,
 } from 'lucide-react';
 import {
   LineChart,
@@ -38,7 +41,7 @@ export default function UserDashboardPage() {
   const [profile, setProfile] = useState<Profile | null>({
     id: 'demo-user',
     name: 'USER ACCOUNT',
-    email: 'USER@SHADOWTOPUP.COM',
+    email: 'USER@SHADOWSTORE.COM',
     role: 'normal',
     reseller_status: 'none',
     created_at: '2026-05-11T00:00:00Z',
@@ -46,9 +49,9 @@ export default function UserDashboardPage() {
   });
 
   const [transactions, setTransactions] = useState<any[]>([
-    { id: '25', package_name: '25 Diamond Pack', items: '2X ITEMS', amount: 5.00, status: 'COMPLETED', time: '11:30 AM', date: 'MAY 11, 2026', player_uid: '1092837465' },
-    { id: '22', package_name: '100 Diamonds', items: '1X ITEMS', amount: 10.00, status: 'COMPLETED', time: '10:00 AM', date: 'MAY 03, 2026', player_uid: '8876543219' },
-    { id: '18', package_name: '50 Diamonds', items: '1X ITEMS', amount: 5.00, status: 'PENDING', time: '10:15 AM', date: 'APR 23, 2026', player_uid: '4455667788' },
+    { id: '25', package_name: '25 Diamond Pack', items: '2X ITEMS', amount: 5.00, status: 'COMPLETED', time: '11:30 AM', date: 'MAY 11, 2026', player_uid: '1092837465', receipt_url: null },
+    { id: '22', package_name: '100 Diamonds', items: '1X ITEMS', amount: 10.00, status: 'COMPLETED', time: '10:00 AM', date: 'MAY 03, 2026', player_uid: '8876543219', receipt_url: null },
+    { id: '18', package_name: '50 Diamonds', items: '1X ITEMS', amount: 5.00, status: 'PENDING', time: '10:15 AM', date: 'APR 23, 2026', player_uid: '4455667788', receipt_url: null },
   ]);
 
   const [resellerTier, setResellerTier] = useState<'silver' | 'gold'>('silver');
@@ -60,6 +63,7 @@ export default function UserDashboardPage() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   const supabase = createClient();
 
@@ -97,7 +101,7 @@ export default function UserDashboardPage() {
 
         if (prof) {
           const profName = prof.name ? prof.name.toUpperCase() : user.email?.split('@')[0].toUpperCase() || 'USER ACCOUNT';
-          const profEmail = prof.email ? prof.email.toUpperCase() : user.email?.toUpperCase() || 'USER@SHADOWTOPUP.COM';
+          const profEmail = prof.email ? prof.email.toUpperCase() : user.email?.toUpperCase() || 'USER@SHADOWSTORE.COM';
           setProfile({
             ...prof,
             name: profName,
@@ -125,6 +129,7 @@ export default function UserDashboardPage() {
               time: '10:00 AM',
               date: new Date(tx.created_at).toLocaleDateString(),
               player_uid: tx.free_fire_player_id || '9876543210',
+              receipt_url: tx.receipt_url || null,
             }))
           );
         }
@@ -133,7 +138,6 @@ export default function UserDashboardPage() {
     syncSupabaseUser();
   }, []);
 
-  // Handle Edit Profile Save
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editName) return;
@@ -181,6 +185,49 @@ export default function UserDashboardPage() {
     });
     setResellerMsg('Application submitted! Admin will review your reseller tier.');
     setApplying(false);
+  };
+
+  const handleUploadReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedOrder) return;
+
+    setUploadingReceipt(true);
+    try {
+      const formData = new FormData();
+      formData.append('receipt', file);
+
+      const res = await fetch('/api/upload-receipt', {
+        method: 'POST',
+        body: formData,
+      });
+      const json = await res.json();
+
+      if (json.success && json.url) {
+        const receiptUrl = json.url;
+
+        if (profile?.id && profile.id !== 'demo-user') {
+          await supabase
+            .from('purchase_transactions')
+            .update({ receipt_url: receiptUrl })
+            .eq('id', selectedOrder.id);
+        }
+
+        setSelectedOrder({
+          ...selectedOrder,
+          receipt_url: receiptUrl,
+        });
+
+        setTransactions((prev) =>
+          prev.map((t) =>
+            t.id === selectedOrder.id ? { ...t, receipt_url: receiptUrl } : t
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Failed to upload receipt:', err);
+    } finally {
+      setUploadingReceipt(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -562,6 +609,51 @@ export default function UserDashboardPage() {
                   <span className="text-slate-400 font-mono">TOTAL PAID</span>
                   <span className="font-mono font-black text-emerald-400 text-sm">LKR {Number(selectedOrder.amount).toFixed(2)}</span>
                 </div>
+              </div>
+
+              {/* Uploaded Bank Receipt Display */}
+              {selectedOrder.receipt_url && (
+                <div className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 font-mono text-[10px]">BANK TRANSFER RECEIPT</span>
+                    <a
+                      href={selectedOrder.receipt_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-cyan-400 hover:underline text-[10px] font-bold flex items-center gap-1"
+                    >
+                      Full Size <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="h-36 rounded-xl bg-slate-900 overflow-hidden border border-slate-800 flex items-center justify-center">
+                    <img
+                      src={selectedOrder.receipt_url}
+                      alt="Uploaded Bank Receipt"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Receipt Action */}
+              <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-800/50 space-y-2">
+                <label className="block text-xs font-bold text-purple-300 uppercase">
+                  {selectedOrder.receipt_url ? 'Replace Bank Receipt' : 'Upload Bank Transfer Receipt'}
+                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUploadReceipt}
+                    disabled={uploadingReceipt}
+                    className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer disabled:opacity-50"
+                  />
+                </div>
+                {uploadingReceipt && (
+                  <p className="text-[10px] text-cyan-400 font-mono flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Uploading receipt...
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-between items-center p-3 rounded-xl bg-slate-900 border border-slate-800">

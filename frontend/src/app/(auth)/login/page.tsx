@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Zap, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
@@ -18,62 +19,79 @@ export default function LoginPage() {
     setError(null);
 
     const targetEmail = email.trim().toLowerCase();
-    let detectedRole = 'normal';
-    let detectedName = 'User Account';
 
-    if (targetEmail.includes('admin')) {
-      detectedRole = 'admin';
-      detectedName = 'System Administrator';
-    } else if (targetEmail.includes('gold')) {
-      detectedRole = 'gold';
-      detectedName = 'Gold Reseller Account';
-    } else if (targetEmail.includes('silver')) {
-      detectedRole = 'silver';
-      detectedName = 'Silver Reseller Account';
-    } else {
-      detectedRole = 'normal';
-      detectedName = 'Standard Customer Account';
+    // 1. Check if email is one of the designated test accounts
+    const isTestAccount =
+      targetEmail.includes('admin@shadow') ||
+      targetEmail.includes('gold@shadow') ||
+      targetEmail.includes('silver@shadow') ||
+      targetEmail.includes('user@shadow');
+
+    if (isTestAccount) {
+      if (password !== 'Password123!') {
+        setLoading(false);
+        setError('Invalid password for test account! (Required: Password123!)');
+        return;
+      }
+
+      let detectedRole = 'normal';
+      let detectedName = 'User Account';
+
+      if (targetEmail.includes('admin')) {
+        detectedRole = 'admin';
+        detectedName = 'System Administrator';
+      } else if (targetEmail.includes('gold')) {
+        detectedRole = 'gold';
+        detectedName = 'Gold Reseller Account';
+      } else if (targetEmail.includes('silver')) {
+        detectedRole = 'silver';
+        detectedName = 'Silver Reseller Account';
+      } else {
+        detectedRole = 'normal';
+        detectedName = 'Standard Customer Account';
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('active_session_email', targetEmail);
+        localStorage.setItem('active_session_role', detectedRole);
+        localStorage.setItem('active_session_name', detectedName);
+      }
+
+      window.location.href = detectedRole === 'admin' ? '/admin/dashboard' : '/dashboard';
+      return;
     }
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('active_session_email', targetEmail);
-      localStorage.setItem('active_session_role', detectedRole);
-      localStorage.setItem('active_session_name', detectedName);
-    }
-
+    // 2. Standard Supabase Auth Password Verification
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: targetEmail,
       password,
     });
 
-    if (!authError && authData?.user) {
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, name')
-          .eq('id', authData.user.id)
-          .single();
-
-        if (profile?.role) {
-          localStorage.setItem('active_session_role', profile.role);
-          if (profile.name) localStorage.setItem('active_session_name', profile.name);
-        }
-
-        if (profile?.role === 'admin' || targetEmail.includes('admin')) {
-          window.location.href = '/admin/dashboard';
-        } else {
-          window.location.href = '/dashboard';
-        }
-        return;
-      } catch {
-        window.location.href = targetEmail.includes('admin') ? '/admin/dashboard' : '/dashboard';
-        return;
-      }
+    if (authError || !authData?.user) {
+      setLoading(false);
+      setError(authError?.message || 'Invalid login credentials. Please check your email and password.');
+      return;
     }
 
-    if (targetEmail.includes('admin')) {
-      window.location.href = '/admin/dashboard';
-    } else {
+    // Successful Supabase Authentication
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, name')
+        .eq('id', authData.user.id)
+        .single();
+
+      const userRole = profile?.role || 'normal';
+      const userName = profile?.name || targetEmail.split('@')[0].toUpperCase();
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('active_session_email', targetEmail);
+        localStorage.setItem('active_session_role', userRole);
+        localStorage.setItem('active_session_name', userName);
+      }
+
+      window.location.href = userRole === 'admin' ? '/admin/dashboard' : '/dashboard';
+    } catch {
       window.location.href = '/dashboard';
     }
   };
@@ -110,13 +128,21 @@ export default function LoginPage() {
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 text-sm"
+                className="w-full pl-10 pr-12 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 text-sm"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition-colors"
+                title={showPassword ? 'Hide Password' : 'Show Password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
