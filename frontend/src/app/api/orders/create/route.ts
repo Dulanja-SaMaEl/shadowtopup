@@ -49,7 +49,57 @@ export async function POST(request: NextRequest) {
     const effectiveUserId = authUser?.id || (effectiveEmail === 'user@shadowtopup.com' ? '133c72ad-250d-4395-9e9b-fe913552533f' : effectiveEmail);
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
-    const initialStatus = receiptUrl ? 'proof_submitted' : 'pending';
+    const amountToDeduct = Number(totalAmount);
+
+    let initialStatus = receiptUrl ? 'proof_submitted' : 'pending';
+
+    // Handle Shadow Wallet Payment
+    if (paymentMethod === 'shadow_wallet') {
+      const { data: userProfile, error: profErr } = await adminSupabase
+        .from('profiles')
+        .select('*')
+        .eq('id', effectiveUserId)
+        .single();
+
+      if (profErr || !userProfile) {
+        return NextResponse.json({ success: false, message: 'User profile not found for wallet payment.' }, { status: 400 });
+      }
+
+      const currentWalletBalance = parseFloat(userProfile.wallet_balance || 0);
+      if (currentWalletBalance < amountToDeduct) {
+        return NextResponse.json({
+          success: false,
+          message: `Insufficient Shadow Wallet balance. Required: LKR ${amountToDeduct.toLocaleString()}, Available: LKR ${currentWalletBalance.toLocaleString()}`,
+        }, { status: 400 });
+      }
+
+      const newWalletBalance = currentWalletBalance - amountToDeduct;
+
+      // Deduct balance
+      const { error: updateBalErr } = await adminSupabase
+        .from('profiles')
+        .update({
+          wallet_balance: newWalletBalance,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', effectiveUserId);
+
+      if (updateBalErr) {
+        return NextResponse.json({ success: false, message: 'Failed to process wallet payment deduction.' }, { status: 500 });
+      }
+
+      // Log wallet transaction
+      await adminSupabase.from('wallet_transactions').insert([{
+        user_id: effectiveUserId,
+        type: 'PACKAGE_PURCHASE',
+        amount: -amountToDeduct,
+        balance_after: newWalletBalance,
+        description: `Purchased package: ${packageName} (FF UID: ${playerUid})`,
+        created_at: new Date().toISOString(),
+      }]);
+
+      initialStatus = 'completed';
+    }
 
     let insertedOrder: any = null;
     let orderErr: any = null;
@@ -57,7 +107,7 @@ export async function POST(request: NextRequest) {
     // 1. First try full payload with rich fields
     const fullPayload: any = {
       user_id: effectiveUserId,
-      total_amount: Number(totalAmount),
+      total_amount: amountToDeduct,
       status: initialStatus,
       receipt_path: receiptUrl,
       receipt_url: receiptUrl,
@@ -78,8 +128,8 @@ export async function POST(request: NextRequest) {
       // 2. Fall back to standard schema payload if extra columns don't exist yet in PostgreSQL schema
       const standardPayload: any = {
         user_id: effectiveUserId,
-        total_amount: Number(totalAmount),
-        status: initialStatus === 'proof_submitted' ? 'pending' : 'pending',
+        total_amount: amountToDeduct,
+        status: initialStatus,
         receipt_path: receiptUrl,
       };
 
@@ -92,7 +142,6 @@ export async function POST(request: NextRequest) {
         insertedOrder = ordData2[0];
         orderErr = null;
 
-        // If status was proof_submitted, update receipt_path
         if (receiptUrl) {
           await adminSupabase.from('orders').update({ receipt_path: receiptUrl }).eq('id', insertedOrder.id);
         }
@@ -108,9 +157,9 @@ export async function POST(request: NextRequest) {
       package_name: packageName,
       free_fire_player_id: playerUid,
       shells_deducted: shellCost,
-      price_paid: Number(totalAmount),
+      price_paid: amountToDeduct,
       price_tier: priceTier,
-      status: 'pending',
+      status: initialStatus,
       payment_method: paymentMethod,
       receipt_path: receiptUrl,
     };
@@ -127,7 +176,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Order created successfully in database',
+      message: paymentMethod === 'shadow_wallet' 
+        ? 'Order placed successfully using Shadow Wallet balance!' 
+        : 'Order created successfully in database',
       order: insertedOrder,
       receiptUrl,
       status: initialStatus,

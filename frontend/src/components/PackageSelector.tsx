@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package, UserRole } from '@/types/database';
 import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
-import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles } from 'lucide-react';
+import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet } from 'lucide-react';
 
 interface Props {
   packages: Package[];
@@ -14,10 +14,31 @@ interface Props {
 
 export default function PackageSelector({ packages, userRole, verifiedPlayerUid, onCheckoutComplete }: Props) {
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer'>('paypal');
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet'>('shadow_wallet');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    async function checkWallet() {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData?.user?.id) {
+          const res = await fetch(`/api/wallet/balance?user_id=${encodeURIComponent(authData.user.id)}`);
+          const data = await res.json();
+          if (data.success) {
+            setWalletBalance(data.wallet_balance || 0);
+          }
+        }
+      } catch (e) {
+        console.warn('Wallet check note:', e);
+      }
+    }
+    checkWallet();
+  }, []);
 
   const handleCheckout = async () => {
     if (!selectedPkg) {
@@ -36,7 +57,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
     const { createClient } = await import('@/lib/supabase/client');
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();
-    
+
     if (!authData.user) {
       setMessage({ type: 'error', text: 'You must be logged in to place an order.' });
       setLoading(false);
@@ -44,6 +65,42 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
     }
     const userId = authData.user.id;
     const tier = userRole === 'gold' || userRole === 'silver' ? userRole : 'normal';
+
+    if (paymentMethod === 'shadow_wallet') {
+      try {
+        const res = await fetch('/api/orders/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            packageId: selectedPkg.id,
+            packageName: selectedPkg.package_name,
+            playerUid: verifiedPlayerUid,
+            totalAmount: price,
+            paymentMethod: 'shadow_wallet',
+            priceTier: tier,
+            shellCost: selectedPkg.shell_cost,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          setMessage({
+            type: 'success',
+            text: `Order placed successfully! LKR ${price.toLocaleString()} deducted from your Shadow Wallet.`,
+          });
+          if (walletBalance !== null) {
+            setWalletBalance(walletBalance - price);
+          }
+          if (onCheckoutComplete) onCheckoutComplete();
+        } else {
+          setMessage({ type: 'error', text: data.message || 'Shadow Wallet checkout failed.' });
+        }
+      } catch (err: any) {
+        setMessage({ type: 'error', text: 'Failed to complete wallet checkout.' });
+      }
+      setLoading(false);
+      return;
+    }
 
     if (paymentMethod === 'paypal') {
       try {
@@ -58,155 +115,136 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         });
 
         const data = await res.json();
-        if (data.success && data.approveUrl) {
-          await supabase.from('orders').insert([{ user_id: userId, total_amount: price, status: 'pending' }]);
-          await supabase.from('purchase_transactions').insert([{
-            user_id: userId, package_id: selectedPkg.id, free_fire_player_id: verifiedPlayerUid,
-            shells_deducted: selectedPkg.shell_cost, price_paid: price, price_tier: tier,
-            status: 'pending', payment_method: 'paypal', paypal_order_id: data.orderId
-          }]);
-          window.location.href = data.approveUrl;
+        if (data.approvalUrl) {
+          window.location.href = data.approvalUrl;
         } else {
-          setMessage({ type: 'error', text: data.message || 'PayPal payment setup failed' });
+          setMessage({ type: 'error', text: data.error || 'Failed to initiate PayPal transaction' });
         }
-      } catch (err: any) {
-        setMessage({ type: 'error', text: 'Network error connecting to PayPal' });
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        setMessage({ type: 'error', text: 'Failed to process payment request' });
       }
-    } else {
-      // Bank Transfer with Receipt Upload
-      if (!receiptFile) {
-        setMessage({ type: 'error', text: 'Please select your bank payment receipt image' });
-        setLoading(false);
-        return;
+      setLoading(false);
+      return;
+    }
+
+    if (paymentMethod === 'bank_transfer') {
+      let receiptUrl = null;
+
+      if (receiptFile) {
+        try {
+          const formData = new FormData();
+          formData.append('image', receiptFile);
+          const uploadRes = await fetch('/api/upload-receipt', {
+            method: 'POST',
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.success && uploadData.url) {
+            receiptUrl = uploadData.url;
+          }
+        } catch (e) {
+          console.error('Receipt upload error:', e);
+        }
       }
 
       try {
-        const formData = new FormData();
-        formData.append('receipt', receiptFile);
-
-        const uploadRes = await fetch('/api/upload-receipt', {
+        const res = await fetch('/api/orders/create', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            packageId: selectedPkg.id,
+            packageName: selectedPkg.package_name,
+            playerUid: verifiedPlayerUid,
+            totalAmount: price,
+            paymentMethod: 'bank_transfer',
+            receiptUrl,
+            priceTier: tier,
+            shellCost: selectedPkg.shell_cost,
+          }),
         });
 
-        const uploadData = await uploadRes.json();
-        if (uploadData.success && uploadData.url) {
-          
-          const receiptUrl = uploadData.url;
-
-          const createRes = await fetch('/api/orders/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId,
-              packageId: selectedPkg.id,
-              packageName: selectedPkg.package_name,
-              playerUid: verifiedPlayerUid,
-              totalAmount: price,
-              paymentMethod: 'bank_transfer',
-              receiptUrl,
-              priceTier: tier,
-              shellCost: selectedPkg.shell_cost,
-            }),
+        const data = await res.json();
+        if (data.success) {
+          setMessage({
+            type: 'success',
+            text: 'Bank transfer order created successfully! Payment under verification.',
           });
-
-          const createData = await createRes.json();
-
-          if (!createData.success) {
-            console.error('DB Insert Error:', createData.message);
-            setMessage({ type: 'error', text: createData.message || 'Order creation failed.' });
-          } else {
-            setMessage({
-              type: 'success',
-              text: 'Bank receipt submitted successfully! Admin will verify your top-up shortly.',
-            });
-            setSelectedPkg(null);
-            setReceiptFile(null);
-            if (onCheckoutComplete) onCheckoutComplete();
-          }
+          if (onCheckoutComplete) onCheckoutComplete();
         } else {
-          setMessage({ type: 'error', text: uploadData.message || 'Failed to upload receipt image.' });
+          setMessage({ type: 'error', text: data.message || 'Order creation failed' });
         }
-      } catch (err: any) {
-        console.error('Receipt Upload Catch Error:', err);
-        setMessage({ type: 'error', text: 'Failed to complete receipt upload submission.' });
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        setMessage({ type: 'error', text: 'Failed to create bank transfer order' });
       }
+      setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-bold text-white mb-1">2. Select Diamond Package or Membership Pass</h3>
-        <p className="text-xs text-slate-400">Choose your desired Free Fire Garena SG recharge amount or pass subscription</p>
+    <div className="space-y-8">
+      <div className="flex justify-between items-end border-b border-slate-800 pb-4">
+        <div>
+          <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+            <Diamond className="w-5 h-5 text-cyan-400" /> 2. Select Recharge Package
+          </h2>
+          <p className="text-xs text-slate-400">Choose your desired Free Fire Garena SG recharge amount or pass subscription</p>
+        </div>
+        {userRole && userRole !== 'normal' && (
+          <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold uppercase">
+            {userRole} Tier Unlocked
+          </span>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {packages.map((pkg) => {
-          const isSelected = selectedPkg?.id === pkg.id;
           const finalPrice = calculatePackagePrice(pkg, userRole);
-          const hasDiscount = userRole && userRole !== 'normal' && finalPrice < pkg.normal_price;
-          const isPass = pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass';
+          const isSelected = selectedPkg?.id === pkg.id;
+          const isMembership = pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass';
 
           return (
             <div
               key={pkg.id}
               onClick={() => setSelectedPkg(pkg)}
-              className={`relative p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between overflow-hidden ${
+              className={`relative cursor-pointer rounded-2xl border p-5 transition-all flex flex-col justify-between space-y-4 ${
                 isSelected
-                  ? 'bg-slate-900 border-cyan-500 shadow-xl shadow-cyan-500/20 ring-2 ring-cyan-500/50'
+                  ? 'bg-gradient-to-b from-purple-900/40 via-slate-900 to-slate-950 border-purple-500 shadow-xl shadow-purple-500/20 scale-[1.02]'
                   : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
               }`}
             >
-              {isSelected && (
-                <div className="absolute top-3 right-3 z-10 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center text-slate-950 shadow-md">
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                </div>
-              )}
-
               {pkg.badge && (
-                <div className="absolute top-3 left-3 z-10 px-2 py-0.5 rounded-md bg-purple-600/90 border border-purple-400/40 text-white text-[9px] font-mono font-black uppercase tracking-wider shadow-sm">
+                <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 text-white text-[9px] font-extrabold tracking-wider uppercase shadow-md">
                   {pkg.badge}
-                </div>
+                </span>
               )}
 
-              <div className="pt-4">
-                {pkg.image_url ? (
-                  <div className="w-full h-24 mb-3 rounded-xl overflow-hidden bg-slate-950/80 relative border border-slate-800/80 flex items-center justify-center p-2 group-hover:scale-105 transition-transform">
-                    <img src={pkg.image_url} alt={pkg.package_name} className="h-full max-w-full object-contain drop-shadow-lg" />
-                  </div>
-                ) : (
-                  <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-3">
-                    {isPass ? <Crown className="w-6 h-6 text-amber-400" /> : <Diamond className="w-6 h-6 fill-cyan-400/20" />}
-                  </div>
-                )}
-
-                <h4 className="font-bold text-white text-sm leading-snug">{pkg.package_name}</h4>
-                <span className="text-[11px] text-cyan-400 font-mono font-semibold block mt-0.5">
-                  {isPass ? `Privilege Value: ${pkg.diamond_amount} Diamonds` : `${pkg.diamond_amount} Diamonds`}
-                </span>
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center p-2 shrink-0">
+                  <img src={pkg.image_url} alt={pkg.package_name} className="max-w-full max-h-full object-contain" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-white text-sm">{pkg.package_name}</h3>
+                  <span className="text-xs text-cyan-400 font-mono font-bold block mt-0.5">
+                    {isMembership ? 'Subscription Pass' : `${pkg.diamond_amount} Diamonds`}
+                  </span>
+                </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-800/80">
-                <div className="flex items-baseline gap-1.5 flex-wrap">
-                  <span className="font-extrabold text-base text-white font-mono">
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                <div>
+                  <span className="text-[10px] text-slate-500 font-mono block">Price</span>
+                  <span className="text-sm font-extrabold text-emerald-400 font-mono">
                     {formatCurrency(finalPrice)}
                   </span>
-                  {hasDiscount && (
-                    <span className="text-[10px] text-slate-500 line-through font-mono">
-                      {formatCurrency(pkg.normal_price)}
-                    </span>
-                  )}
                 </div>
-                {userRole && userRole !== 'normal' && (
-                  <span className="text-[10px] text-amber-400 font-mono block mt-0.5">
-                    {userRole.toUpperCase()} Reseller Discount
-                  </span>
-                )}
+
+                <div
+                  className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${
+                    isSelected ? 'bg-purple-600 border-purple-400 text-white' : 'border-slate-700'
+                  }`}
+                >
+                  {isSelected && <Check className="w-3.5 h-3.5" />}
+                </div>
               </div>
             </div>
           );
@@ -217,7 +255,25 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md space-y-6">
           <h3 className="text-lg font-bold text-white">3. Select Payment Method & Checkout</h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('shadow_wallet')}
+              className={`p-4 rounded-xl border flex items-center gap-3 transition-all text-left ${
+                paymentMethod === 'shadow_wallet'
+                  ? 'bg-purple-500/10 border-purple-500 text-white'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+              }`}
+            >
+              <Wallet className="w-6 h-6 text-purple-400 shrink-0" />
+              <div>
+                <span className="font-bold text-white block text-xs uppercase">Shadow Wallet</span>
+                <span className="text-[10px] text-emerald-400 font-mono block font-bold">
+                  {walletBalance !== null ? `Bal: LKR ${walletBalance.toLocaleString()}` : 'Check Balance'}
+                </span>
+              </div>
+            </button>
+
             <button
               type="button"
               onClick={() => setPaymentMethod('paypal')}
@@ -229,8 +285,8 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             >
               <CreditCard className="w-6 h-6 text-cyan-400 shrink-0" />
               <div>
-                <span className="font-bold text-white block text-sm">PayPal Express</span>
-                <span className="text-xs text-slate-400">Instant Automated Top-Up</span>
+                <span className="font-bold text-white block text-xs uppercase">PayPal Express</span>
+                <span className="text-[10px] text-slate-400 block">Instant Top-Up</span>
               </div>
             </button>
 
@@ -245,8 +301,8 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             >
               <Landmark className="w-6 h-6 text-emerald-400 shrink-0" />
               <div>
-                <span className="font-bold text-white block text-sm">Bank Transfer</span>
-                <span className="text-xs text-slate-400">Manual Receipt Verification</span>
+                <span className="font-bold text-white block text-xs uppercase">Bank Transfer</span>
+                <span className="text-[10px] text-slate-400 block">Manual Verification</span>
               </div>
             </button>
           </div>
@@ -281,7 +337,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           <button
             onClick={handleCheckout}
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-extrabold rounded-xl shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-base"
+            className="w-full py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold rounded-xl shadow-xl shadow-purple-600/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-base uppercase"
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin text-white" />

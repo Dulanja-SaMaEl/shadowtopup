@@ -19,6 +19,7 @@ import {
   Zap,
   Menu,
   X,
+  Wallet,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -91,6 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { label: 'Packages', href: '/admin/packages', icon: Package },
         { label: 'Pricing Rules', href: '/admin/pricing-rules', icon: Sliders },
         { label: 'Transactions', href: '/admin/transactions', icon: Receipt },
+        { label: 'Shadow Wallet', href: '/admin/wallet', icon: Wallet },
       ],
     },
   ];

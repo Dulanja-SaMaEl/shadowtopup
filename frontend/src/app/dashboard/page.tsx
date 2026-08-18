@@ -27,6 +27,7 @@ import {
   Check,
   ShoppingBag,
 } from 'lucide-react';
+import ShadowWalletWidget from '@/components/ShadowWalletWidget';
 import {
   LineChart,
   Line,
@@ -350,6 +351,9 @@ export default function UserDashboardPage() {
             <h3 className="text-3xl font-black text-cyan-400">{activeOrdersCount}</h3>
           </div>
         </div>
+
+        {/* SHADOW WALLET WIDGET */}
+        {profile?.id && <ShadowWalletWidget userId={profile.id} />}
 
         {/* Details Info Grid Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
