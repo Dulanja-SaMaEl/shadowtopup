@@ -9,7 +9,7 @@ export interface DatabaseOrder {
   free_fire_player_id: string;
   package_name: string;
   totalAmount: number;
-  fulfillmentStatus: 'COMPLETED' | 'PENDING' | 'REJECTED';
+  fulfillmentStatus: 'COMPLETED' | 'PENDING' | 'REJECTED' | 'REFUNDED';
   paymentMethod: string;
   paymentReceipt: string | null;
   date: string;
@@ -52,8 +52,9 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
       return activeRows.map((row: any) => {
         const rawStatus = (row.status || 'pending').toLowerCase();
         const isCompleted = ['completed', 'success', 'verified'].includes(rawStatus);
+        const isRefunded = ['refunded', 'refund'].includes(rawStatus);
         const isRejected = ['rejected', 'failed'].includes(rawStatus);
-        const normStatus = isCompleted ? 'COMPLETED' : isRejected ? 'REJECTED' : 'PENDING';
+        const normStatus = isCompleted ? 'COMPLETED' : isRefunded ? 'REFUNDED' : isRejected ? 'REJECTED' : 'PENDING';
 
         const userProf = row.user_id ? profileMap.get(row.user_id) : null;
         const cName = userProf?.name || 'Customer Account';
@@ -84,7 +85,7 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
   return [];
 }
 
-export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETED' | 'PENDING' | 'REJECTED', shortId?: string): Promise<boolean> {
+export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETED' | 'PENDING' | 'REJECTED' | 'REFUNDED', shortId?: string): Promise<boolean> {
   try {
     const res = await fetch('/api/admin/orders/status', {
       method: 'POST',

@@ -738,11 +738,13 @@ export default function UserDashboardPage() {
                     <span className={`px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
                       tx.status === 'COMPLETED'
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : (tx.status === 'REFUNDED' || tx.status === 'refunded')
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                         : tx.status === 'PENDING'
                         ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                         : 'bg-red-500/20 text-red-400 border border-red-500/30'
                     }`}>
-                      {tx.status}
+                      {tx.status === 'REFUNDED' || tx.status === 'refunded' ? 'REFUNDED TO WALLET' : tx.status}
                     </span>
 
                     <button
@@ -755,7 +757,7 @@ export default function UserDashboardPage() {
                           playerUid: tx.player_uid || 'N/A',
                           amount: Number(tx.amount),
                           paymentMethod: tx.receipt_url ? 'Bank Transfer' : 'Shadow Wallet',
-                          status: tx.status === 'COMPLETED' ? 'COMPLETED' : 'PENDING VERIFICATION',
+                          status: tx.status === 'COMPLETED' ? 'COMPLETED' : (tx.status === 'REFUNDED' || tx.status === 'refunded') ? 'REFUNDED' : 'PENDING VERIFICATION',
                           date: tx.date || new Date().toLocaleDateString(),
                           customerName: profile?.name || profile?.email?.split('@')[0].toUpperCase(),
                           customerEmail: profile?.email,
@@ -970,11 +972,13 @@ export default function UserDashboardPage() {
                 <span className={`px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
                   selectedOrder.status === 'COMPLETED'
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : (selectedOrder.status === 'REFUNDED' || selectedOrder.status === 'refunded')
+                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                     : selectedOrder.status === 'PENDING'
                     ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                     : 'bg-red-500/20 text-red-400 border border-red-500/30'
                 }`}>
-                  {selectedOrder.status}
+                  {selectedOrder.status === 'REFUNDED' || selectedOrder.status === 'refunded' ? 'REFUNDED TO WALLET' : selectedOrder.status}
                 </span>
               </div>
             </div>

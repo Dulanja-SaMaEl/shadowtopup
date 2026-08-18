@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ShieldCheck, Download, Printer, X, Zap, Award, CheckCircle2, Clock, FileText } from 'lucide-react';
+import { ShieldCheck, Download, Printer, X, Zap, Award, CheckCircle2, Clock, FileText, RotateCcw } from 'lucide-react';
 import { formatCurrency } from '@/lib/pricing';
 
 export interface ReceiptData {
@@ -30,7 +30,8 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
 
   if (!receipt) return null;
 
-  const isPending = receipt.status?.toLowerCase().includes('pending') || receipt.status === 'proof_submitted';
+  const isRefunded = receipt.status?.toLowerCase().includes('refund');
+  const isPending = !isRefunded && (receipt.status?.toLowerCase().includes('pending') || receipt.status === 'proof_submitted');
   const isWallet = receipt.paymentMethod?.toLowerCase().includes('wallet');
 
   const handlePrint = () => {
@@ -177,11 +178,15 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
 
           {/* Verification Status Banner */}
           <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
-            isPending
+            isRefunded
+              ? 'bg-purple-500/15 border-purple-500/40 text-purple-300'
+              : isPending
               ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
               : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
           }`}>
-            {isPending ? (
+            {isRefunded ? (
+              <RotateCcw className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+            ) : isPending ? (
               <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
             ) : (
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
@@ -189,11 +194,17 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="text-xs font-black uppercase tracking-wider">
-                  {isPending ? 'PAYMENT PENDING ADMIN VERIFICATION' : 'TRANSACTION COMPLETED & DELIVERED'}
+                  {isRefunded
+                    ? 'PACKAGE UNAVAILABLE - FULLY REFUNDED TO SHADOW WALLET'
+                    : isPending
+                    ? 'PAYMENT PENDING ADMIN VERIFICATION'
+                    : 'TRANSACTION COMPLETED & DELIVERED'}
                 </h4>
               </div>
               <p className="text-[10px] font-mono mt-0.5 text-slate-300">
-                {isPending
+                {isRefunded
+                  ? `This top-up package was unavailable for your player account. The full payment of LKR ${receipt.amount.toFixed(2)} has been credited back to your Shadow Wallet.`
+                  : isPending
                   ? 'Your bank transfer receipt is uploaded and currently under manual verification by our admin team. Top-up will be processed shortly.'
                   : 'Order paid successfully and digital diamonds/pass dispatched to target Free Fire UID.'}
               </p>

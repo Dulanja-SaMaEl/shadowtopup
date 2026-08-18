@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { updateDatabaseOrderStatus, DatabaseOrder } from '@/lib/ordersService';
-import { Search, Filter, FileText, CheckCircle2, AlertCircle, XCircle, X, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { Search, Filter, FileText, CheckCircle2, AlertCircle, XCircle, X, ExternalLink, Image as ImageIcon, RotateCcw } from 'lucide-react';
 
 export default function AdminOrdersPage() {
   const [activeFilter, setActiveFilter] = useState('ALL ORDERS');
@@ -25,7 +25,7 @@ export default function AdminOrdersPage() {
     loadOrders();
   }, []);
 
-  const filterTabs = ['ALL ORDERS', 'PENDING PAYMENT', 'PROOF SUBMITTED', 'VERIFIED', 'COMPLETED', 'REJECTED'];
+  const filterTabs = ['ALL ORDERS', 'PENDING PAYMENT', 'PROOF SUBMITTED', 'VERIFIED', 'COMPLETED', 'REJECTED', 'REFUNDED'];
 
   const filteredOrders = orders.filter((ord) => {
     const matchesSearch =
@@ -42,14 +42,15 @@ export default function AdminOrdersPage() {
     if (activeFilter === 'PROOF SUBMITTED') return Boolean(ord.paymentReceipt);
     if (activeFilter === 'PENDING PAYMENT') return ord.fulfillmentStatus === 'PENDING' && !ord.paymentReceipt;
     if (activeFilter === 'REJECTED') return ord.fulfillmentStatus === 'REJECTED';
+    if (activeFilter === 'REFUNDED') return ord.fulfillmentStatus === 'REFUNDED';
 
     return true;
   });
 
-  const handleUpdateStatus = async (status: 'COMPLETED' | 'PENDING' | 'REJECTED') => {
+  const handleUpdateStatus = async (status: 'COMPLETED' | 'PENDING' | 'REJECTED' | 'REFUNDED') => {
     if (!selectedOrder) return;
     
-    // Update Supabase Database Directly
+    // Update Supabase Database & Wallet Balance
     await updateDatabaseOrderStatus(selectedOrder.raw_id, status);
 
     // Update Local State
@@ -133,12 +134,14 @@ export default function AdminOrdersPage() {
                         className={`px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
                           ord.fulfillmentStatus === 'COMPLETED'
                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : ord.fulfillmentStatus === 'REFUNDED'
+                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                             : ord.fulfillmentStatus === 'PENDING'
                             ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                             : 'bg-red-500/20 text-red-400 border border-red-500/30'
                         }`}
                       >
-                        {ord.fulfillmentStatus}
+                        {ord.fulfillmentStatus === 'REFUNDED' ? 'REFUNDED TO WALLET' : ord.fulfillmentStatus}
                       </span>
                     </td>
                     <td className="p-4">
@@ -250,18 +253,24 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-3 gap-2 pt-2">
               <button
                 onClick={() => handleUpdateStatus('REJECTED')}
-                className="py-3 rounded-xl bg-red-950/80 border border-red-800 text-red-400 font-bold text-xs uppercase hover:bg-red-900/80 flex items-center justify-center gap-2"
+                className="py-2.5 px-2 rounded-xl bg-red-950/80 border border-red-800 text-red-400 font-bold text-[10px] uppercase hover:bg-red-900/80 flex items-center justify-center gap-1"
               >
-                <XCircle className="w-4 h-4" /> Reject Order
+                <XCircle className="w-3.5 h-3.5" /> Reject
+              </button>
+              <button
+                onClick={() => handleUpdateStatus('REFUNDED')}
+                className="py-2.5 px-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-200 border border-purple-600 font-bold text-[10px] uppercase shadow-lg shadow-purple-900/30 flex items-center justify-center gap-1"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-cyan-400" /> Refund Wallet
               </button>
               <button
                 onClick={() => handleUpdateStatus('COMPLETED')}
-                className="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2"
+                className="py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] uppercase shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1"
               >
-                <CheckCircle2 className="w-4 h-4" /> Approve &amp; Deliver
+                <CheckCircle2 className="w-3.5 h-3.5" /> Approve
               </button>
             </div>
           </div>
