@@ -114,36 +114,10 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
         totalAmount: Number(row.price_paid || row.total_amount || 750.00),
         fulfillmentStatus: (row.status || 'pending').toUpperCase() as any,
         paymentMethod: (row.payment_method || 'bank_transfer').toUpperCase(),
-        paymentReceipt: row.receipt_url || row.receipt_path || null,
+        paymentReceipt: row.receipt_path || row.receipt_url || null,
         date: new Date(row.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         timestamp: new Date(row.created_at || Date.now()).toLocaleString(),
       }));
-    }
-
-    // Attempt auto-seeding if database tables are empty
-    try {
-      const ordersPayload = DEFAULT_DB_ORDERS.map((o) => ({
-        total_amount: o.totalAmount,
-        status: o.fulfillmentStatus?.toLowerCase(),
-        receipt_path: o.paymentReceipt,
-        created_at: o.timestamp,
-      }));
-      await supabase.from('orders').insert(ordersPayload);
-
-      const txPayload = DEFAULT_DB_ORDERS.map((o) => ({
-        free_fire_player_id: o.free_fire_player_id,
-        shells_deducted: 50,
-        price_paid: o.totalAmount,
-        price_tier: 'normal',
-        status: o.fulfillmentStatus?.toLowerCase(),
-        payment_method: o.paymentMethod?.toLowerCase().includes('paypal') ? 'paypal' : 'bank_transfer',
-        receipt_url: o.paymentReceipt,
-        receipt_path: o.paymentReceipt,
-        created_at: o.timestamp,
-      }));
-      await supabase.from('purchase_transactions').insert(txPayload);
-    } catch (e) {
-      console.warn('Auto-seed database insert warning:', e);
     }
   } catch (err) {
     console.error('Error fetching database orders:', err);
@@ -182,7 +156,7 @@ export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETE
 export async function updateDatabaseOrderReceipt(rawId: string, receiptUrl: string): Promise<boolean> {
   const supabase = createClient();
   try {
-    await supabase.from('purchase_transactions').update({ receipt_url: receiptUrl, receipt_path: receiptUrl }).eq('id', rawId);
+    await supabase.from('purchase_transactions').update({ receipt_path: receiptUrl }).eq('id', rawId);
     await supabase.from('orders').update({ receipt_path: receiptUrl }).eq('id', rawId);
     return true;
   } catch (err) {
