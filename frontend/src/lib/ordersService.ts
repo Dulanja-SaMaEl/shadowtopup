@@ -18,7 +18,7 @@ export interface DatabaseOrder {
 
 const DEFAULT_DB_ORDERS: Partial<DatabaseOrder>[] = [
   {
-    raw_id: 'ord-1005',
+    raw_id: '1005',
     customerName: 'User Account',
     customerEmail: 'user@shadowstore.com',
     free_fire_player_id: '8777843685',
@@ -31,7 +31,7 @@ const DEFAULT_DB_ORDERS: Partial<DatabaseOrder>[] = [
     timestamp: '2026-08-18T11:30:00Z',
   },
   {
-    raw_id: 'ord-1004',
+    raw_id: '1004',
     customerName: 'User Account',
     customerEmail: 'user@shadowstore.com',
     free_fire_player_id: '8777843685',
@@ -44,7 +44,7 @@ const DEFAULT_DB_ORDERS: Partial<DatabaseOrder>[] = [
     timestamp: '2026-08-17T10:15:00Z',
   },
   {
-    raw_id: 'ord-1003',
+    raw_id: '1003',
     customerName: 'Gold Reseller Account',
     customerEmail: 'gold@shadowstore.com',
     free_fire_player_id: '1092837465',
@@ -57,7 +57,7 @@ const DEFAULT_DB_ORDERS: Partial<DatabaseOrder>[] = [
     timestamp: '2026-08-16T14:20:00Z',
   },
   {
-    raw_id: 'ord-1002',
+    raw_id: '1002',
     customerName: 'Silver Reseller Account',
     customerEmail: 'silver@shadowstore.com',
     free_fire_player_id: '4455667788',
@@ -70,7 +70,7 @@ const DEFAULT_DB_ORDERS: Partial<DatabaseOrder>[] = [
     timestamp: '2026-08-15T09:05:00Z',
   },
   {
-    raw_id: 'ord-1001',
+    raw_id: '1001',
     customerName: 'Dulanja Abeysinghe',
     customerEmail: 'dulanja150abeysinghe@gmail.com',
     free_fire_player_id: '9876543210',
@@ -86,14 +86,24 @@ const DEFAULT_DB_ORDERS: Partial<DatabaseOrder>[] = [
 
 export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
   const supabase = createClient();
+  
   try {
-    const { data: dbRows, error } = await supabase
+    // 1. Try querying orders table
+    const { data: ordersRows } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // 2. Try querying purchase_transactions table
+    const { data: txRows } = await supabase
       .from('purchase_transactions')
       .select('*, package:packages(*), profile:profiles(*)')
       .order('created_at', { ascending: false });
 
-    if (!error && dbRows && dbRows.length > 0) {
-      return dbRows.map((row: any) => ({
+    const activeRows = (txRows && txRows.length > 0) ? txRows : (ordersRows && ordersRows.length > 0) ? ordersRows : null;
+
+    if (activeRows && activeRows.length > 0) {
+      return activeRows.map((row: any) => ({
         id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
         raw_id: row.id,
         user_id: row.user_id || '',
@@ -101,7 +111,7 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
         customerEmail: row.profile?.email || 'user@shadowstore.com',
         free_fire_player_id: row.free_fire_player_id || '9876543210',
         package_name: row.package?.package_name || 'Free Fire Diamonds',
-        totalAmount: Number(row.price_paid || 750.00),
+        totalAmount: Number(row.price_paid || row.total_amount || 750.00),
         fulfillmentStatus: (row.status || 'pending').toUpperCase() as any,
         paymentMethod: (row.payment_method || 'bank_transfer').toUpperCase(),
         paymentReceipt: row.receipt_url || row.receipt_path || null,
@@ -110,9 +120,17 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
       }));
     }
 
-    // Attempt auto-seeding default database records if database table is accessible but empty
+    // Attempt auto-seeding if database tables are empty
     try {
-      const seedPayloads = DEFAULT_DB_ORDERS.map((o) => ({
+      const ordersPayload = DEFAULT_DB_ORDERS.map((o) => ({
+        total_amount: o.totalAmount,
+        status: o.fulfillmentStatus?.toLowerCase(),
+        receipt_path: o.paymentReceipt,
+        created_at: o.timestamp,
+      }));
+      await supabase.from('orders').insert(ordersPayload);
+
+      const txPayload = DEFAULT_DB_ORDERS.map((o) => ({
         free_fire_player_id: o.free_fire_player_id,
         shells_deducted: 50,
         price_paid: o.totalAmount,
@@ -120,9 +138,10 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
         status: o.fulfillmentStatus?.toLowerCase(),
         payment_method: o.paymentMethod?.toLowerCase().includes('paypal') ? 'paypal' : 'bank_transfer',
         receipt_url: o.paymentReceipt,
+        receipt_path: o.paymentReceipt,
         created_at: o.timestamp,
       }));
-      await supabase.from('purchase_transactions').insert(seedPayloads);
+      await supabase.from('purchase_transactions').insert(txPayload);
     } catch (e) {
       console.warn('Auto-seed database insert warning:', e);
     }
@@ -130,10 +149,9 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
     console.error('Error fetching database orders:', err);
   }
 
-  // Return realistic fallback orders mapped cleanly
   return DEFAULT_DB_ORDERS.map((o, idx) => ({
-    id: o.raw_id ? `#${o.raw_id.replace('ord-', '')}` : `#${1005 - idx}`,
-    raw_id: o.raw_id || `ord-${1005 - idx}`,
+    id: `#${o.raw_id}`,
+    raw_id: o.raw_id || `100${5 - idx}`,
     user_id: 'demo-user',
     customerName: o.customerName || 'User Account',
     customerEmail: o.customerEmail || 'user@shadowstore.com',
@@ -151,12 +169,10 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
 export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETED' | 'PENDING' | 'REJECTED'): Promise<boolean> {
   const supabase = createClient();
   try {
-    const { error } = await supabase
-      .from('purchase_transactions')
-      .update({ status: status.toLowerCase() })
-      .eq('id', rawId);
-
-    if (!error) return true;
+    const statusVal = status.toLowerCase();
+    await supabase.from('purchase_transactions').update({ status: statusVal }).eq('id', rawId);
+    await supabase.from('orders').update({ status: statusVal }).eq('id', rawId);
+    return true;
   } catch (err) {
     console.error('Error updating order status in database:', err);
   }
@@ -166,12 +182,9 @@ export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETE
 export async function updateDatabaseOrderReceipt(rawId: string, receiptUrl: string): Promise<boolean> {
   const supabase = createClient();
   try {
-    const { error } = await supabase
-      .from('purchase_transactions')
-      .update({ receipt_url: receiptUrl, receipt_path: receiptUrl })
-      .eq('id', rawId);
-
-    if (!error) return true;
+    await supabase.from('purchase_transactions').update({ receipt_url: receiptUrl, receipt_path: receiptUrl }).eq('id', rawId);
+    await supabase.from('orders').update({ receipt_path: receiptUrl }).eq('id', rawId);
+    return true;
   } catch (err) {
     console.error('Error updating order receipt in database:', err);
   }

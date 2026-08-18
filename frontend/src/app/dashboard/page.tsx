@@ -24,6 +24,7 @@ import {
   ImageIcon,
   Loader2,
   ExternalLink,
+  Check,
 } from 'lucide-react';
 import {
   LineChart,
@@ -54,19 +55,23 @@ export default function UserDashboardPage() {
   const [applying, setApplying] = useState(false);
   const [resellerMsg, setResellerMsg] = useState<string | null>(null);
 
-  // Modals state
+  // Modals & Upload state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  
+  // File Receipt Upload State
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const supabase = createClient();
 
   useEffect(() => {
     let currentEmail = 'USER@SHADOWSTORE.COM';
 
-    // 1. Sync from localStorage session
     if (typeof window !== 'undefined') {
       const storedEmail = localStorage.getItem('active_session_email');
       const storedRole = localStorage.getItem('active_session_role') as any;
@@ -87,11 +92,9 @@ export default function UserDashboardPage() {
       }
     }
 
-    // 2. Fetch Database Orders from Supabase
     async function loadUserDatabaseOrders() {
       const dbOrders = await fetchDatabaseOrders();
       
-      // Filter for active user or show relevant user orders
       const userDbOrders = dbOrders.filter((o) => 
         o.customerEmail.toUpperCase() === currentEmail || currentEmail === 'USER@SHADOWSTORE.COM'
       );
@@ -165,14 +168,24 @@ export default function UserDashboardPage() {
     setApplying(false);
   };
 
-  const handleUploadReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedOrder) return;
+    if (file) {
+      setReceiptFile(file);
+      setReceiptPreview(URL.createObjectURL(file));
+      setUploadSuccess(false);
+    }
+  };
+
+  const handleSubmitReceipt = async () => {
+    if (!receiptFile || !selectedOrder) return;
 
     setUploadingReceipt(true);
+    setUploadSuccess(false);
+
     try {
       const formData = new FormData();
-      formData.append('receipt', file);
+      formData.append('receipt', receiptFile);
 
       const res = await fetch('/api/upload-receipt', {
         method: 'POST',
@@ -183,7 +196,7 @@ export default function UserDashboardPage() {
       if (json.success && json.url) {
         const receiptUrl = json.url;
 
-        // Update database directly in Supabase
+        // Save directly into Supabase orders & purchase_transactions tables
         if (selectedOrder.raw_id) {
           await updateDatabaseOrderReceipt(selectedOrder.raw_id, receiptUrl);
         }
@@ -198,9 +211,13 @@ export default function UserDashboardPage() {
             t.id === selectedOrder.id ? { ...t, receipt_url: receiptUrl } : t
           )
         );
+
+        setReceiptFile(null);
+        setReceiptPreview(null);
+        setUploadSuccess(true);
       }
     } catch (err) {
-      console.error('Failed to upload receipt:', err);
+      console.error('Failed to submit receipt:', err);
     } finally {
       setUploadingReceipt(false);
     }
@@ -461,7 +478,12 @@ export default function UserDashboardPage() {
             {transactions.map((tx) => (
               <div
                 key={tx.id}
-                onClick={() => setSelectedOrder(tx)}
+                onClick={() => {
+                  setSelectedOrder(tx);
+                  setReceiptFile(null);
+                  setReceiptPreview(null);
+                  setUploadSuccess(false);
+                }}
                 className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 flex items-center justify-between hover:border-purple-500/60 cursor-pointer transition-all hover:bg-slate-900/40"
               >
                 <div className="flex items-center gap-4">
@@ -614,23 +636,52 @@ export default function UserDashboardPage() {
                 </div>
               )}
 
-              {/* Upload Receipt Action */}
-              <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-800/50 space-y-2">
+              {/* Upload Receipt Action Card with EXPLICIT SUBMIT BUTTON */}
+              <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-800/50 space-y-3">
                 <label className="block text-xs font-bold text-purple-300 uppercase">
                   {selectedOrder.receipt_url ? 'Replace Bank Receipt' : 'Upload Bank Transfer Receipt'}
                 </label>
+
                 <div className="relative">
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={handleUploadReceipt}
+                    onChange={handleFileSelect}
                     disabled={uploadingReceipt}
                     className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer disabled:opacity-50"
                   />
                 </div>
-                {uploadingReceipt && (
-                  <p className="text-[10px] text-cyan-400 font-mono flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Uploading receipt & updating Supabase database...
+
+                {receiptPreview && (
+                  <div className="space-y-2 pt-2 border-t border-purple-900/40">
+                    <span className="text-[10px] font-mono text-slate-400">SELECTED IMAGE PREVIEW:</span>
+                    <div className="h-28 rounded-xl bg-slate-950 overflow-hidden border border-slate-800 flex items-center justify-center">
+                      <img src={receiptPreview} alt="Selected file" className="h-full object-contain" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Explicit Submit Button */}
+                <button
+                  type="button"
+                  onClick={handleSubmitReceipt}
+                  disabled={!receiptFile || uploadingReceipt}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploadingReceipt ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> SUBMITTING TO DATABASE...
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-4 h-4" /> SUBMIT BANK RECEIPT
+                    </>
+                  )}
+                </button>
+
+                {uploadSuccess && (
+                  <p className="text-xs text-emerald-400 font-mono font-bold flex items-center gap-1">
+                    <Check className="w-4 h-4 text-emerald-400" /> Receipt uploaded successfully & saved to Supabase!
                   </p>
                 )}
               </div>
