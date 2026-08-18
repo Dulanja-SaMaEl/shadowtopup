@@ -51,8 +51,11 @@ export async function POST(request: NextRequest) {
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
     const initialStatus = receiptUrl ? 'proof_submitted' : 'pending';
 
-    // 1. Insert into orders table using admin key
-    const orderPayload: any = {
+    let insertedOrder: any = null;
+    let orderErr: any = null;
+
+    // 1. First try full payload with rich fields
+    const fullPayload: any = {
       user_id: effectiveUserId,
       total_amount: Number(totalAmount),
       status: initialStatus,
@@ -63,40 +66,42 @@ export async function POST(request: NextRequest) {
       payment_method: paymentMethod,
     };
 
-    let insertedOrder: any = null;
-    let orderErr: any = null;
-
-    // Try inserting into orders table
-    const { data: ordData, error: err1 } = await adminSupabase
+    const { data: ordData1, error: err1 } = await adminSupabase
       .from('orders')
-      .insert([orderPayload])
+      .insert([fullPayload])
       .select();
 
-    if (err1) {
+    if (ordData1 && ordData1.length > 0) {
+      insertedOrder = ordData1[0];
+    } else {
       orderErr = err1;
-      // Fallback payload if specific non-standard columns failed
-      const fallbackPayload = {
+      // 2. Fall back to standard schema payload if extra columns don't exist yet in PostgreSQL schema
+      const standardPayload: any = {
         user_id: effectiveUserId,
         total_amount: Number(totalAmount),
-        status: initialStatus,
+        status: initialStatus === 'proof_submitted' ? 'pending' : 'pending',
         receipt_path: receiptUrl,
       };
+
       const { data: ordData2, error: err2 } = await adminSupabase
         .from('orders')
-        .insert([fallbackPayload])
+        .insert([standardPayload])
         .select();
 
       if (ordData2 && ordData2.length > 0) {
         insertedOrder = ordData2[0];
         orderErr = null;
+
+        // If status was proof_submitted, update receipt_path
+        if (receiptUrl) {
+          await adminSupabase.from('orders').update({ receipt_path: receiptUrl }).eq('id', insertedOrder.id);
+        }
       } else {
-        console.error('Order creation error:', err2);
+        orderErr = err2 || err1;
       }
-    } else if (ordData && ordData.length > 0) {
-      insertedOrder = ordData[0];
     }
 
-    // 2. Also try inserting into purchase_transactions table
+    // 3. Insert into purchase_transactions table as well
     const txPayload: any = {
       user_id: effectiveUserId,
       package_id: packageId,
@@ -105,16 +110,13 @@ export async function POST(request: NextRequest) {
       shells_deducted: shellCost,
       price_paid: Number(totalAmount),
       price_tier: priceTier,
-      status: initialStatus === 'proof_submitted' ? 'pending' : 'pending',
+      status: 'pending',
       payment_method: paymentMethod,
       receipt_path: receiptUrl,
-      receipt_url: receiptUrl,
     };
 
     const { error: txErr } = await adminSupabase.from('purchase_transactions').insert([txPayload]);
-    if (txErr) {
-      console.warn('Tx insert note (non-critical):', txErr.message);
-    }
+    if (txErr) console.warn('Tx insert note:', txErr.message);
 
     if (!insertedOrder && orderErr) {
       return NextResponse.json({
