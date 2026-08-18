@@ -9,54 +9,76 @@ export default function AdminTransactionsPage() {
 
   const [transactions] = useState([
     {
-      timestamp: 'Aug 11, 2026 19:04:19',
-      user: 'User One',
+      timestamp: 'Aug 18, 2026 11:30:00',
+      user: 'User Account',
       userTier: 'NORMAL TIER',
-      freeFireId: '123456789',
-      packageItem: '25 Diamond Pack',
-      shellAcc: 'Shell Acc: #1',
-      amount: 'LKR 75.26',
-      method: 'PAYPAL',
-      receipt: 'N/A',
-      status: 'TOPUP PENDING',
-    },
-    {
-      timestamp: 'Jul 02, 2026 03:09:42',
-      user: 'Dulanja Abeysinghe',
-      userTier: 'SILVER TIER',
       freeFireId: '8777843685',
-      packageItem: '25 Diamond Pack',
+      packageItem: '100 Diamond Pack',
       shellAcc: 'Shell Acc: #1',
-      amount: 'LKR 73.13',
+      amount: 'LKR 750.00',
       method: 'BANK TRANSFER',
-      receipt: 'N/A',
-      status: 'TOPUP PENDING',
+      receipt: 'VERIFIED RECEIPT',
+      status: 'COMPLETED',
     },
     {
-      timestamp: 'Jul 02, 2026 03:09:32',
-      user: 'Dulanja Abeysinghe',
-      userTier: 'SILVER TIER',
-      freeFireId: '8777843685',
-      packageItem: '25 Diamond Pack',
-      shellAcc: 'Shell Acc: #1',
-      amount: 'LKR 73.13',
-      method: 'PAYPAL',
-      receipt: 'N/A',
-      status: 'TOPUP PENDING',
-    },
-    {
-      timestamp: 'Jun 29, 2026 05:54:34',
-      user: 'User One',
+      timestamp: 'Aug 17, 2026 10:15:00',
+      user: 'User Account',
       userTier: 'NORMAL TIER',
-      freeFireId: '9484238215',
-      packageItem: '25 Diamond Pack',
+      freeFireId: '8777843685',
+      packageItem: '310 Diamond Pack',
       shellAcc: 'Shell Acc: #1',
-      amount: 'LKR 71.00',
-      method: 'PAYPAL',
-      receipt: 'N/A',
-      status: 'TOPUP PENDING',
+      amount: 'LKR 2,100.00',
+      method: 'BANK TRANSFER',
+      receipt: 'RECEIPT UPLOADED',
+      status: 'PENDING',
+    },
+    {
+      timestamp: 'Aug 16, 2026 14:20:00',
+      user: 'Gold Reseller',
+      userTier: 'GOLD TIER',
+      freeFireId: '1092837465',
+      packageItem: '520 Diamond Pack',
+      shellAcc: 'Shell Acc: #2',
+      amount: 'LKR 3,450.00',
+      method: 'VISA / MASTERCARD',
+      receipt: 'PAYPAL REF #9921',
+      status: 'COMPLETED',
+    },
+    {
+      timestamp: 'Aug 15, 2026 09:05:00',
+      user: 'Silver Reseller',
+      userTier: 'SILVER TIER',
+      freeFireId: '4455667788',
+      packageItem: 'Weekly Diamond Pass',
+      shellAcc: 'Shell Acc: #1',
+      amount: 'LKR 1,200.00',
+      method: 'EZ CASH',
+      receipt: 'EZ #7712',
+      status: 'COMPLETED',
+    },
+    {
+      timestamp: 'Aug 12, 2026 16:40:00',
+      user: 'Dulanja Abeysinghe',
+      userTier: 'ADMIN TIER',
+      freeFireId: '9876543210',
+      packageItem: '1060 Diamond Pack',
+      shellAcc: 'Shell Acc: #3',
+      amount: 'LKR 6,800.00',
+      method: 'BANK TRANSFER',
+      receipt: 'VERIFIED RECEIPT',
+      status: 'COMPLETED',
     },
   ]);
+
+  const filtered = transactions.filter((tx) => {
+    if (statusFilter !== 'All Statuses' && tx.status.toLowerCase() !== statusFilter.toLowerCase()) {
+      return false;
+    }
+    if (userIdFilter && !tx.user.toLowerCase().includes(userIdFilter.toLowerCase()) && !tx.freeFireId.includes(userIdFilter)) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-8">
@@ -79,31 +101,31 @@ export default function AdminTransactionsPage() {
               className="px-4 py-2 bg-[#0e0c1f] border border-purple-950/60 rounded-xl text-xs text-white focus:outline-none w-44"
             >
               <option>All Statuses</option>
-              <option>Pending</option>
-              <option>Completed</option>
-              <option>Failed</option>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
             </select>
           </div>
 
           <div className="space-y-1">
             <label className="block text-[9px] font-extrabold uppercase tracking-widest text-slate-400">
-              Customer User ID
+              Customer User ID / Player ID
             </label>
             <input
               type="text"
-              placeholder="User ID..."
+              placeholder="Search User or Player ID..."
               value={userIdFilter}
               onChange={(e) => setUserIdFilter(e.target.value)}
-              className="px-4 py-2 bg-[#0e0c1f] border border-purple-950/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none w-48"
+              className="px-4 py-2 bg-[#0e0c1f] border border-purple-950/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none w-56 font-mono"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30">
-              Filter
-            </button>
-            <button className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider">
-              Clear
+            <button
+              onClick={() => { setStatusFilter('All Statuses'); setUserIdFilter(''); }}
+              className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider"
+            >
+              Reset Filters
             </button>
           </div>
         </div>
@@ -121,11 +143,11 @@ export default function AdminTransactionsPage() {
                 <th className="p-4">Package Item</th>
                 <th className="p-4">Amount / Method</th>
                 <th className="p-4">Reference / Receipt</th>
-                <th className="p-4">Status & Action</th>
+                <th className="p-4">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {transactions.map((tx, idx) => (
+              {filtered.map((tx, idx) => (
                 <tr key={idx} className="hover:bg-slate-900/40">
                   <td className="p-4 text-slate-400 font-mono text-[10px]">{tx.timestamp}</td>
                   <td className="p-4">
@@ -149,9 +171,15 @@ export default function AdminTransactionsPage() {
                   </td>
                   <td className="p-4 font-mono text-slate-400 text-[10px]">{tx.receipt}</td>
                   <td className="p-4">
-                    <button className="px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold uppercase tracking-wider">
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                      tx.status === 'COMPLETED'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                        : tx.status === 'PENDING'
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                        : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                    }`}>
                       {tx.status}
-                    </button>
+                    </span>
                   </td>
                 </tr>
               ))}
