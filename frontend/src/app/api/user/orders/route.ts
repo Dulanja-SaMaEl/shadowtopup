@@ -44,34 +44,40 @@ export async function GET(request: NextRequest) {
     // 2. Use admin client to query user orders reliably without RLS issues
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch user profile if exists
+    // Fetch user profile if exists (by ID or email)
+    let profileUserId = '';
     let userName = effectiveEmail ? effectiveEmail.split('@')[0].toUpperCase() : 'CUSTOMER ACCOUNT';
     let userRole = 'normal';
     let resellerStatus = 'none';
 
-    if (effectiveUserId) {
-      const { data: userProfile } = await adminSupabase.from('profiles').select('*').eq('id', effectiveUserId).single();
-      if (userProfile) {
-        if (userProfile.name) userName = userProfile.name.toUpperCase();
-        userRole = userProfile.role || 'normal';
-        resellerStatus = userProfile.reseller_status || 'none';
-      }
+    const { data: userProfile } = await adminSupabase
+      .from('profiles')
+      .select('*')
+      .or(`id.eq.${effectiveUserId || '00000000-0000-0000-0000-000000000000'},email.eq.${effectiveEmail || 'none'}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (userProfile) {
+      profileUserId = userProfile.id || '';
+      if (userProfile.name) userName = userProfile.name.toUpperCase();
+      userRole = userProfile.role || 'normal';
+      resellerStatus = userProfile.reseller_status || 'none';
     }
 
     if (effectiveEmail.includes('user@shadow')) {
       userName = 'STANDARD CUSTOMER ACCOUNT';
     }
 
-    // Query orders table first (strictly avoiding combining with purchase_transactions table)
+    // Build all candidate user IDs for order matching (UUIDs, email)
+    const validIds = Array.from(new Set([effectiveUserId, profileUserId, effectiveEmail].filter(Boolean)));
+    const idFilterString = validIds.map((id) => `user_id.eq.${id}`).join(',');
+
+    // Query orders table first
     let targetRows: any[] = [];
     
     let ordersQuery = adminSupabase.from('orders').select('*');
-    if (effectiveUserId && effectiveEmail) {
-      ordersQuery = ordersQuery.or(`user_id.eq.${effectiveUserId},user_id.eq.${effectiveEmail}`);
-    } else if (effectiveUserId) {
-      ordersQuery = ordersQuery.eq('user_id', effectiveUserId);
-    } else if (effectiveEmail) {
-      ordersQuery = ordersQuery.eq('user_id', effectiveEmail);
+    if (idFilterString) {
+      ordersQuery = ordersQuery.or(idFilterString);
     }
 
     const { data: ordersRows } = await ordersQuery.order('created_at', { ascending: false });
@@ -81,12 +87,8 @@ export async function GET(request: NextRequest) {
     } else {
       // Fall back to purchase_transactions table ONLY if orders table has 0 records
       let txQuery = adminSupabase.from('purchase_transactions').select('*');
-      if (effectiveUserId && effectiveEmail) {
-        txQuery = txQuery.or(`user_id.eq.${effectiveUserId},user_id.eq.${effectiveEmail}`);
-      } else if (effectiveUserId) {
-        txQuery = txQuery.eq('user_id', effectiveUserId);
-      } else if (effectiveEmail) {
-        txQuery = txQuery.eq('user_id', effectiveEmail);
+      if (idFilterString) {
+        txQuery = txQuery.or(idFilterString);
       }
 
       const { data: txRows } = await txQuery.order('created_at', { ascending: false });
