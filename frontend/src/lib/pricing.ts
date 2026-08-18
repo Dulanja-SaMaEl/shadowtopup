@@ -19,3 +19,7 @@ export function calculateProductPrice(product: Product, role?: UserRole): number
   }
   return Number(product.price);
 }
+
+export function formatCurrency(amount: number): string {
+  return `LKR ${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { Package, UserRole } from '@/types/database';
-import { calculatePackagePrice } from '@/lib/pricing';
-import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2 } from 'lucide-react';
+import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
+import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles } from 'lucide-react';
 
 interface Props {
   packages: Package[];
@@ -59,8 +59,6 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
         const data = await res.json();
         if (data.success && data.approveUrl) {
-          // Note: PayPal orders should typically be inserted upon successful redirect return,
-          // but for now we insert it as PENDING before redirecting
           await supabase.from('orders').insert([{ user_id: userId, total_amount: price, status: 'pending' }]);
           await supabase.from('purchase_transactions').insert([{
             user_id: userId, package_id: selectedPkg.id, free_fire_player_id: verifiedPlayerUid,
@@ -96,7 +94,6 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         const uploadData = await uploadRes.json();
         if (uploadData.success && uploadData.url) {
           
-          // Insert into Database via Server API!
           const receiptUrl = uploadData.url;
 
           const createRes = await fetch('/api/orders/create', {
@@ -130,10 +127,11 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             if (onCheckoutComplete) onCheckoutComplete();
           }
         } else {
-          setMessage({ type: 'error', text: uploadData.message || 'Receipt upload failed' });
+          setMessage({ type: 'error', text: uploadData.message || 'Failed to upload receipt image.' });
         }
       } catch (err: any) {
-        setMessage({ type: 'error', text: 'Error uploading receipt' });
+        console.error('Receipt Upload Catch Error:', err);
+        setMessage({ type: 'error', text: 'Failed to complete receipt upload submission.' });
       } finally {
         setLoading(false);
       }
@@ -143,8 +141,8 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-bold text-white mb-1">2. Select Diamond Package</h3>
-        <p className="text-xs text-slate-400">Choose your desired diamond recharge amount</p>
+        <h3 className="text-lg font-bold text-white mb-1">2. Select Diamond Package or Membership Pass</h3>
+        <p className="text-xs text-slate-400">Choose your desired Free Fire Garena SG recharge amount or pass subscription</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -152,47 +150,66 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           const isSelected = selectedPkg?.id === pkg.id;
           const finalPrice = calculatePackagePrice(pkg, userRole);
           const hasDiscount = userRole && userRole !== 'normal' && finalPrice < pkg.normal_price;
+          const isPass = pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass';
 
           return (
             <div
               key={pkg.id}
               onClick={() => setSelectedPkg(pkg)}
-              className={`relative p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+              className={`relative p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between overflow-hidden ${
                 isSelected
-                  ? 'bg-slate-900 border-cyan-500 shadow-xl shadow-cyan-500/10 ring-2 ring-cyan-500/50'
+                  ? 'bg-slate-900 border-cyan-500 shadow-xl shadow-cyan-500/20 ring-2 ring-cyan-500/50'
                   : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
               }`}
             >
               {isSelected && (
-                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center text-slate-950">
+                <div className="absolute top-3 right-3 z-10 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center text-slate-950 shadow-md">
                   <Check className="w-3.5 h-3.5 stroke-[3]" />
                 </div>
               )}
 
-              <div>
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-3">
-                  <Diamond className="w-5 h-5 fill-cyan-400/20" />
+              {pkg.badge && (
+                <div className="absolute top-3 left-3 z-10 px-2 py-0.5 rounded-md bg-purple-600/90 border border-purple-400/40 text-white text-[9px] font-mono font-black uppercase tracking-wider shadow-sm">
+                  {pkg.badge}
                 </div>
-                <h4 className="font-bold text-white text-base leading-snug">{pkg.package_name}</h4>
-                <span className="text-xs text-cyan-400 font-mono font-semibold">
-                  {pkg.diamond_amount} Diamonds
+              )}
+
+              <div className="pt-4">
+                {pkg.image_url ? (
+                  <div className="w-full h-24 mb-3 rounded-xl overflow-hidden bg-slate-950 relative border border-slate-800/80 group-hover:scale-105 transition-transform">
+                    <img src={pkg.image_url} alt={pkg.package_name} className="w-full h-full object-cover opacity-85" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+                    <div className="absolute bottom-2 left-2 flex items-center gap-1 text-cyan-400 text-xs font-bold font-mono">
+                      {isPass ? <Crown className="w-3.5 h-3.5 text-amber-400" /> : <Diamond className="w-3.5 h-3.5 fill-cyan-400/20" />}
+                      <span>{pkg.diamond_amount} Diamonds</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-3">
+                    {isPass ? <Crown className="w-6 h-6 text-amber-400" /> : <Diamond className="w-6 h-6 fill-cyan-400/20" />}
+                  </div>
+                )}
+
+                <h4 className="font-bold text-white text-sm leading-snug">{pkg.package_name}</h4>
+                <span className="text-[11px] text-cyan-400 font-mono font-semibold block mt-0.5">
+                  {isPass ? `Privilege Value: ${pkg.diamond_amount} Diamonds` : `${pkg.diamond_amount} Diamonds`}
                 </span>
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-800/80">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-extrabold text-lg text-white font-mono">
-                    ${finalPrice.toFixed(2)}
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="font-extrabold text-base text-white font-mono">
+                    {formatCurrency(finalPrice)}
                   </span>
                   {hasDiscount && (
-                    <span className="text-xs text-slate-500 line-through font-mono">
-                      ${pkg.normal_price.toFixed(2)}
+                    <span className="text-[10px] text-slate-500 line-through font-mono">
+                      {formatCurrency(pkg.normal_price)}
                     </span>
                   )}
                 </div>
                 {userRole && userRole !== 'normal' && (
                   <span className="text-[10px] text-amber-400 font-mono block mt-0.5">
-                    {userRole.toUpperCase()} Reseller Price
+                    {userRole.toUpperCase()} Reseller Discount
                   </span>
                 )}
               </div>
@@ -274,7 +291,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin text-white" />
             ) : (
-              <>Pay ${calculatePackagePrice(selectedPkg, userRole).toFixed(2)} & Recharge Now</>
+              <>Pay {formatCurrency(calculatePackagePrice(selectedPkg, userRole))} & Recharge Now</>
             )}
           </button>
         </div>

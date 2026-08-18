@@ -52,6 +52,8 @@ export interface Package {
   normal_price: number;
   silver_price: number;
   gold_price: number;
+  image_url?: string;
+  badge?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
