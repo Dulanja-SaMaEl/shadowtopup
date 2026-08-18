@@ -103,21 +103,28 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
     const activeRows = (txRows && txRows.length > 0) ? txRows : (ordersRows && ordersRows.length > 0) ? ordersRows : null;
 
     if (activeRows && activeRows.length > 0) {
-      return activeRows.map((row: any) => ({
-        id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
-        raw_id: row.id,
-        user_id: row.user_id || '',
-        customerName: row.profile?.name || (row.free_fire_player_id ? `Player ${row.free_fire_player_id}` : 'Customer'),
-        customerEmail: row.profile?.email || 'user@shadowstore.com',
-        free_fire_player_id: row.free_fire_player_id || '9876543210',
-        package_name: row.package?.package_name || 'Free Fire Diamonds',
-        totalAmount: Number(row.price_paid || row.total_amount || 750.00),
-        fulfillmentStatus: (row.status || 'pending').toUpperCase() as any,
-        paymentMethod: (row.payment_method || 'bank_transfer').toUpperCase(),
-        paymentReceipt: row.receipt_path || row.receipt_url || null,
-        date: new Date(row.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        timestamp: new Date(row.created_at || Date.now()).toLocaleString(),
-      }));
+      return activeRows.map((row: any) => {
+        const rawStatus = (row.status || 'pending').toLowerCase();
+        const isCompleted = ['completed', 'success', 'verified'].includes(rawStatus);
+        const isRejected = ['rejected', 'failed'].includes(rawStatus);
+        const normStatus = isCompleted ? 'COMPLETED' : isRejected ? 'REJECTED' : 'PENDING';
+
+        return {
+          id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
+          raw_id: row.id,
+          user_id: row.user_id || '',
+          customerName: row.profile?.name || (row.free_fire_player_id ? `Player ${row.free_fire_player_id}` : 'Customer'),
+          customerEmail: row.profile?.email || 'user@shadowstore.com',
+          free_fire_player_id: row.free_fire_player_id || '9876543210',
+          package_name: row.package?.package_name || 'Free Fire Diamonds',
+          totalAmount: Number(row.price_paid || row.total_amount || 750.00),
+          fulfillmentStatus: normStatus as any,
+          paymentMethod: (row.payment_method || 'bank_transfer').toUpperCase(),
+          paymentReceipt: row.receipt_path || row.receipt_url || null,
+          date: new Date(row.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          timestamp: new Date(row.created_at || Date.now()).toLocaleString(),
+        };
+      });
     }
   } catch (err) {
     console.error('Error fetching database orders:', err);
@@ -143,9 +150,11 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
 export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETED' | 'PENDING' | 'REJECTED'): Promise<boolean> {
   const supabase = createClient();
   try {
-    const statusVal = status.toLowerCase();
-    await supabase.from('purchase_transactions').update({ status: statusVal }).eq('id', rawId);
-    await supabase.from('orders').update({ status: statusVal }).eq('id', rawId);
+    const orderStatusVal = status === 'COMPLETED' ? 'completed' : status === 'REJECTED' ? 'rejected' : 'pending';
+    const txStatusVal = status === 'COMPLETED' ? 'success' : status === 'REJECTED' ? 'failed' : 'pending';
+
+    await supabase.from('purchase_transactions').update({ status: txStatusVal }).eq('id', rawId);
+    await supabase.from('orders').update({ status: orderStatusVal }).eq('id', rawId);
     return true;
   } catch (err) {
     console.error('Error updating order status in database:', err);
