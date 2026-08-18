@@ -25,6 +25,7 @@ import {
   Loader2,
   ExternalLink,
   Check,
+  ShoppingBag,
 } from 'lucide-react';
 import {
   LineChart,
@@ -42,8 +43,8 @@ import {
 export default function UserDashboardPage() {
   const [profile, setProfile] = useState<Profile | null>({
     id: 'demo-user',
-    name: 'USER ACCOUNT',
-    email: 'USER@SHADOWSTORE.COM',
+    name: 'STANDARD CUSTOMER ACCOUNT',
+    email: 'USER@SHADOWTOPUP.COM',
     role: 'normal',
     reseller_status: 'none',
     created_at: '2026-05-11T00:00:00Z',
@@ -70,7 +71,7 @@ export default function UserDashboardPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    let currentEmail = 'USER@SHADOWSTORE.COM';
+    let currentEmail = 'USER@SHADOWTOPUP.COM';
 
     if (typeof window !== 'undefined') {
       const storedEmail = localStorage.getItem('active_session_email');
@@ -93,16 +94,20 @@ export default function UserDashboardPage() {
     }
 
     async function loadUserDatabaseOrders() {
+      const { data: authData } = await supabase.auth.getUser();
+      const authUser = authData?.user;
+
       const dbOrders = await fetchDatabaseOrders();
       
-      const userDbOrders = dbOrders.filter((o) => 
-        o.customerEmail.toUpperCase() === currentEmail || currentEmail === 'USER@SHADOWSTORE.COM'
-      );
-
-      const targetList = userDbOrders.length > 0 ? userDbOrders : dbOrders;
+      // Strictly filter orders belonging ONLY to this user
+      const userDbOrders = dbOrders.filter((o) => {
+        if (authUser && o.user_id && o.user_id === authUser.id) return true;
+        if (o.customerEmail && o.customerEmail.trim().toLowerCase() === currentEmail.trim().toLowerCase()) return true;
+        return false;
+      });
 
       setTransactions(
-        targetList.map((o) => ({
+        userDbOrders.map((o) => ({
           id: o.id.replace('#', ''),
           raw_id: o.raw_id,
           package_name: o.package_name,
@@ -196,7 +201,6 @@ export default function UserDashboardPage() {
       if (json.success && json.url) {
         const receiptUrl = json.url;
 
-        // Save directly into Supabase orders & purchase_transactions tables
         if (selectedOrder.raw_id) {
           await updateDatabaseOrderReceipt(selectedOrder.raw_id, receiptUrl);
         }
@@ -234,11 +238,11 @@ export default function UserDashboardPage() {
   };
 
   const lineData = [
-    { date: 'Aug 12', spent: 6800 },
-    { date: 'Aug 15', spent: 1200 },
-    { date: 'Aug 16', spent: 3450 },
-    { date: 'Aug 17', spent: 2100 },
-    { date: 'Aug 18', spent: 750 },
+    { date: 'Aug 12', spent: 0 },
+    { date: 'Aug 15', spent: 0 },
+    { date: 'Aug 16', spent: 0 },
+    { date: 'Aug 17', spent: 0 },
+    { date: 'Aug 18', spent: 0 },
   ];
 
   const barData = [
@@ -283,7 +287,7 @@ export default function UserDashboardPage() {
           </div>
         )}
 
-        {/* 2. User Profile Header Card */}
+        {/* User Profile Header Card */}
         <div className="p-8 rounded-3xl bg-[#141229] border border-purple-950/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-white text-2xl font-black">
@@ -328,7 +332,7 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* 3. Metrics Summary Row */}
+        {/* Metrics Summary Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
             <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">TOTAL DB ORDERS</span>
@@ -344,7 +348,7 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* 4. Details Info Grid Cards */}
+        {/* Details Info Grid Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/60">
             <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">FULL NAME</span>
@@ -364,7 +368,7 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* 5. RESELLER STATUS CARD */}
+        {/* RESELLER STATUS CARD */}
         <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
           <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
             <Award className="w-4 h-4 text-red-500" /> RESELLER STATUS
@@ -430,7 +434,7 @@ export default function UserDashboardPage() {
           )}
         </div>
 
-        {/* 6. CHARTS ROW */}
+        {/* CHARTS ROW */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
             <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
@@ -470,50 +474,68 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* 7. Recent Orders List */}
+        {/* Recent Orders List */}
         <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
           <h3 className="text-xs font-black text-white uppercase tracking-wider">RECENT DATABASE ORDERS</h3>
 
-          <div className="space-y-3">
-            {transactions.map((tx) => (
-              <div
-                key={tx.id}
-                onClick={() => {
-                  setSelectedOrder(tx);
-                  setReceiptFile(null);
-                  setReceiptPreview(null);
-                  setUploadSuccess(false);
-                }}
-                className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 flex items-center justify-between hover:border-purple-500/60 cursor-pointer transition-all hover:bg-slate-900/40"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="w-12 h-8 rounded-xl bg-slate-900 text-purple-400 font-mono text-xs font-bold flex items-center justify-center border border-slate-800">
-                    #{tx.id}
-                  </span>
-                  <div>
-                    <h5 className="font-bold text-white text-xs uppercase">{tx.package_name}</h5>
-                    <p className="text-[10px] text-slate-400 font-mono">PLAYER UID: {tx.player_uid} • {tx.date}</p>
+          {transactions.length > 0 ? (
+            <div className="space-y-3">
+              {transactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  onClick={() => {
+                    setSelectedOrder(tx);
+                    setReceiptFile(null);
+                    setReceiptPreview(null);
+                    setUploadSuccess(false);
+                  }}
+                  className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 flex items-center justify-between hover:border-purple-500/60 cursor-pointer transition-all hover:bg-slate-900/40"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="w-12 h-8 rounded-xl bg-slate-900 text-purple-400 font-mono text-xs font-bold flex items-center justify-center border border-slate-800">
+                      #{tx.id}
+                    </span>
+                    <div>
+                      <h5 className="font-bold text-white text-xs uppercase">{tx.package_name}</h5>
+                      <p className="text-[10px] text-slate-400 font-mono">PLAYER UID: {tx.player_uid} • {tx.date}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className="font-mono font-bold text-emerald-400 text-xs">
+                      LKR {Number(tx.amount).toFixed(2)}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
+                      tx.status === 'COMPLETED'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : tx.status === 'PENDING'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    }`}>
+                      {tx.status}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-slate-500" />
                   </div>
                 </div>
-
-                <div className="flex items-center gap-4">
-                  <span className="font-mono font-bold text-emerald-400 text-xs">
-                    LKR {Number(tx.amount).toFixed(2)}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
-                    tx.status === 'COMPLETED'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : tx.status === 'PENDING'
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  }`}>
-                    {tx.status}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-slate-500" />
-                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-10 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-purple-950/60 border border-purple-800/50 flex items-center justify-center text-purple-400 mx-auto">
+                <ShoppingBag className="w-6 h-6" />
               </div>
-            ))}
-          </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider">NO ORDERS FOUND FOR THIS ACCOUNT</h4>
+                <p className="text-xs text-slate-400 font-mono">You have not placed any top-up orders yet. Browse our store catalog to top up your account!</p>
+              </div>
+              <Link
+                href="/games"
+                className="inline-block px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 transition-all"
+              >
+                BROWSE STORE CATALOG
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
