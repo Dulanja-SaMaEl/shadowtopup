@@ -15,6 +15,7 @@ import {
   Headphones,
   Star,
   ShieldAlert,
+  AlertTriangle,
 } from 'lucide-react';
 import CustomerReviewsSection from '@/components/CustomerReviewsSection';
 
@@ -24,7 +25,7 @@ const featuredGames = [
     slug: 'free-fire',
     category: 'BATTLE ROYALE',
     image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000',
-    badge: 'AUTOMATED SHELL ENGINE',
+    badge: 'THIRD-PARTY TOPUP',
     discount: 'UP TO 15% OFF FOR RESELLERS',
     available: true,
   },
@@ -59,8 +60,8 @@ const rankBadges = [
 const platformFeatures = [
   {
     icon: Zap,
-    title: 'AUTOMATED SHELL ENGINE',
-    description: 'Direct integration with Garena Shell API ensures your Free Fire top-ups arrive in under 30 seconds.',
+    title: 'FAST DISPATCH ENGINE',
+    description: 'Automated digital redemption processing ensures your Free Fire top-ups arrive in under 30 seconds.',
     color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
   },
   {
@@ -86,6 +87,12 @@ const platformFeatures = [
 export default function HomePage() {
   return (
     <div className="space-y-20 pb-16">
+      {/* Disclaimer Banner Top Header */}
+      <div className="bg-amber-500/10 border-b border-amber-500/20 py-2 px-4 text-center text-[11px] font-mono text-amber-300 flex items-center justify-center gap-2">
+        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+        <span>ShadowTopUp is an independent third-party service and is not affiliated with or endorsed by Garena.</span>
+      </div>
+
       {/* 1. Ultra Hero Section */}
       <section className="relative overflow-hidden pt-10 pb-16 rounded-3xl bg-gradient-to-br from-[#141229] via-[#0c0a1a] to-[#120f26] border border-purple-950/40 p-6 sm:p-12 shadow-2xl">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
@@ -94,7 +101,7 @@ export default function HomePage() {
         <div className="relative z-10 max-w-3xl space-y-6">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold uppercase tracking-wider shadow-lg">
             <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
-            OFFICIAL GARENA SG / MY RECHARGE STOREFRONT
+            INDEPENDENT GAMING TOPUP SERVICE
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-none">
@@ -102,7 +109,7 @@ export default function HomePage() {
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-sans max-w-2xl">
-            ShadowTopUp delivers instant Free Fire SG/MY diamonds directly to your game account using official Garena Shells. Enjoy automated Player ID verification, low LKR prices, and reseller discounts.
+            ShadowTopUp is an independent third-party top-up portal delivering Free Fire SG/MY diamonds and passes. Enjoy automated Player ID verification, low LKR prices, and reseller discounts.
           </p>
 
           <div className="flex flex-wrap gap-4 pt-2">
@@ -124,13 +131,13 @@ export default function HomePage() {
           {/* Quick Trust Badges */}
           <div className="pt-4 flex flex-wrap items-center gap-6 text-xs text-slate-400 font-mono border-t border-slate-800/80">
             <span className="flex items-center gap-1.5 text-emerald-400">
-              <CheckCircle2 className="w-4 h-4" /> 100% Guaranteed Delivery
+              <CheckCircle2 className="w-4 h-4" /> Fast Automated Delivery
             </span>
             <span className="flex items-center gap-1.5 text-cyan-400">
-              <ShieldCheck className="w-4 h-4" /> Verified Garena UID
+              <ShieldCheck className="w-4 h-4" /> Real-Time Player UID Verification
             </span>
             <span className="flex items-center gap-1.5 text-amber-400">
-              <Star className="w-4 h-4 fill-amber-400" /> 5.0 Rated Store
+              <Star className="w-4 h-4 fill-amber-400" /> Verified Customer Reviews
             </span>
           </div>
         </div>
@@ -141,7 +148,7 @@ export default function HomePage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800/80 pb-6">
           <div>
             <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
-              <Gamepad2 className="w-4 h-4" /> STOREFRONT CATALOG
+              <Gamepad2 className="w-4 h-4" /> TOPUP CATALOG
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wide mt-1">SUPPORTED GAMES</h2>
           </div>
@@ -277,7 +284,7 @@ export default function HomePage() {
 
           <div className="flex flex-wrap justify-center gap-6 text-xs text-slate-300 font-mono pt-2">
             <span className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Instant Automatic Topups
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Instant Digital Topups
             </span>
             <span className="flex items-center gap-2">
               <Lock className="w-4 h-4 text-cyan-400" /> 100% Verified Player Accounts

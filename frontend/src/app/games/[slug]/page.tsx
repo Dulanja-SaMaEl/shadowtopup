@@ -192,7 +192,7 @@ export default function GameDetailPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{gameTitle}</h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-1">
-            Official Garena SG / MY Topup Storefront • Instant Shell Processing & Reseller Pricing (LKR)
+            Independent Free Fire ( SG / MY ) Topup Service • Instant Processing & Reseller Pricing (LKR)
           </p>
         </div>
       </div>
