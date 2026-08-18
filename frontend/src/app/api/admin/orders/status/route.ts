@@ -11,13 +11,14 @@ export async function POST(request: NextRequest) {
     }
 
     const { orderId, shortId, status } = await request.json();
-    const targetId = (orderId || shortId || '').replace('#', '').trim();
+    const targetId = (orderId || shortId || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
+    const uppercaseStatus = (status || '').toUpperCase();
+    const allowedStatuses = ['COMPLETED', 'PENDING', 'REJECTED', 'REFUNDED'];
 
-    if (!targetId || !status) {
-      return NextResponse.json({ success: false, message: 'targetId and status are required' }, { status: 400 });
+    if (!targetId || !allowedStatuses.includes(uppercaseStatus)) {
+      return NextResponse.json({ success: false, message: 'Invalid request: targetId and valid status required' }, { status: 400 });
     }
 
-    const uppercaseStatus = status.toUpperCase();
     const orderStatusVal = uppercaseStatus === 'COMPLETED' ? 'completed' : uppercaseStatus === 'REFUNDED' ? 'refunded' : uppercaseStatus === 'REJECTED' ? 'rejected' : 'pending';
     const txStatusVal = uppercaseStatus === 'COMPLETED' ? 'success' : uppercaseStatus === 'REFUNDED' ? 'refunded' : uppercaseStatus === 'REJECTED' ? 'failed' : 'pending';
 

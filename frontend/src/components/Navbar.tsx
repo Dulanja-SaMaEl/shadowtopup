@@ -7,11 +7,14 @@ import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
 import { ShoppingCart, ShieldCheck, User, LogOut, Zap, Menu, X } from 'lucide-react';
 
+import { useCart } from '@/context/CartContext';
+
 export default function Navbar() {
   const pathname = usePathname();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { totalCount } = useCart();
 
   useEffect(() => {
     async function loadUser() {
@@ -118,10 +121,15 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             <Link
               href="/cart"
-              className="relative p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all"
+              className="relative p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all flex items-center justify-center"
               title="Shopping Cart"
             >
               <ShoppingCart className="w-5 h-5" />
+              {totalCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-mono font-bold text-[10px] flex items-center justify-center border-2 border-[#0a0814] animate-pulse">
+                  {totalCount}
+                </span>
+              )}
             </Link>
 
             {profile ? (
@@ -198,6 +206,20 @@ export default function Navbar() {
               {link.name}
             </Link>
           ))}
+          <Link
+            href="/cart"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center justify-between px-3 py-2 rounded-lg text-base font-medium text-cyan-400 hover:bg-slate-900"
+          >
+            <span className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" /> Shopping Cart
+            </span>
+            {totalCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-mono font-bold text-xs">
+                {totalCount} Items
+              </span>
+            )}
+          </Link>
           {profile?.role === 'admin' && (
             <Link
               href="/admin/dashboard"

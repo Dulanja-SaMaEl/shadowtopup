@@ -44,12 +44,18 @@ export async function POST(request: NextRequest) {
       shellCost = 0,
     } = body;
 
+    const sanitizedPlayerUid = String(playerUid || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
+    const amountToDeduct = Number(totalAmount);
+
+    if (!sanitizedPlayerUid || !Number.isFinite(amountToDeduct) || amountToDeduct <= 0) {
+      return NextResponse.json({ success: false, message: 'Invalid request: valid playerUid and positive amount required' }, { status: 400 });
+    }
+
     const cookieEmail = cookieStore.get('active_session_email')?.value;
     const effectiveEmail = (authUser?.email || cookieEmail || 'user@shadowtopup.com').toLowerCase().trim();
     const effectiveUserId = authUser?.id || (effectiveEmail === 'user@shadowtopup.com' ? '133c72ad-250d-4395-9e9b-fe913552533f' : effectiveEmail);
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
-    const amountToDeduct = Number(totalAmount);
 
     let initialStatus = receiptUrl ? 'proof_submitted' : 'pending';
 
@@ -111,7 +117,7 @@ export async function POST(request: NextRequest) {
       status: initialStatus,
       receipt_path: receiptUrl,
       receipt_url: receiptUrl,
-      free_fire_player_id: playerUid,
+      free_fire_player_id: sanitizedPlayerUid,
       package_name: packageName,
       payment_method: paymentMethod,
     };
@@ -155,7 +161,7 @@ export async function POST(request: NextRequest) {
       user_id: effectiveUserId,
       package_id: packageId,
       package_name: packageName,
-      free_fire_player_id: playerUid,
+      free_fire_player_id: sanitizedPlayerUid,
       shells_deducted: shellCost,
       price_paid: amountToDeduct,
       price_tier: priceTier,

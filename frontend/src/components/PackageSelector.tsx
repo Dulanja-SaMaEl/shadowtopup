@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Package, UserRole } from '@/types/database';
 import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
-import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet } from 'lucide-react';
+import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart } from 'lucide-react';
 import TransactionReceiptModal from './TransactionReceiptModal';
+import { useCart } from '@/context/CartContext';
 
 interface Props {
   packages: Package[];
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function PackageSelector({ packages, userRole, verifiedPlayerUid, onCheckoutComplete }: Props) {
+  const { addToCart } = useCart();
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet'>('shadow_wallet');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -22,6 +24,29 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const [generatedReceipt, setGeneratedReceipt] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleAddToCart = (pkg: Package, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!verifiedPlayerUid) {
+      setMessage({ type: 'error', text: 'Please enter and verify your Player UID in Step 1 first.' });
+      return;
+    }
+    const price = calculatePackagePrice(pkg, userRole);
+    addToCart({
+      packageId: pkg.id,
+      packageName: pkg.package_name,
+      diamonds: pkg.diamond_amount,
+      price: price,
+      shellCost: pkg.shell_cost,
+      playerUid: verifiedPlayerUid,
+      quantity: 1,
+      image: pkg.image_url,
+    });
+    setMessage({
+      type: 'success',
+      text: `Added 1x ${pkg.package_name} to your Shopping Cart!`,
+    });
+  };
 
   useEffect(() => {
     async function checkWallet() {
@@ -280,12 +305,22 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                   </span>
                 </div>
 
-                <div
-                  className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${
-                    isSelected ? 'bg-purple-600 border-purple-400 text-white' : 'border-slate-700'
-                  }`}
-                >
-                  {isSelected && <Check className="w-3.5 h-3.5" />}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleAddToCart(pkg, e)}
+                    className="p-2 rounded-xl bg-purple-950/80 border border-purple-800/60 text-cyan-400 hover:bg-purple-900 hover:text-white transition-all shadow-md"
+                    title="Add to Cart"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                  </button>
+                  <div
+                    className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${
+                      isSelected ? 'bg-purple-600 border-purple-400 text-white' : 'border-slate-700'
+                    }`}
+                  >
+                    {isSelected && <Check className="w-3.5 h-3.5" />}
+                  </div>
                 </div>
               </div>
             </div>
@@ -376,17 +411,28 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             </div>
           )}
 
-          <button
-            onClick={handleCheckout}
-            disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold rounded-xl shadow-xl shadow-purple-600/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-base uppercase"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-white" />
-            ) : (
-              <>Pay {formatCurrency(calculatePackagePrice(selectedPkg, userRole))} & Recharge Now</>
-            )}
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={(e) => selectedPkg && handleAddToCart(selectedPkg, e)}
+              className="py-4 bg-[#141229] border border-purple-800 hover:border-purple-500 text-purple-300 hover:text-white font-extrabold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all text-sm uppercase"
+            >
+              <ShoppingCart className="w-5 h-5 text-cyan-400" />
+              <span>Add to Cart</span>
+            </button>
+
+            <button
+              onClick={handleCheckout}
+              disabled={loading}
+              className="py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold rounded-xl shadow-xl shadow-purple-600/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-sm uppercase"
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
+              ) : (
+                <>Pay {formatCurrency(calculatePackagePrice(selectedPkg, userRole))} & Recharge Now</>
+              )}
+            </button>
+          </div>
         </div>
       )}
 
