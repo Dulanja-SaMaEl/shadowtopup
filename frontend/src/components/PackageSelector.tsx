@@ -33,6 +33,17 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
     setMessage(null);
 
     const price = calculatePackagePrice(selectedPkg, userRole);
+    const { createClient } = await import('@/lib/supabase/client');
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    
+    if (!authData.user) {
+      setMessage({ type: 'error', text: 'You must be logged in to place an order.' });
+      setLoading(false);
+      return;
+    }
+    const userId = authData.user.id;
+    const tier = userRole === 'gold' || userRole === 'silver' ? userRole : 'normal';
 
     if (paymentMethod === 'paypal') {
       try {
@@ -48,6 +59,14 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
         const data = await res.json();
         if (data.success && data.approveUrl) {
+          // Note: PayPal orders should typically be inserted upon successful redirect return,
+          // but for now we insert it as PENDING before redirecting
+          await supabase.from('orders').insert([{ user_id: userId, total_amount: price, status: 'pending' }]);
+          await supabase.from('purchase_transactions').insert([{
+            user_id: userId, package_id: selectedPkg.id, free_fire_player_id: verifiedPlayerUid,
+            shells_deducted: selectedPkg.shell_cost, price_paid: price, price_tier: tier,
+            status: 'pending', payment_method: 'paypal', paypal_order_id: data.orderId
+          }]);
           window.location.href = data.approveUrl;
         } else {
           setMessage({ type: 'error', text: data.message || 'PayPal payment setup failed' });
@@ -76,13 +95,44 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
         const uploadData = await uploadRes.json();
         if (uploadData.success && uploadData.url) {
-          setMessage({
-            type: 'success',
-            text: 'Bank receipt submitted successfully! Admin will verify your top-up shortly.',
-          });
-          setSelectedPkg(null);
-          setReceiptFile(null);
-          if (onCheckoutComplete) onCheckoutComplete();
+          
+          // Insert into Database!
+          const receiptUrl = uploadData.url;
+          
+          // 1. Insert into orders table
+          const { error: orderErr } = await supabase.from('orders').insert([{
+            user_id: userId,
+            total_amount: price,
+            status: 'pending',
+            receipt_path: receiptUrl
+          }]);
+
+          // 2. Insert into purchase_transactions table
+          const { error: txErr } = await supabase.from('purchase_transactions').insert([{
+            user_id: userId,
+            package_id: selectedPkg.id,
+            package_name: selectedPkg.package_name, // Some schemas use this if package_id isn't strictly enforced
+            free_fire_player_id: verifiedPlayerUid,
+            shells_deducted: selectedPkg.shell_cost,
+            price_paid: price,
+            price_tier: tier,
+            status: 'pending',
+            payment_method: 'bank_transfer',
+            receipt_path: receiptUrl
+          }]);
+
+          if (orderErr || txErr) {
+            console.error('DB Insert Error:', orderErr, txErr);
+            setMessage({ type: 'error', text: 'Order created but database insertion failed due to strict constraints.' });
+          } else {
+            setMessage({
+              type: 'success',
+              text: 'Bank receipt submitted successfully! Admin will verify your top-up shortly.',
+            });
+            setSelectedPkg(null);
+            setReceiptFile(null);
+            if (onCheckoutComplete) onCheckoutComplete();
+          }
         } else {
           setMessage({ type: 'error', text: uploadData.message || 'Receipt upload failed' });
         }

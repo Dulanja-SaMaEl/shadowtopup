@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchDatabaseOrders, updateDatabaseOrderStatus, DatabaseOrder } from '@/lib/ordersService';
+import { updateDatabaseOrderStatus, DatabaseOrder } from '@/lib/ordersService';
 import { Search, Filter, FileText, CheckCircle2, AlertCircle, XCircle, X, ExternalLink, Image as ImageIcon } from 'lucide-react';
 
 export default function AdminOrdersPage() {
@@ -12,8 +12,15 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     async function loadOrders() {
-      const dbOrders = await fetchDatabaseOrders();
-      setOrders(dbOrders);
+      try {
+        const res = await fetch('/api/admin/orders');
+        const json = await res.json();
+        if (json.success) {
+          setOrders(json.data);
+        }
+      } catch (err) {
+        console.error('Failed to load admin orders', err);
+      }
     }
     loadOrders();
   }, []);
