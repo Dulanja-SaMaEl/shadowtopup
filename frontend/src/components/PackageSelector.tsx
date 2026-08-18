@@ -176,13 +176,8 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
               <div className="pt-4">
                 {pkg.image_url ? (
-                  <div className="w-full h-24 mb-3 rounded-xl overflow-hidden bg-slate-950 relative border border-slate-800/80 group-hover:scale-105 transition-transform">
-                    <img src={pkg.image_url} alt={pkg.package_name} className="w-full h-full object-cover opacity-85" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
-                    <div className="absolute bottom-2 left-2 flex items-center gap-1 text-cyan-400 text-xs font-bold font-mono">
-                      {isPass ? <Crown className="w-3.5 h-3.5 text-amber-400" /> : <Diamond className="w-3.5 h-3.5 fill-cyan-400/20" />}
-                      <span>{pkg.diamond_amount} Diamonds</span>
-                    </div>
+                  <div className="w-full h-24 mb-3 rounded-xl overflow-hidden bg-slate-950/80 relative border border-slate-800/80 flex items-center justify-center p-2 group-hover:scale-105 transition-transform">
+                    <img src={pkg.image_url} alt={pkg.package_name} className="h-full max-w-full object-contain drop-shadow-lg" />
                   </div>
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-3">

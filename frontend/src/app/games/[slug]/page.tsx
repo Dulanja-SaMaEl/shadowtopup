@@ -7,6 +7,11 @@ import PackageSelector from '@/components/PackageSelector';
 import { Package } from '@/types/database';
 import { Gamepad2, Zap } from 'lucide-react';
 
+const DIAMOND_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png';
+const WEEKLY_PASS_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/rebate/0000/000/002/logo.png';
+const WEEKLY_LITE_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/rebate/0000/004/010/logo.png';
+const MONTHLY_PASS_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/rebate/0000/081/041/logo.png';
+
 const mockPackages: Package[] = [
   {
     id: 'pkg-weekly-membership',
@@ -18,7 +23,22 @@ const mockPackages: Package[] = [
     silver_price: 600.00,
     gold_price: 550.00,
     badge: 'SPECIAL PASS',
-    image_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600',
+    image_url: WEEKLY_PASS_CDN,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'pkg-weekly-lite',
+    package_name: 'Weekly Lite Pass',
+    package_type: 'weekly_pass',
+    diamond_amount: 120,
+    shell_cost: 70,
+    normal_price: 280.00,
+    silver_price: 250.00,
+    gold_price: 230.00,
+    badge: 'NEW LITE PASS',
+    image_url: WEEKLY_LITE_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -33,7 +53,7 @@ const mockPackages: Package[] = [
     silver_price: 3000.00,
     gold_price: 2800.00,
     badge: 'VIP BEST VALUE',
-    image_url: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=600',
+    image_url: MONTHLY_PASS_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -48,7 +68,7 @@ const mockPackages: Package[] = [
     silver_price: 320.00,
     gold_price: 300.00,
     badge: 'STARTER',
-    image_url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?q=80&w=600',
+    image_url: DIAMOND_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -63,7 +83,7 @@ const mockPackages: Package[] = [
     silver_price: 980.00,
     gold_price: 920.00,
     badge: 'POPULAR',
-    image_url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600',
+    image_url: DIAMOND_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -77,7 +97,7 @@ const mockPackages: Package[] = [
     normal_price: 1750.00,
     silver_price: 1620.00,
     gold_price: 1500.00,
-    image_url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600',
+    image_url: DIAMOND_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -92,7 +112,7 @@ const mockPackages: Package[] = [
     silver_price: 3200.00,
     gold_price: 3000.00,
     badge: 'HOT DEAL',
-    image_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600',
+    image_url: DIAMOND_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -106,7 +126,7 @@ const mockPackages: Package[] = [
     normal_price: 6900.00,
     silver_price: 6400.00,
     gold_price: 6000.00,
-    image_url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?q=80&w=600',
+    image_url: DIAMOND_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -121,7 +141,7 @@ const mockPackages: Package[] = [
     silver_price: 16200.00,
     gold_price: 15000.00,
     badge: 'PRO VAULT',
-    image_url: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=600',
+    image_url: DIAMOND_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
