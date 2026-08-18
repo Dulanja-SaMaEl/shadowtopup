@@ -182,7 +182,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-end border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 border-b border-slate-800 pb-4">
         <div>
           <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
             <Diamond className="w-5 h-5 text-cyan-400" /> 2. Select Recharge Package
@@ -190,7 +190,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           <p className="text-xs text-slate-400">Choose your desired Free Fire Garena SG recharge amount or pass subscription</p>
         </div>
         {userRole && userRole !== 'normal' && (
-          <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold uppercase">
+          <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold uppercase shrink-0">
             {userRole} Tier Unlocked
           </span>
         )}

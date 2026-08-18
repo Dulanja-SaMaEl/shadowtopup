@@ -14,25 +14,6 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // 1. Sync with localStorage first
-    if (typeof window !== 'undefined') {
-      const storedEmail = localStorage.getItem('active_session_email');
-      const storedRole = localStorage.getItem('active_session_role') as any;
-      const storedName = localStorage.getItem('active_session_name');
-
-      if (storedEmail) {
-        setProfile({
-          id: 'active-session',
-          email: storedEmail,
-          name: storedName || storedEmail.split('@')[0].toUpperCase(),
-          role: storedRole || 'normal',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as Profile);
-      }
-    }
-
-    // 2. Sync with Supabase Auth
     async function loadUser() {
       try {
         const supabase = createClient();
@@ -44,6 +25,13 @@ export default function Navbar() {
             .eq('id', user.id)
             .single();
           if (data) setProfile(data as Profile);
+        } else {
+          setProfile(null);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('active_session_email');
+            localStorage.removeItem('active_session_role');
+            localStorage.removeItem('active_session_name');
+          }
         }
       } catch (err) {
         console.error('Navbar user load error:', err);
