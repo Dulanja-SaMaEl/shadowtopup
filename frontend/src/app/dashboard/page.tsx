@@ -72,112 +72,56 @@ export default function UserDashboardPage() {
 
   useEffect(() => {
     async function loadUserDatabaseOrders() {
-      const { data: authData } = await supabase.auth.getUser();
-      const authUser = authData?.user;
-      
-      let currentEmail = 'USER@SHADOWTOPUP.COM';
-      let currentName = 'STANDARD CUSTOMER ACCOUNT';
+      try {
+        const res = await fetch('/api/user/orders');
+        const json = await res.json();
 
-      if (authUser) {
-        currentEmail = authUser.email || 'USER@SHADOWTOPUP.COM';
-        currentName = authUser.user_metadata?.full_name || authUser.email?.split('@')[0].toUpperCase() || 'CUSTOMER ACCOUNT';
-        
-        // Fetch extended profile data if exists
-        const { data: profileRow } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
-        if (profileRow) {
-          if (profileRow.name) currentName = profileRow.name.toUpperCase();
-          if (profileRow.email) currentEmail = profileRow.email.toUpperCase();
-        }
+        if (json.success && json.user) {
+          const userEmail = (json.user.email || '').toUpperCase();
+          const userName = (json.user.name || '').toUpperCase();
 
-        setProfile((prev) => ({
-          ...prev!,
-          id: authUser.id,
-          email: currentEmail.toUpperCase(),
-          name: currentName,
-          role: profileRow?.role || 'normal',
-          reseller_status: profileRow?.reseller_status || 'none',
-        }));
-        
-        setEditName(currentName);
-        setEditEmail(currentEmail.toUpperCase());
-      } else {
-        // Fallback for unauthenticated view (should ideally redirect to login, but kept for UI structure)
-        if (typeof window !== 'undefined') {
-          const storedEmail = localStorage.getItem('active_session_email');
-          const storedName = localStorage.getItem('active_session_name');
-          if (storedEmail) {
-            currentEmail = storedEmail.toUpperCase();
-            currentName = storedName ? storedName.toUpperCase() : storedEmail.split('@')[0].toUpperCase();
+          setProfile((prev) => ({
+            ...prev!,
+            id: json.user.id,
+            email: userEmail,
+            name: userName,
+            role: json.user.role || 'normal',
+            reseller_status: json.user.reseller_status || 'none',
+          }));
+
+          setEditName(userName);
+          setEditEmail(userEmail);
+
+          if (Array.isArray(json.data)) {
+            setTransactions(
+              json.data.map((o: any) => ({
+                id: (o.id || '').replace('#', ''),
+                raw_id: o.raw_id,
+                package_name: o.package_name,
+                items: '1X ITEMS',
+                amount: o.totalAmount,
+                status: o.fulfillmentStatus,
+                time: '11:30 AM',
+                date: (o.date || '').toUpperCase(),
+                player_uid: o.free_fire_player_id,
+                receipt_url: o.paymentReceipt,
+              }))
+            );
           }
+        } else {
+          // Unauthenticated view
+          setProfile((prev) => ({
+            ...prev!,
+            email: 'GUEST (NOT LOGGED IN)',
+            name: 'GUEST USER',
+            role: 'normal',
+            reseller_status: 'none',
+          }));
+          setTransactions([]);
         }
-        setProfile((prev) => ({
-          ...prev!,
-          email: currentEmail,
-          name: currentName,
-        }));
+      } catch (err) {
+        console.error('Failed to load user orders:', err);
       }
-
-      // Fetch orders for this user directly from Supabase
-      let userDbOrders = await fetchDatabaseOrders();
-
-      // Filter by auth user or email
-      let filtered = userDbOrders.filter((o) => {
-        if (authUser && o.user_id && o.user_id === authUser.id) return true;
-        if (o.customerEmail && o.customerEmail.trim().toLowerCase() === currentEmail.trim().toLowerCase()) return true;
-        return false;
-      });
-
-      // Direct fallback query if fetchDatabaseOrders yielded nothing for this user
-      if (filtered.length === 0 && authUser) {
-        const { data: directOrders } = await supabase
-          .from('orders')
-          .select('*')
-          .or(`user_id.eq.${authUser.id},user_id.eq.${authUser.email}`);
-        
-        const { data: directTx } = await supabase
-          .from('purchase_transactions')
-          .select('*')
-          .or(`user_id.eq.${authUser.id},user_id.eq.${authUser.email}`);
-
-        const combined = [...(directOrders || []), ...(directTx || [])];
-        if (combined.length > 0) {
-          filtered = combined.map((row: any) => {
-            const rawStatus = (row.status || 'pending').toLowerCase();
-            const isCompleted = ['completed', 'success', 'verified'].includes(rawStatus);
-            const isRejected = ['rejected', 'failed'].includes(rawStatus);
-            return {
-              id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
-              raw_id: row.id,
-              user_id: row.user_id || authUser.id,
-              customerName: currentName,
-              customerEmail: currentEmail,
-              free_fire_player_id: row.free_fire_player_id || '8777843685',
-              package_name: row.package_name || 'Free Fire Diamonds',
-              totalAmount: Number(row.total_amount || row.price_paid || 750.00),
-              fulfillmentStatus: isCompleted ? 'COMPLETED' : isRejected ? 'REJECTED' : 'PENDING',
-              paymentMethod: (row.payment_method || 'BANK TRANSFER').toUpperCase(),
-              paymentReceipt: row.receipt_path || row.receipt_url || null,
-              date: new Date(row.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-              timestamp: new Date(row.created_at || Date.now()).toLocaleString(),
-            } as any;
-          });
-        }
-      }
-
-      setTransactions(
-        filtered.map((o) => ({
-          id: o.id.replace('#', ''),
-          raw_id: o.raw_id,
-          package_name: o.package_name,
-          items: '1X ITEMS',
-          amount: o.totalAmount,
-          status: o.fulfillmentStatus,
-          time: '11:30 AM',
-          date: o.date.toUpperCase(),
-          player_uid: o.free_fire_player_id,
-          receipt_url: o.paymentReceipt,
-        }))
-      );
     }
     loadUserDatabaseOrders();
   }, []);
