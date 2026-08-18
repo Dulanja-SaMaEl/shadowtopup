@@ -43,13 +43,13 @@ import {
 
 export default function UserDashboardPage() {
   const [profile, setProfile] = useState<Profile | null>({
-    id: 'demo-user',
-    name: 'STANDARD CUSTOMER ACCOUNT',
-    email: 'USER@SHADOWTOPUP.COM',
+    id: '',
+    name: 'CUSTOMER ACCOUNT',
+    email: '',
     role: 'normal',
     reseller_status: 'none',
-    created_at: '2026-05-11T00:00:00Z',
-    updated_at: '2026-05-11T00:00:00Z',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   });
 
   const [transactions, setTransactions] = useState<any[]>([]);

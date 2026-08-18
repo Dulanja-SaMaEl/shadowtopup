@@ -16,7 +16,7 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchWallet = async () => {
-    if (!userId) return;
+    if (!userId || userId === 'demo-user') return;
     setLoading(true);
     try {
       const res = await fetch(`/api/wallet/balance?user_id=${encodeURIComponent(userId)}`);
