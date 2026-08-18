@@ -14,6 +14,7 @@ import {
   Clock,
   Headphones,
 } from 'lucide-react';
+import CustomerReviewsSection from '@/components/CustomerReviewsSection';
 
 const featuredGames = [
   {
@@ -80,83 +81,137 @@ const platformFeatures = [
   },
 ];
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="space-y-24 pb-20 bg-[#0a0814]">
-      {/* 1. Epic Hero Section */}
-      <section className="relative min-h-[88vh] flex items-center justify-center overflow-hidden border-b border-purple-950/40">
-        {/* Animated Neon Ambient Backdrop */}
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-25 mix-blend-luminosity scale-105"
-          style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1600')`,
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/80 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-600/20 via-purple-900/10 to-transparent" />
+    <div className="space-y-16 pb-16">
+      {/* 1. Hero Section */}
+      <section className="relative overflow-hidden pt-8 pb-12 rounded-3xl bg-gradient-to-br from-[#141229] via-[#0c0a1a] to-[#120f26] border border-purple-950/40 p-6 sm:p-12 shadow-2xl">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative max-w-6xl mx-auto px-4 text-center space-y-8 pt-12 z-10">
-          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono font-black uppercase tracking-widest backdrop-blur-md animate-pulse">
-            <Flame className="w-4 h-4 fill-red-400" /> YOUR ULTIMATE LIVE GAMING MODULE
+        <div className="relative z-10 max-w-3xl space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-mono font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+            AUTOMATED GARENA SHELL RECHARGE PLATFORM
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white uppercase leading-none drop-shadow-2xl">
-            INSTANT <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-purple-400 to-cyan-400">FREE FIRE</span> DIAMOND REFILL
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-none">
+            INSTANT <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-300 to-purple-400">FREE FIRE</span> DIAMONDS & PASSES
           </h1>
 
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 font-medium leading-relaxed drop-shadow">
-            ShadowTopUp delivers instant Free Fire diamond reloads via Garena Shell API automation. Real-time player UID verification, transparent reseller wholesale margins, and 24/7 service.
+          <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-sans max-w-2xl">
+            ShadowTopUp delivers instant Free Fire SG/MY diamonds directly to your account using Garena official shells. Enjoy automated Player ID verification and tiered reseller pricing.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+          <div className="flex flex-wrap gap-4 pt-2">
             <Link
               href="/games/free-fire"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-red-600 via-purple-600 to-cyan-600 hover:from-red-500 hover:to-cyan-500 text-white font-black text-xs uppercase tracking-widest shadow-2xl shadow-purple-600/40 hover:scale-105 transition-all flex items-center justify-center gap-2 group"
+              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-cyan-500/25 transition-all flex items-center gap-2 hover:scale-105"
             >
-              TOPUP FREE FIRE NOW <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <Zap className="w-4 h-4" /> RECHARGE NOW
             </Link>
 
             <Link
-              href="/games"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-purple-950 text-slate-200 font-bold text-xs uppercase tracking-widest backdrop-blur-md transition-all flex items-center justify-center gap-2"
+              href="/reseller-pricing"
+              className="px-8 py-4 rounded-2xl bg-[#141229] border border-purple-900/60 hover:bg-purple-950/40 text-purple-300 font-extrabold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
             >
-              <Gamepad2 className="w-4 h-4 text-purple-400" /> BROWSE CATALOG
+              <Award className="w-4 h-4 text-amber-400" /> RESELLER TIERS
             </Link>
-          </div>
-
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto pt-8">
-            <div className="p-4 rounded-2xl bg-[#141229]/80 border border-purple-950/60 backdrop-blur-md">
-              <span className="block text-2xl font-black text-emerald-400">&lt; 30s</span>
-              <span className="text-[10px] font-mono text-slate-400 uppercase">AVG REFILL SPEED</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-[#141229]/80 border border-purple-950/60 backdrop-blur-md">
-              <span className="block text-2xl font-black text-cyan-400">100%</span>
-              <span className="text-[10px] font-mono text-slate-400 uppercase">UID VERIFIED</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-[#141229]/80 border border-purple-950/60 backdrop-blur-md">
-              <span className="block text-2xl font-black text-purple-400">99.9%</span>
-              <span className="text-[10px] font-mono text-slate-400 uppercase">AUTOMATION RATE</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-[#141229]/80 border border-purple-950/60 backdrop-blur-md">
-              <span className="block text-2xl font-black text-amber-400">1,200+</span>
-              <span className="text-[10px] font-mono text-slate-400 uppercase">ACTIVE RESELLERS</span>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* 2. Cyber Esports Rank Badges Row */}
+      {/* 2. Featured Games Storefront */}
+      <section className="max-w-6xl mx-auto px-4 space-y-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800/80 pb-6">
+          <div>
+            <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
+              <Gamepad2 className="w-4 h-4" /> OFFICIAL STOREFRONT CATALOG
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wide mt-1">AVAILABLE GAMES</h2>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {featuredGames.map((game, idx) => (
+            <div
+              key={idx}
+              className={`p-6 rounded-3xl bg-[#141229] border transition-all flex flex-col justify-between space-y-6 ${
+                game.available ? 'border-purple-500/40 hover:border-purple-500 shadow-2xl' : 'border-slate-800 opacity-70'
+              }`}
+            >
+              <div className="space-y-4">
+                <div className="relative h-44 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                  <img src={game.image} alt={game.title} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#141229] via-transparent to-transparent" />
+                  <span
+                    className={`absolute top-3 left-3 px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider border ${
+                      game.available
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                        : 'bg-slate-900 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    {game.badge}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-mono text-purple-400 uppercase tracking-widest font-bold">
+                    {game.category}
+                  </span>
+                  <h3 className="text-base font-black text-white uppercase tracking-wide mt-0.5">{game.title}</h3>
+                  <p className="text-xs text-slate-400 mt-1 font-mono">{game.discount}</p>
+                </div>
+              </div>
+
+              <div>
+                {game.available ? (
+                  <Link
+                    href={`/games/${game.slug}`}
+                    className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-600/30"
+                  >
+                    BUY DIAMONDS <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-bold rounded-xl text-xs uppercase tracking-wider cursor-not-allowed"
+                  >
+                    COMING SOON
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3. Customer Reviews Section Widget */}
       <section className="max-w-6xl mx-auto px-4">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <CustomerReviewsSection />
+      </section>
+
+      {/* 4. Reseller Discount Rank Badges */}
+      <section className="max-w-6xl mx-auto px-4 space-y-8">
+        <div className="text-center space-y-2">
+          <span className="text-[10px] font-mono font-black text-amber-400 uppercase tracking-widest">--- PARTNER PROGRAM ---</span>
+          <h2 className="text-3xl font-black text-white uppercase tracking-wider">
+            WHOLESALE <span className="text-amber-400">RESELLER TIERS</span>
+          </h2>
+          <p className="text-xs text-slate-400 max-w-xl mx-auto">
+            Upgrade your reseller account to unlock automatic wholesale discounts across all Free Fire diamond packs.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {rankBadges.map((badge, idx) => (
             <div
               key={idx}
-              className={`p-4 rounded-2xl bg-gradient-to-b ${badge.color} border backdrop-blur-md flex flex-col items-center justify-center text-center space-y-1.5 group hover:scale-105 transition-all cursor-pointer`}
+              className={`p-5 rounded-2xl bg-gradient-to-b border text-center space-y-2 ${badge.color}`}
             >
-              <Award className="w-8 h-8 group-hover:rotate-12 transition-transform" />
-              <span className="text-[10px] font-mono font-black uppercase tracking-widest">{badge.name} TIER</span>
-              <span className="text-[9px] font-mono text-slate-300 bg-slate-950/60 px-2 py-0.5 rounded-full border border-slate-800">
+              <Trophy className="w-6 h-6 mx-auto opacity-80" />
+              <h4 className="font-black text-xs uppercase tracking-wider">{badge.name}</h4>
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-black/40 text-[10px] font-mono font-bold uppercase">
                 {badge.tier}
               </span>
             </div>
@@ -164,96 +219,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. SELECT YOUR GAME Section */}
-      <section className="max-w-6xl mx-auto px-4 space-y-8">
-        <div className="text-center space-y-2">
-          <span className="text-[10px] font-mono font-black text-purple-400 uppercase tracking-widest">--- POPULAR CATALOG ---</span>
-          <h2 className="text-3xl font-black text-white uppercase tracking-wider">
-            SELECT YOUR <span className="text-purple-400">GAME</span>
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {featuredGames.map((game) => {
-            if (game.available) {
-              return (
-                <Link
-                  key={game.slug}
-                  href={`/games/${game.slug}`}
-                  className="group relative rounded-3xl bg-[#141229] border border-purple-950/40 hover:border-purple-500/60 overflow-hidden transition-all hover:-translate-y-2 shadow-2xl"
-                >
-                  <div className="h-60 bg-slate-900 relative overflow-hidden">
-                    <img
-                      src={game.image}
-                      alt={game.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#141229] via-transparent to-transparent" />
-                    <div className="absolute top-4 left-4 flex flex-col gap-2">
-                      <span className="px-3 py-1 rounded-full bg-purple-950/80 border border-purple-500/40 text-purple-300 font-mono text-[9px] font-bold uppercase tracking-wider backdrop-blur-md">
-                        {game.badge}
-                      </span>
-                      <span className="px-3 py-1 rounded-full bg-red-600/80 text-white font-mono text-[9px] font-bold uppercase tracking-wider w-fit shadow-md">
-                        {game.discount}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-6 flex justify-between items-center">
-                    <div>
-                      <h3 className="text-lg font-black text-white uppercase group-hover:text-purple-300 transition-colors">
-                        {game.title}
-                      </h3>
-                      <p className="text-[10px] text-slate-400 font-mono font-bold uppercase">{game.category}</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 group-hover:bg-purple-600 group-hover:text-white transition-all">
-                      <ChevronRight className="w-5 h-5" />
-                    </div>
-                  </div>
-                </Link>
-              );
-            }
-
-            return (
-              <div
-                key={game.slug}
-                className="relative rounded-3xl bg-[#141229]/60 border border-slate-800/80 overflow-hidden opacity-75 select-none"
-              >
-                <div className="h-60 bg-slate-900 relative overflow-hidden grayscale">
-                  <img
-                    src={game.image}
-                    alt={game.title}
-                    className="w-full h-full object-cover opacity-50"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#141229] via-transparent to-transparent" />
-                  <div className="absolute top-4 left-4 flex flex-col gap-2">
-                    <span className="px-3 py-1 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-400 font-mono text-[9px] font-bold uppercase tracking-wider backdrop-blur-md flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> COMING SOON
-                    </span>
-                    <span className="px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-slate-400 font-mono text-[9px] font-bold uppercase tracking-wider w-fit">
-                      UNDER DEVELOPMENT
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-6 flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg font-black text-slate-300 uppercase">
-                      {game.title}
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-mono font-bold uppercase">{game.category}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 4. Why Choose ShadowTopUp Feature Grid */}
+      {/* 5. Why Choose ShadowTopUp Feature Grid */}
       <section className="max-w-6xl mx-auto px-4 space-y-8">
         <div className="text-center space-y-2">
           <span className="text-[10px] font-mono font-black text-cyan-400 uppercase tracking-widest">--- WHY SHADOWTOPUP ---</span>
@@ -281,7 +247,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. Trust Badges Footer Banner */}
+      {/* 6. Trust Badges Footer Banner */}
       <section className="max-w-6xl mx-auto px-4">
         <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-r from-purple-950/60 via-[#141229] to-cyan-950/60 border border-purple-900/40 text-center space-y-6 shadow-2xl relative overflow-hidden">
           <div className="absolute -right-12 -top-12 w-48 h-48 bg-purple-600/10 rounded-full blur-3xl" />

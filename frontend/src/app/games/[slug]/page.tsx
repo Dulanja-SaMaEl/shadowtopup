@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import PlayerVerificationForm from '@/components/PlayerVerificationForm';
 import PackageSelector from '@/components/PackageSelector';
+import CustomerReviewsSection from '@/components/CustomerReviewsSection';
 import { Package } from '@/types/database';
 import { Gamepad2, Zap } from 'lucide-react';
 
@@ -14,7 +15,7 @@ const MONTHLY_PASS_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/reb
 
 const mockPackages: Package[] = [
   {
-    id: 'pkg-weekly-membership',
+    id: 'pkg-weekly-pass',
     package_name: 'Weekly Membership Pass',
     package_type: 'weekly_pass',
     diamond_amount: 450,
@@ -29,7 +30,7 @@ const mockPackages: Package[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'pkg-weekly-lite',
+    id: 'pkg-weekly-lite-pass',
     package_name: 'Weekly Lite Pass',
     package_type: 'weekly_pass',
     diamond_amount: 120,
@@ -44,7 +45,7 @@ const mockPackages: Package[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'pkg-monthly-membership',
+    id: 'pkg-monthly-pass',
     package_name: 'Monthly Membership Pass',
     package_type: 'monthly_pass',
     diamond_amount: 2600,
@@ -59,7 +60,7 @@ const mockPackages: Package[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'pkg-100',
+    id: 'pkg-100-diamonds',
     package_name: '100 Diamonds',
     package_type: 'diamond',
     diamond_amount: 100,
@@ -74,7 +75,7 @@ const mockPackages: Package[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'pkg-310',
+    id: 'pkg-310-diamonds',
     package_name: '310 Diamonds',
     package_type: 'diamond',
     diamond_amount: 310,
@@ -89,7 +90,7 @@ const mockPackages: Package[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'pkg-520',
+    id: 'pkg-520-diamonds',
     package_name: '520 Diamonds',
     package_type: 'diamond',
     diamond_amount: 520,
@@ -97,13 +98,14 @@ const mockPackages: Package[] = [
     normal_price: 1750.00,
     silver_price: 1620.00,
     gold_price: 1500.00,
+    badge: undefined,
     image_url: DIAMOND_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'pkg-1060',
+    id: 'pkg-1060-diamonds',
     package_name: '1060 Diamonds',
     package_type: 'diamond',
     diamond_amount: 1060,
@@ -118,7 +120,7 @@ const mockPackages: Package[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'pkg-2180',
+    id: 'pkg-2180-diamonds',
     package_name: '2180 Diamonds',
     package_type: 'diamond',
     diamond_amount: 2180,
@@ -126,13 +128,14 @@ const mockPackages: Package[] = [
     normal_price: 6900.00,
     silver_price: 6400.00,
     gold_price: 6000.00,
+    badge: undefined,
     image_url: DIAMOND_CDN,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'pkg-5600',
+    id: 'pkg-5600-diamonds',
     package_name: '5600 Diamonds',
     package_type: 'diamond',
     diamond_amount: 5600,
@@ -177,7 +180,7 @@ export default function GameDetailPage() {
   const gameTitle = slug === 'free-fire' ? 'Garena Free Fire ( SG / MY )' : slug.toUpperCase().replace('-', ' ');
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       {/* Game Header */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6 backdrop-blur-md">
         <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-cyan-500/20">
@@ -205,6 +208,9 @@ export default function GameDetailPage() {
         packages={packagesList}
         verifiedPlayerUid={verifiedPlayer?.uid}
       />
+
+      {/* Customer Reviews & Rating Widget */}
+      <CustomerReviewsSection />
     </div>
   );
 }
