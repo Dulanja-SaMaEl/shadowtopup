@@ -34,7 +34,7 @@ export default function ContactPage() {
             <Mail className="w-6 h-6 text-cyan-400 shrink-0" />
             <div>
               <span className="text-xs text-slate-500 font-mono block">Email Support</span>
-              <span className="text-sm font-bold text-white">support@shadowtopup.com</span>
+              <span className="text-sm font-bold text-white">support@shadowstore.com</span>
             </div>
           </div>
 
@@ -50,7 +50,7 @@ export default function ContactPage() {
             <MessageSquare className="w-6 h-6 text-amber-400 shrink-0" />
             <div>
               <span className="text-xs text-slate-500 font-mono block">Telegram Reseller Desk</span>
-              <span className="text-sm font-bold text-white">@ShadowTopUpSupport</span>
+              <span className="text-sm font-bold text-white">@ShadowStoreSupport</span>
             </div>
           </div>
         </div>

@@ -89,7 +89,7 @@ export default function Navbar() {
             </div>
             <div>
               <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-cyan-400 bg-clip-text text-transparent">
-                SHADOW<span className="text-cyan-400">TOPUP</span>
+                SHADOW<span className="text-cyan-400">STORE</span>
               </span>
               <span className="block text-[10px] text-cyan-400/80 font-mono tracking-widest uppercase -mt-1">
                 Instant Game Refill

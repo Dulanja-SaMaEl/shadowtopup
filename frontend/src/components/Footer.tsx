@@ -12,7 +12,7 @@ export default function Footer() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center text-white">
                 <Zap className="w-4 h-4 fill-white" />
               </div>
-              <span className="font-extrabold text-lg text-white">SHADOWTOPUP</span>
+              <span className="font-extrabold text-lg text-white">SHADOW<span className="text-cyan-400">STORE</span></span>
             </div>
             <p className="text-sm leading-relaxed">
               Premium instant gaming recharge and reseller portal. Automating shell top-ups for Free Fire, Mobile Legends, and top games.
@@ -61,7 +61,7 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 border-t border-slate-900 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>© {new Date().getFullYear()} ShadowTopUp by Dulanja Abeysinghe. All Rights Reserved.</p>
+          <p>© {new Date().getFullYear()} ShadowStore by Dulanja Abeysinghe. All Rights Reserved.</p>
           <p className="font-mono text-cyan-500/80">Powered by Next.js & Supabase</p>
         </div>
       </div>

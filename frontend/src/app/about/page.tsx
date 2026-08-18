@@ -6,13 +6,13 @@ export default function AboutPage() {
       {/* Hero Header */}
       <div className="text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider">
-          <Zap className="w-4 h-4 fill-cyan-400" /> About ShadowTopUp
+          <Zap className="w-4 h-4 fill-cyan-400" /> About ShadowStore
         </div>
         <h1 className="text-3xl sm:text-5xl font-extrabold text-white">
           The Next-Gen Game Top-Up & Reseller Platform
         </h1>
         <p className="max-w-2xl mx-auto text-slate-400 text-sm sm:text-base leading-relaxed">
-          Designed and built by <span className="text-cyan-400 font-semibold">Dulanja Abeysinghe</span>, ShadowTopUp provides high-speed automated Garena Free Fire shell redemptions, instant player UID verification, and structured bulk pricing tiers for commercial resellers.
+          Designed and built by <span className="text-cyan-400 font-semibold">Dulanja Abeysinghe</span>, ShadowStore provides high-speed automated Garena Free Fire shell redemptions, instant player UID verification, and structured bulk pricing tiers for commercial resellers.
         </p>
       </div>
 

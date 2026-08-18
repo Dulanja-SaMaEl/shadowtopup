@@ -35,14 +35,12 @@ export default function LoginPage() {
       detectedName = 'Standard Customer Account';
     }
 
-    // Save active session to localStorage for client-side state sync
     if (typeof window !== 'undefined') {
       localStorage.setItem('active_session_email', targetEmail);
       localStorage.setItem('active_session_role', detectedRole);
       localStorage.setItem('active_session_name', detectedName);
     }
 
-    // 1. Attempt standard Supabase Auth Login
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: targetEmail,
       password,
@@ -73,7 +71,6 @@ export default function LoginPage() {
       }
     }
 
-    // 2. Fallback routing for test logins
     if (targetEmail.includes('admin')) {
       window.location.href = '/admin/dashboard';
     } else {
@@ -89,7 +86,7 @@ export default function LoginPage() {
             <Zap className="w-6 h-6 fill-white" />
           </div>
           <h1 className="text-2xl font-extrabold text-white">Welcome Back</h1>
-          <p className="text-xs text-slate-400 mt-1">Sign in to your ShadowTopUp reseller account</p>
+          <p className="text-xs text-slate-400 mt-1">Sign in to your ShadowStore account</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
