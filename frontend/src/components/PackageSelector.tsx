@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Package, UserRole } from '@/types/database';
 import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
 import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet } from 'lucide-react';
+import TransactionReceiptModal from './TransactionReceiptModal';
 
 interface Props {
   packages: Package[];
@@ -17,6 +18,8 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet'>('shadow_wallet');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [userStoreName, setUserStoreName] = useState<string | null>(null);
+  const [generatedReceipt, setGeneratedReceipt] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -31,6 +34,12 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           const data = await res.json();
           if (data.success) {
             setWalletBalance(data.wallet_balance || 0);
+          }
+
+          const userOrdersRes = await fetch('/api/user/orders');
+          const userOrdersJson = await userOrdersRes.json();
+          if (userOrdersJson.success && userOrdersJson.user?.store_name) {
+            setUserStoreName(userOrdersJson.user.store_name);
           }
         }
       } catch (e) {
@@ -91,6 +100,22 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           if (walletBalance !== null) {
             setWalletBalance(walletBalance - price);
           }
+
+          setGeneratedReceipt({
+            orderId: data.order?.id ? String(data.order.id).slice(0, 8).toUpperCase() : Math.random().toString(36).slice(2, 10).toUpperCase(),
+            packageName: selectedPkg.package_name,
+            playerUid: verifiedPlayerUid,
+            amount: price,
+            paymentMethod: 'Shadow Wallet',
+            status: 'COMPLETED',
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            customerName: authData.user.email?.split('@')[0].toUpperCase(),
+            customerEmail: authData.user.email,
+            storeName: userStoreName,
+            resellerRole: userRole,
+          });
+
           if (onCheckoutComplete) onCheckoutComplete();
         } else {
           setMessage({ type: 'error', text: data.message || 'Shadow Wallet checkout failed.' });
@@ -167,8 +192,25 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         if (data.success) {
           setMessage({
             type: 'success',
-            text: 'Bank transfer order created successfully! Payment under verification.',
+            text: 'Bank transfer order created successfully! Payment under verification by admin team.',
           });
+
+          setGeneratedReceipt({
+            orderId: data.order?.id ? String(data.order.id).slice(0, 8).toUpperCase() : Math.random().toString(36).slice(2, 10).toUpperCase(),
+            packageName: selectedPkg.package_name,
+            playerUid: verifiedPlayerUid,
+            amount: price,
+            paymentMethod: 'Bank Transfer',
+            status: 'PENDING VERIFICATION',
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            customerName: authData.user.email?.split('@')[0].toUpperCase(),
+            customerEmail: authData.user.email,
+            storeName: userStoreName,
+            resellerRole: userRole,
+            receiptUrl: receiptUrl,
+          });
+
           if (onCheckoutComplete) onCheckoutComplete();
         } else {
           setMessage({ type: 'error', text: data.message || 'Order creation failed' });
@@ -347,6 +389,12 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           </button>
         </div>
       )}
+
+      {/* Transaction Receipt Modal */}
+      <TransactionReceiptModal
+        receipt={generatedReceipt}
+        onClose={() => setGeneratedReceipt(null)}
+      />
     </div>
   );
 }

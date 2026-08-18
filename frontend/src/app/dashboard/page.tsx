@@ -27,8 +27,14 @@ import {
   ExternalLink,
   Check,
   ShoppingBag,
+  PlusCircle,
+  FileCheck,
+  FileText,
+  Printer,
+  Download,
 } from 'lucide-react';
 import ShadowWalletWidget from '@/components/ShadowWalletWidget';
+import TransactionReceiptModal, { ReceiptData } from '@/components/TransactionReceiptModal';
 import {
   LineChart,
   Line,
@@ -74,6 +80,7 @@ export default function UserDashboardPage() {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [viewReceiptModal, setViewReceiptModal] = useState<ReceiptData | null>(null);
 
   const supabase = createClient();
 
@@ -697,11 +704,11 @@ export default function UserDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <span className="font-mono font-bold text-emerald-400 text-xs">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <span className="font-mono font-bold text-emerald-400 text-xs hidden sm:inline">
                       LKR {Number(tx.amount).toFixed(2)}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
+                    <span className={`px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
                       tx.status === 'COMPLETED'
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         : tx.status === 'PENDING'
@@ -710,6 +717,30 @@ export default function UserDashboardPage() {
                     }`}>
                       {tx.status}
                     </span>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewReceiptModal({
+                          orderId: String(tx.id).slice(0, 8).toUpperCase(),
+                          packageName: tx.package_name,
+                          playerUid: tx.player_uid || 'N/A',
+                          amount: Number(tx.amount),
+                          paymentMethod: tx.receipt_url ? 'Bank Transfer' : 'Shadow Wallet',
+                          status: tx.status === 'COMPLETED' ? 'COMPLETED' : 'PENDING VERIFICATION',
+                          date: tx.date || new Date().toLocaleDateString(),
+                          customerName: profile?.name || profile?.email?.split('@')[0].toUpperCase(),
+                          customerEmail: profile?.email,
+                          storeName: profile?.store_name,
+                          resellerRole: profile?.role,
+                          receiptUrl: tx.receipt_url,
+                        });
+                      }}
+                      className="p-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-800/60 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-cyan-400" /> <span className="hidden sm:inline">Receipt</span>
+                    </button>
                     <ChevronRight className="w-4 h-4 text-slate-500" />
                   </div>
                 </div>
@@ -929,6 +960,12 @@ export default function UserDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Transaction Receipt Modal */}
+      <TransactionReceiptModal
+        receipt={viewReceiptModal}
+        onClose={() => setViewReceiptModal(null)}
+      />
     </div>
   );
 }
