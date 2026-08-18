@@ -47,19 +47,52 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-[#0e0c1f] border border-purple-900/60 rounded-3xl shadow-2xl overflow-hidden my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto print:p-0 print:bg-transparent">
+      {/* Dynamic Print CSS override to ensure exact 1 page print */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-receipt, #printable-receipt * {
+            visibility: visible !important;
+          }
+          #printable-receipt {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 24px !important;
+            background-color: #0e0c1f !important;
+            color: #ffffff !important;
+            border: 1px solid #4c1d95 !important;
+            border-radius: 16px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-shadow: none !important;
+          }
+          @page {
+            size: portrait;
+            margin: 10mm;
+          }
+        }
+      ` }} />
+
+      <div className="relative w-full max-w-lg bg-[#0e0c1f] border border-purple-900/60 rounded-3xl shadow-2xl overflow-hidden my-8 print:border-none print:shadow-none print:my-0">
         
-        {/* Header Action Bar */}
+        {/* Top Header Action Bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-[#141229] print:hidden">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
-            <FileText className="w-4 h-4 text-purple-400" /> Digital Order Receipt
+          <div className="flex items-center gap-2 text-xs font-black text-slate-200 uppercase tracking-wider">
+            <FileText className="w-4 h-4 text-cyan-400" /> Digital Order Receipt
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+            className="px-3.5 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-md"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-red-400" /> CLOSE
           </button>
         </div>
 
@@ -192,6 +225,13 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
             className="py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider border border-slate-700 flex items-center justify-center gap-2 transition-all"
           >
             <Printer className="w-4 h-4" /> Print
+          </button>
+
+          <button
+            onClick={onClose}
+            className="py-3 px-5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-xs uppercase tracking-wider border border-red-500/30 flex items-center justify-center gap-2 transition-all"
+          >
+            <X className="w-4 h-4 text-red-400" /> Close
           </button>
         </div>
       </div>

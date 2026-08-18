@@ -862,8 +862,11 @@ export default function UserDashboardPage() {
               <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-emerald-400" /> ORDER RECEIPT #{selectedOrder.id}
               </h3>
-              <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="px-3 py-1 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-mono font-bold flex items-center gap-1 transition-all"
+              >
+                <X className="w-4 h-4 text-red-400" /> CLOSE
               </button>
             </div>
 
