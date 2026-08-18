@@ -13,6 +13,8 @@ import {
   Lock,
   Clock,
   Headphones,
+  Star,
+  ShieldAlert,
 } from 'lucide-react';
 import CustomerReviewsSection from '@/components/CustomerReviewsSection';
 
@@ -22,7 +24,7 @@ const featuredGames = [
     slug: 'free-fire',
     category: 'BATTLE ROYALE',
     image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000',
-    badge: 'AUTOMATED SHELL TOPUP',
+    badge: 'AUTOMATED SHELL ENGINE',
     discount: 'UP TO 15% OFF FOR RESELLERS',
     available: true,
   },
@@ -83,16 +85,16 @@ const platformFeatures = [
 
 export default function HomePage() {
   return (
-    <div className="space-y-16 pb-16">
-      {/* 1. Hero Section */}
-      <section className="relative overflow-hidden pt-8 pb-12 rounded-3xl bg-gradient-to-br from-[#141229] via-[#0c0a1a] to-[#120f26] border border-purple-950/40 p-6 sm:p-12 shadow-2xl">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="space-y-20 pb-16">
+      {/* 1. Ultra Hero Section */}
+      <section className="relative overflow-hidden pt-10 pb-16 rounded-3xl bg-gradient-to-br from-[#141229] via-[#0c0a1a] to-[#120f26] border border-purple-950/40 p-6 sm:p-12 shadow-2xl">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-mono font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold uppercase tracking-wider shadow-lg">
             <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
-            AUTOMATED GARENA SHELL RECHARGE PLATFORM
+            OFFICIAL GARENA SG / MY RECHARGE STOREFRONT
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-none">
@@ -100,7 +102,7 @@ export default function HomePage() {
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-sans max-w-2xl">
-            ShadowTopUp delivers instant Free Fire SG/MY diamonds directly to your account using Garena official shells. Enjoy automated Player ID verification and tiered reseller pricing.
+            ShadowTopUp delivers instant Free Fire SG/MY diamonds directly to your game account using official Garena Shells. Enjoy automated Player ID verification, low LKR prices, and reseller discounts.
           </p>
 
           <div className="flex flex-wrap gap-4 pt-2">
@@ -108,15 +110,28 @@ export default function HomePage() {
               href="/games/free-fire"
               className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-cyan-500/25 transition-all flex items-center gap-2 hover:scale-105"
             >
-              <Zap className="w-4 h-4" /> RECHARGE NOW
+              <Zap className="w-4 h-4" /> RECHARGE DIAMONDS NOW
             </Link>
 
             <Link
-              href="/reseller-pricing"
+              href="/admin/pricing-rules"
               className="px-8 py-4 rounded-2xl bg-[#141229] border border-purple-900/60 hover:bg-purple-950/40 text-purple-300 font-extrabold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
             >
               <Award className="w-4 h-4 text-amber-400" /> RESELLER TIERS
             </Link>
+          </div>
+
+          {/* Quick Trust Badges */}
+          <div className="pt-4 flex flex-wrap items-center gap-6 text-xs text-slate-400 font-mono border-t border-slate-800/80">
+            <span className="flex items-center gap-1.5 text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" /> 100% Guaranteed Delivery
+            </span>
+            <span className="flex items-center gap-1.5 text-cyan-400">
+              <ShieldCheck className="w-4 h-4" /> Verified Garena UID
+            </span>
+            <span className="flex items-center gap-1.5 text-amber-400">
+              <Star className="w-4 h-4 fill-amber-400" /> 5.0 Rated Store
+            </span>
           </div>
         </div>
       </section>
@@ -126,9 +141,9 @@ export default function HomePage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800/80 pb-6">
           <div>
             <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
-              <Gamepad2 className="w-4 h-4" /> OFFICIAL STOREFRONT CATALOG
+              <Gamepad2 className="w-4 h-4" /> STOREFRONT CATALOG
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wide mt-1">AVAILABLE GAMES</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wide mt-1">SUPPORTED GAMES</h2>
           </div>
         </div>
 
@@ -137,11 +152,11 @@ export default function HomePage() {
             <div
               key={idx}
               className={`p-6 rounded-3xl bg-[#141229] border transition-all flex flex-col justify-between space-y-6 ${
-                game.available ? 'border-purple-500/40 hover:border-purple-500 shadow-2xl' : 'border-slate-800 opacity-70'
+                game.available ? 'border-purple-500/50 hover:border-cyan-400 shadow-2xl hover:shadow-cyan-500/10' : 'border-slate-800 opacity-70'
               }`}
             >
               <div className="space-y-4">
-                <div className="relative h-44 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                <div className="relative h-48 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
                   <img src={game.image} alt={game.title} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#141229] via-transparent to-transparent" />
                   <span
@@ -186,12 +201,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. Customer Reviews Section Widget */}
-      <section className="max-w-6xl mx-auto px-4">
-        <CustomerReviewsSection />
+      {/* 3. Why Choose ShadowTopUp Feature Grid */}
+      <section className="max-w-6xl mx-auto px-4 space-y-8">
+        <div className="text-center space-y-2">
+          <span className="text-[10px] font-mono font-black text-cyan-400 uppercase tracking-widest">--- WHY SHADOWTOPUP ---</span>
+          <h2 className="text-3xl font-black text-white uppercase tracking-wider">
+            BUILT FOR <span className="text-cyan-400">GAMERS & RESELLERS</span>
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {platformFeatures.map((feat, idx) => {
+            const Icon = feat.icon;
+            return (
+              <div
+                key={idx}
+                className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 hover:border-purple-500/40 transition-all space-y-4 shadow-xl"
+              >
+                <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center ${feat.color}`}>
+                  <Icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">{feat.title}</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">{feat.description}</p>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
-      {/* 4. Reseller Discount Rank Badges */}
+      {/* 4. Wholesale Reseller Tiers Showcase */}
       <section className="max-w-6xl mx-auto px-4 space-y-8">
         <div className="text-center space-y-2">
           <span className="text-[10px] font-mono font-black text-amber-400 uppercase tracking-widest">--- PARTNER PROGRAM ---</span>
@@ -219,32 +257,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5. Why Choose ShadowTopUp Feature Grid */}
-      <section className="max-w-6xl mx-auto px-4 space-y-8">
-        <div className="text-center space-y-2">
-          <span className="text-[10px] font-mono font-black text-cyan-400 uppercase tracking-widest">--- WHY SHADOWTOPUP ---</span>
-          <h2 className="text-3xl font-black text-white uppercase tracking-wider">
-            BUILT FOR <span className="text-cyan-400">GAMERS & RESELLERS</span>
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {platformFeatures.map((feat, idx) => {
-            const Icon = feat.icon;
-            return (
-              <div
-                key={idx}
-                className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 hover:border-purple-500/40 transition-all space-y-4 shadow-xl"
-              >
-                <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center ${feat.color}`}>
-                  <Icon className="w-6 h-6" />
-                </div>
-                <h3 className="text-sm font-black text-white uppercase tracking-wider">{feat.title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{feat.description}</p>
-              </div>
-            );
-          })}
-        </div>
+      {/* 5. Customer Reviews Section Widget (Placed Bottom of Page, above Footer) */}
+      <section className="max-w-6xl mx-auto px-4">
+        <CustomerReviewsSection />
       </section>
 
       {/* 6. Trust Badges Footer Banner */}
