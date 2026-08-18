@@ -210,11 +210,12 @@ export default function UserDashboardPage() {
         setSelectedOrder({
           ...selectedOrder,
           receipt_url: receiptUrl,
+          status: 'PROOF SUBMITTED',
         });
 
         setTransactions((prev) =>
           prev.map((t) =>
-            t.id === selectedOrder.id ? { ...t, receipt_url: receiptUrl } : t
+            t.id === selectedOrder.id ? { ...t, receipt_url: receiptUrl, status: 'PROOF SUBMITTED' } : t
           )
         );
 

@@ -121,6 +121,17 @@ export async function GET(request: NextRequest) {
       const rawStatus = (row.status || 'pending').toLowerCase();
       const isCompleted = ['completed', 'success', 'verified'].includes(rawStatus);
       const isRejected = ['rejected', 'failed'].includes(rawStatus);
+      const isProofSubmitted = rawStatus.includes('proof') || rawStatus.includes('submit');
+
+      const normStatus = isCompleted
+        ? 'COMPLETED'
+        : isRejected
+        ? 'REJECTED'
+        : isProofSubmitted
+        ? 'PROOF SUBMITTED'
+        : 'PENDING';
+
+      const receiptUrl = row.receipt_path || row.receipt_url || row.payment_receipt || row.receipt || null;
 
       return {
         id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
@@ -131,9 +142,9 @@ export async function GET(request: NextRequest) {
         free_fire_player_id: row.free_fire_player_id || '8777843685',
         package_name: row.package_name || 'Free Fire Diamonds',
         totalAmount: Number(row.total_amount || row.price_paid || 750.00),
-        fulfillmentStatus: isCompleted ? 'COMPLETED' : isRejected ? 'REJECTED' : 'PENDING',
+        fulfillmentStatus: normStatus,
         paymentMethod: (row.payment_method || 'BANK TRANSFER').toUpperCase(),
-        paymentReceipt: row.receipt_path || row.receipt_url || null,
+        paymentReceipt: receiptUrl,
         date: new Date(row.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         timestamp: new Date(row.created_at || Date.now()).toLocaleString(),
       };

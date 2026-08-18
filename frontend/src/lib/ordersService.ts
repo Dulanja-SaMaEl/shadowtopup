@@ -85,36 +85,31 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
 }
 
 export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETED' | 'PENDING' | 'REJECTED'): Promise<boolean> {
-  const supabase = createClient();
   try {
-    const orderStatusVal = status === 'COMPLETED' ? 'completed' : status === 'REJECTED' ? 'rejected' : 'pending';
-    const txStatusVal = status === 'COMPLETED' ? 'success' : status === 'REJECTED' ? 'failed' : 'pending';
-
-    const resTx = await supabase.from('purchase_transactions').update({ status: txStatusVal }).eq('id', rawId);
-    const resOrd = await supabase.from('orders').update({ status: orderStatusVal }).eq('id', rawId);
-    
-    if (resTx.error) console.error('TX update error:', resTx.error);
-    if (resOrd.error) console.error('Order update error:', resOrd.error);
-    
-    return true;
+    const res = await fetch('/api/admin/orders/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: rawId, status }),
+    });
+    const json = await res.json();
+    return Boolean(json.success);
   } catch (err) {
     console.error('Error updating order status in database:', err);
+    return false;
   }
-  return false;
 }
 
 export async function updateDatabaseOrderReceipt(rawId: string, receiptUrl: string): Promise<boolean> {
-  const supabase = createClient();
   try {
-    const resTx = await supabase.from('purchase_transactions').update({ receipt_path: receiptUrl }).eq('id', rawId);
-    const resOrd = await supabase.from('orders').update({ receipt_path: receiptUrl }).eq('id', rawId);
-    
-    if (resTx.error) console.error('TX receipt error:', resTx.error);
-    if (resOrd.error) console.error('Order receipt error:', resOrd.error);
-
-    return true;
+    const res = await fetch('/api/orders/upload-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: rawId, receiptUrl }),
+    });
+    const json = await res.json();
+    return Boolean(json.success);
   } catch (err) {
     console.error('Error updating order receipt in database:', err);
+    return false;
   }
-  return false;
 }
