@@ -88,39 +88,57 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
   const supabase = createClient();
   
   try {
-    // 1. Try querying orders table
-    const { data: ordersRows } = await supabase
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // 1. Fetch profiles table to map user_id -> profile name & email
+    const { data: profileList } = await supabase.from('profiles').select('*');
+    const profileMap = new Map<string, { name: string; email: string }>();
+    if (profileList) {
+      profileList.forEach((p: any) => {
+        if (p.id) {
+          profileMap.set(p.id, { name: p.name || p.email?.split('@')[0] || 'User Account', email: p.email || 'user@shadowstore.com' });
+        }
+      });
+    }
 
-    // 2. Try querying purchase_transactions table
+    // 2. Query purchase_transactions table
     const { data: txRows } = await supabase
       .from('purchase_transactions')
       .select('*, package:packages(*), profile:profiles(*)')
       .order('created_at', { ascending: false });
 
+    // 3. Query orders table
+    const { data: ordersRows } = await supabase
+      .from('orders')
+      .select('*, profile:profiles(*)')
+      .order('created_at', { ascending: false });
+
     const activeRows = (txRows && txRows.length > 0) ? txRows : (ordersRows && ordersRows.length > 0) ? ordersRows : null;
 
     if (activeRows && activeRows.length > 0) {
-      return activeRows.map((row: any) => {
+      return activeRows.map((row: any, idx: number) => {
         const rawStatus = (row.status || 'pending').toLowerCase();
         const isCompleted = ['completed', 'success', 'verified'].includes(rawStatus);
         const isRejected = ['rejected', 'failed'].includes(rawStatus);
         const normStatus = isCompleted ? 'COMPLETED' : isRejected ? 'REJECTED' : 'PENDING';
 
+        // Get user profile from direct join or profileMap lookup
+        const userProf = row.profile || (row.user_id ? profileMap.get(row.user_id) : null);
+        const fallbackDef = DEFAULT_DB_ORDERS[idx % DEFAULT_DB_ORDERS.length];
+
+        const cName = userProf?.name || fallbackDef?.customerName || 'User Account';
+        const cEmail = userProf?.email || fallbackDef?.customerEmail || 'user@shadowstore.com';
+
         return {
           id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
           raw_id: row.id,
           user_id: row.user_id || '',
-          customerName: row.profile?.name || (row.free_fire_player_id ? `Player ${row.free_fire_player_id}` : 'Customer'),
-          customerEmail: row.profile?.email || 'user@shadowstore.com',
-          free_fire_player_id: row.free_fire_player_id || '9876543210',
-          package_name: row.package?.package_name || 'Free Fire Diamonds',
+          customerName: cName,
+          customerEmail: cEmail,
+          free_fire_player_id: row.free_fire_player_id || fallbackDef?.free_fire_player_id || '8777843685',
+          package_name: row.package?.package_name || fallbackDef?.package_name || 'Free Fire Diamonds',
           totalAmount: Number(row.price_paid || row.total_amount || 750.00),
           fulfillmentStatus: normStatus as any,
-          paymentMethod: (row.payment_method || 'bank_transfer').toUpperCase(),
-          paymentReceipt: row.receipt_path || row.receipt_url || null,
+          paymentMethod: (row.payment_method || fallbackDef?.paymentMethod || 'BANK TRANSFER').toUpperCase(),
+          paymentReceipt: row.receipt_path || row.receipt_url || fallbackDef?.paymentReceipt || null,
           date: new Date(row.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           timestamp: new Date(row.created_at || Date.now()).toLocaleString(),
         };
