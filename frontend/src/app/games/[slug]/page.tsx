@@ -162,15 +162,10 @@ export default function GameDetailPage() {
   useEffect(() => {
     async function fetchDbPackages() {
       try {
-        const { createClient } = await import('@/lib/supabase/client');
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('packages')
-          .select('*')
-          .eq('is_active', true);
-
-        if (!error && data && data.length > 0) {
-          setPackagesList(data as Package[]);
+        const res = await fetch('/api/packages');
+        const data = await res.json();
+        if (data.success && data.packages && data.packages.length > 0) {
+          setPackagesList(data.packages as Package[]);
         }
       } catch (e) {
         console.log('Using fallback package list');
