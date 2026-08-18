@@ -508,105 +508,126 @@ export default function UserDashboardPage() {
             </form>
           )}
 
-          {profile?.role === 'normal' && (
-            <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#120f26] via-[#0c0a1a] to-[#181335] border border-purple-900/60 shadow-2xl relative overflow-hidden space-y-6">
-              <div className="absolute top-0 right-0 -mr-12 -mt-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          {/* RESELLER PERKS & TIER SHOWCASE CARD */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#120f26] via-[#0c0a1a] to-[#181335] border border-purple-900/60 shadow-2xl relative overflow-hidden space-y-6">
+            <div className="absolute top-0 right-0 -mr-12 -mt-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
-                <div className="space-y-1">
-                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 font-mono text-[10px] font-bold uppercase tracking-widest border border-amber-500/30">
-                    BECOME AN OFFICIAL PARTNER
-                  </span>
-                  <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider">
-                    Unlock Exclusive Wholesale Margins
-                  </h3>
-                  <p className="text-xs text-slate-300 max-w-xl">
-                    Upgrade your account to a certified Reseller tier to instantly earn up to 15% profit on every Free Fire diamond recharge & gaming top-up.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 bg-purple-950/60 border border-purple-800/80 px-4 py-2 rounded-2xl shrink-0">
-                  <Zap className="w-5 h-5 text-amber-400 animate-bounce" />
-                  <span className="text-xs font-black text-amber-300 uppercase tracking-wide">Up to 15% Profit Margin</span>
-                </div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+              <div className="space-y-1">
+                <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 font-mono text-[10px] font-bold uppercase tracking-widest border border-amber-500/30">
+                  RESELLER MEMBERSHIP & BENEFITS
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider">
+                  Unlock Exclusive Wholesale Profit Margins
+                </h3>
+                <p className="text-xs text-slate-300 max-w-xl">
+                  Become or upgrade your certified Reseller tier to instantly earn up to 15% wholesale discount on every Free Fire diamond recharge & gaming top-up.
+                </p>
               </div>
 
-              {/* Tier Comparison Feature Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
-                {/* Silver Tier Card */}
-                <div className={`p-5 rounded-2xl border transition-all ${
-                  resellerTier === 'silver'
-                    ? 'bg-cyan-500/10 border-cyan-500/60 shadow-lg shadow-cyan-500/10'
-                    : 'bg-[#0e0c1f] border-slate-800'
-                }`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Star className="w-4 h-4 fill-cyan-400" /> SILVER RESELLER TIER
-                    </span>
+              <div className="flex items-center gap-2 bg-purple-950/60 border border-purple-800/80 px-4 py-2 rounded-2xl shrink-0">
+                <Zap className="w-5 h-5 text-amber-400 animate-bounce" />
+                <span className="text-xs font-black text-amber-300 uppercase tracking-wide">Up to 15% Profit Margin</span>
+              </div>
+            </div>
+
+            {/* Tier Comparison Feature Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+              {/* Silver Tier Card */}
+              <div className={`p-5 rounded-2xl border transition-all ${
+                profile?.role === 'silver'
+                  ? 'bg-cyan-500/15 border-cyan-400 shadow-xl shadow-cyan-500/20 ring-1 ring-cyan-400/50'
+                  : resellerTier === 'silver'
+                  ? 'bg-cyan-500/10 border-cyan-500/60 shadow-lg shadow-cyan-500/10'
+                  : 'bg-[#0e0c1f] border-slate-800'
+              }`}>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Star className="w-4 h-4 fill-cyan-400" /> SILVER RESELLER TIER
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {profile?.role === 'silver' && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-cyan-400 text-slate-950 text-[9px] font-mono font-black uppercase">
+                        YOUR ACTIVE TIER
+                      </span>
+                    )}
                     <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold">
                       8% OFF MATRIX
                     </span>
                   </div>
-                  <ul className="space-y-2 text-[11px] text-slate-300 font-mono">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                      <span>Automatic 8% discount on all package purchases</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                      <span>Customized store name branding on order receipts</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                      <span>Instant automated order processing & fulfillment</span>
-                    </li>
-                  </ul>
                 </div>
+                <ul className="space-y-2 text-[11px] text-slate-300 font-mono">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>Automatic 8% discount on all package purchases</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>Customized store name branding on order receipts</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>Instant automated order processing & fulfillment</span>
+                  </li>
+                </ul>
+              </div>
 
-                {/* Gold Tier Card */}
-                <div className={`p-5 rounded-2xl border transition-all ${
-                  resellerTier === 'gold'
-                    ? 'bg-amber-500/10 border-amber-500/60 shadow-lg shadow-amber-500/10'
-                    : 'bg-[#0e0c1f] border-slate-800'
-                }`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Award className="w-4 h-4 text-amber-400" /> GOLD RESELLER TIER
-                    </span>
+              {/* Gold Tier Card */}
+              <div className={`p-5 rounded-2xl border transition-all ${
+                profile?.role === 'gold'
+                  ? 'bg-amber-500/15 border-amber-400 shadow-xl shadow-amber-500/20 ring-1 ring-amber-400/50'
+                  : resellerTier === 'gold'
+                  ? 'bg-amber-500/10 border-amber-500/60 shadow-lg shadow-amber-500/10'
+                  : 'bg-[#0e0c1f] border-slate-800'
+              }`}>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-amber-400" /> GOLD RESELLER TIER
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {profile?.role === 'gold' && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-mono font-black uppercase">
+                        YOUR ACTIVE TIER
+                      </span>
+                    )}
                     <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold">
                       15% OFF MATRIX
                     </span>
                   </div>
-                  <ul className="space-y-2 text-[11px] text-slate-300 font-mono">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span>Maximum 15% wholesale discount for maximum profit</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span>VIP priority order queuing & instant processing</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span>Bulk voucher generation & dedicated support line</span>
-                    </li>
-                  </ul>
                 </div>
+                <ul className="space-y-2 text-[11px] text-slate-300 font-mono">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Maximum 15% wholesale discount for maximum profit</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>VIP priority order queuing & instant processing</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Bulk voucher generation & dedicated support line</span>
+                  </li>
+                </ul>
               </div>
+            </div>
 
-              {/* Reseller Application Form */}
+            {/* Reseller Application / Upgrade Form */}
+            {profile?.role !== 'gold' ? (
               <form onSubmit={handleApplyReseller} className="space-y-4 pt-2 border-t border-slate-800 relative z-10">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                   <div className="flex-1 space-y-1">
                     <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider">
-                      Select Desired Membership Tier
+                      {profile?.role === 'silver' ? 'Upgrade Membership Tier' : 'Select Desired Membership Tier'}
                     </label>
                     <select
                       value={resellerTier}
                       onChange={(e) => setResellerTier(e.target.value as 'silver' | 'gold')}
                       className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-amber-400 uppercase"
                     >
-                      <option value="silver">Silver Tier (8% Wholesale Discount)</option>
+                      {profile?.role !== 'silver' && (
+                        <option value="silver">Silver Tier (8% Wholesale Discount)</option>
+                      )}
                       <option value="gold">Gold Tier (15% Maximum Wholesale Discount)</option>
                     </select>
                   </div>
@@ -620,7 +641,7 @@ export default function UserDashboardPage() {
                       'APPLICATION PENDING REVIEW'
                     ) : (
                       <>
-                        <ShieldCheck className="w-4 h-4" /> APPLY NOW & GROW YOUR STORE
+                        <ShieldCheck className="w-4 h-4" /> {profile?.role === 'silver' ? 'UPGRADE TO GOLD TIER' : 'APPLY NOW & GROW YOUR STORE'}
                       </>
                     )}
                   </button>
@@ -633,8 +654,13 @@ export default function UserDashboardPage() {
                   </div>
                 )}
               </form>
-            </div>
-          )}
+            ) : (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold flex items-center gap-2 relative z-10">
+                <Award className="w-5 h-5 text-amber-400 shrink-0" />
+                <span>YOU HAVE UNLOCKED MAXIMUM GOLD RESELLER TIER (15% PROFIT MARGIN ACTIVE).</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* CHARTS ROW */}
