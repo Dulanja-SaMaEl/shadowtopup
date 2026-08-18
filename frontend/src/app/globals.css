@@ -26,8 +26,8 @@
 }
 
 @media print {
-  /* Hide standard page wrappers during print */
-  header, footer, nav, main, aside, [role="navigation"] {
+  /* Hide standard header, footer & nav bars during print */
+  header, footer, nav, aside, [role="navigation"] {
     display: none !important;
   }
 

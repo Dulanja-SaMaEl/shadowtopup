@@ -51,8 +51,8 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
       {/* Dynamic Print CSS override to guarantee exact 1 page print */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* Hide main web page background elements */
-          nav, header, footer, main, aside, [role="navigation"] {
+          /* Hide main web page background navigation, headers and footers */
+          nav, header, footer, aside, [role="navigation"] {
             display: none !important;
           }
 
@@ -69,25 +69,30 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
 
           /* Reset modal backdrop & wrapper position */
           .receipt-modal-backdrop {
-            position: static !important;
-            display: block !important;
-            background: transparent !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            display: flex !important;
+            justify-content: center !important;
+            background: #0e0c1f !important;
             padding: 0 !important;
             margin: 0 !important;
             overflow: visible !important;
             height: auto !important;
             width: 100% !important;
+            z-index: 99999 !important;
           }
 
           .receipt-modal-card {
-            position: static !important;
+            position: relative !important;
             display: block !important;
-            background: transparent !important;
-            border: none !important;
+            background: #0e0c1f !important;
+            border: 2px solid #5b21b6 !important;
+            border-radius: 20px !important;
             box-shadow: none !important;
-            margin: 0 !important;
+            margin: 10px auto !important;
             padding: 0 !important;
-            max-width: 100% !important;
+            max-width: 580px !important;
             width: 100% !important;
           }
 
@@ -100,15 +105,12 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
           #printable-receipt {
             display: block !important;
             position: relative !important;
-            width: 100 !important;
+            width: 100% !important;
             max-width: 580px !important;
             margin: 0 auto !important;
             padding: 24px !important;
             background-color: #0e0c1f !important;
             color: #ffffff !important;
-            border: 2px solid #5b21b6 !important;
-            border-radius: 20px !important;
-            box-shadow: none !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             -webkit-print-color-adjust: exact !important;

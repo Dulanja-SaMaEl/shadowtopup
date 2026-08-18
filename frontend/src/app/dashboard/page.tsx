@@ -306,8 +306,9 @@ export default function UserDashboardPage() {
   const activeOrdersCount = transactions.filter((t) => t.status === 'PENDING').length;
 
   return (
-    <div className="min-h-screen bg-[#0a0814] pb-20 space-y-8">
-      {/* Top Banner Header */}
+    <div className="min-h-screen bg-[#0a0814] pb-20 space-y-8 print:bg-transparent">
+      <div className="print:hidden space-y-8">
+        {/* Top Banner Header */}
       <div className="relative h-48 bg-[#120f26] border-b border-purple-950/40 overflow-hidden flex flex-col items-center justify-center text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/20 via-purple-950/30 to-transparent" />
         <div className="relative z-10 space-y-2">
@@ -989,6 +990,7 @@ export default function UserDashboardPage() {
           </div>
         </div>
       )}
+      </div> {/* End print:hidden wrapper */}
 
       {/* Transaction Receipt Modal */}
       <TransactionReceiptModal
