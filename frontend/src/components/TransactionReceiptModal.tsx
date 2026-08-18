@@ -47,33 +47,74 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto print:p-0 print:bg-transparent">
-      {/* Dynamic Print CSS override to ensure exact 1 page print */}
+    <div className="receipt-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto print:p-0 print:bg-transparent print:static print:block">
+      {/* Dynamic Print CSS override to guarantee exact 1 page print */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          body * {
-            visibility: hidden !important;
+          /* Hide main web page background elements */
+          nav, header, footer, main, aside, [role="navigation"] {
+            display: none !important;
           }
-          #printable-receipt, #printable-receipt * {
-            visibility: visible !important;
-          }
-          #printable-receipt {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
+
+          /* Reset page body & html */
+          html, body {
+            background-color: #0e0c1f !important;
+            color: #ffffff !important;
             height: auto !important;
+            min-height: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+          }
+
+          /* Reset modal backdrop & wrapper position */
+          .receipt-modal-backdrop {
+            position: static !important;
+            display: block !important;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            height: auto !important;
+            width: 100% !important;
+          }
+
+          .receipt-modal-card {
+            position: static !important;
+            display: block !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+
+          /* Hide print-hidden action bars and buttons */
+          .print\\:hidden, button {
+            display: none !important;
+          }
+
+          /* Exact single-page receipt container */
+          #printable-receipt {
+            display: block !important;
+            position: relative !important;
+            width: 100 !important;
+            max-width: 580px !important;
+            margin: 0 auto !important;
             padding: 24px !important;
             background-color: #0e0c1f !important;
             color: #ffffff !important;
-            border: 1px solid #4c1d95 !important;
-            border-radius: 16px !important;
+            border: 2px solid #5b21b6 !important;
+            border-radius: 20px !important;
+            box-shadow: none !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            box-shadow: none !important;
           }
+
           @page {
             size: portrait;
             margin: 10mm;
@@ -81,7 +122,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
         }
       ` }} />
 
-      <div className="relative w-full max-w-lg bg-[#0e0c1f] border border-purple-900/60 rounded-3xl shadow-2xl overflow-hidden my-8 print:border-none print:shadow-none print:my-0">
+      <div className="receipt-modal-card relative w-full max-w-lg bg-[#0e0c1f] border border-purple-900/60 rounded-3xl shadow-2xl overflow-hidden my-8 print:border-none print:shadow-none print:my-0">
         
         {/* Top Header Action Bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-[#141229] print:hidden">
