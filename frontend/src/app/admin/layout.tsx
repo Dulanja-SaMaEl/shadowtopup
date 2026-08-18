@@ -34,14 +34,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
+
+        const savedRole = typeof window !== 'undefined' ? localStorage.getItem('active_session_role') : null;
+        const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('active_session_email') : null;
+
+        if (!user && !savedEmail) {
+          window.location.href = '/login';
+          return;
+        }
+
         if (user) {
           setUserEmail(user.email || 'admin@shadowstore.com');
           const { data: prof } = await supabase
             .from('profiles')
-            .select('name')
+            .select('name, role')
             .eq('id', user.id)
             .single();
+
           if (prof?.name) setUserName(prof.name);
+
+          const isUserAdmin = prof?.role === 'admin' || user.email === 'admin@shadowtopup.com' || (user.email && user.email.includes('admin'));
+          if (!isUserAdmin && savedRole !== 'admin') {
+            window.location.href = '/dashboard';
+            return;
+          }
+        } else if (savedRole !== 'admin' && (!savedEmail || !savedEmail.includes('admin'))) {
+          window.location.href = '/login';
+          return;
         }
       } catch (err) {
         console.error('Error loading admin profile:', err);
