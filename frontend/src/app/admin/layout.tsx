@@ -38,28 +38,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const savedRole = typeof window !== 'undefined' ? localStorage.getItem('active_session_role') : null;
         const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('active_session_email') : null;
 
-        if (!user && !savedEmail) {
-          window.location.href = '/login';
+        if (!user) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('active_session_email');
+            localStorage.removeItem('active_session_role');
+            localStorage.removeItem('active_session_name');
+            window.location.href = '/login';
+          }
           return;
         }
 
-        if (user) {
-          setUserEmail(user.email || 'admin@shadowstore.com');
-          const { data: prof } = await supabase
-            .from('profiles')
-            .select('name, role')
-            .eq('id', user.id)
-            .single();
+        setUserEmail(user.email || 'admin@shadowstore.com');
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('name, role')
+          .eq('id', user.id)
+          .single();
 
-          if (prof?.name) setUserName(prof.name);
+        if (prof?.name) setUserName(prof.name);
 
-          const isUserAdmin = prof?.role === 'admin' || user.email === 'admin@shadowtopup.com' || (user.email && user.email.includes('admin'));
-          if (!isUserAdmin && savedRole !== 'admin') {
-            window.location.href = '/dashboard';
-            return;
-          }
-        } else if (savedRole !== 'admin' && (!savedEmail || !savedEmail.includes('admin'))) {
-          window.location.href = '/login';
+        const isUserAdmin = prof?.role === 'admin' || user.email === 'admin@shadowtopup.com' || (user.email && user.email.includes('admin'));
+        if (!isUserAdmin) {
+          window.location.href = '/dashboard';
           return;
         }
       } catch (err) {

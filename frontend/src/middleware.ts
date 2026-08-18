@@ -50,21 +50,20 @@ export async function middleware(request: NextRequest) {
 
   // Protect /dashboard
   if (path.startsWith('/dashboard')) {
-    if (!user && !sessionEmail) {
+    if (!user) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
   // Protect /admin routes
   if (path.startsWith('/admin')) {
-    if (!user && !sessionEmail) {
+    if (!user) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
     const isUserAdmin =
-      sessionRole === 'admin' ||
-      user?.email === 'admin@shadowtopup.com' ||
-      (user?.email && user.email.includes('admin'));
+      user.email === 'admin@shadowtopup.com' ||
+      (user.email && user.email.includes('admin'));
 
     if (!isUserAdmin) {
       return NextResponse.redirect(new URL('/dashboard', request.url));

@@ -28,18 +28,12 @@ export async function GET(request: NextRequest) {
     const { data: authData } = await supabase.auth.getUser();
     const authUser = authData?.user;
 
-    // Check cookie or header for session email fallback
-    const reqUrl = new URL(request.url);
-    const paramEmail = reqUrl.searchParams.get('email');
-    const cookieEmail = cookieStore.get('active_session_email')?.value;
-    const headerEmail = request.headers.get('x-user-email');
-
-    const effectiveEmail = (authUser?.email || paramEmail || cookieEmail || headerEmail || '').toLowerCase().trim();
-    const effectiveUserId = (authUser?.id || '').toLowerCase().trim();
-
-    if (!effectiveEmail && !effectiveUserId) {
+    if (!authUser) {
       return NextResponse.json({ success: false, message: 'Unauthenticated', data: [] }, { status: 401 });
     }
+
+    const effectiveEmail = (authUser.email || '').toLowerCase().trim();
+    const effectiveUserId = (authUser.id || '').toLowerCase().trim();
 
     // 2. Use admin client to query user orders reliably without RLS issues
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);

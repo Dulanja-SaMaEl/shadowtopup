@@ -127,23 +127,16 @@ export default function UserDashboardPage() {
               }))
             );
           }
-        } else {
-          // Unauthenticated view - Redirect guest to login
-          const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('active_session_email') : null;
-          if (!authUser && !savedEmail) {
-            window.location.href = '/login';
-            return;
-          }
+        }
 
-          setProfile((prev) => ({
-            ...prev!,
-            id: authUser?.id || 'demo-user',
-            email: authUser?.email || savedEmail || 'GUEST USER',
-            name: 'GUEST USER',
-            role: 'normal',
-            reseller_status: 'none',
-          }));
-          setTransactions([]);
+        if (!authUser) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('active_session_email');
+            localStorage.removeItem('active_session_role');
+            localStorage.removeItem('active_session_name');
+            window.location.href = '/login';
+          }
+          return;
         }
       } catch (err) {
         console.error('Failed to load user orders:', err);
