@@ -24,3 +24,23 @@
 .animate-pulse-slow {
   animation: pulse-glow 4s ease-in-out infinite;
 }
+
+@media print {
+  /* Hide standard page wrappers during print */
+  header, footer, nav, main, aside, [role="navigation"] {
+    display: none !important;
+  }
+
+  body {
+    background: #0e0c1f !important;
+    color: #ffffff !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  @page {
+    size: portrait;
+    margin: 10mm;
+  }
+}
