@@ -62,43 +62,62 @@ export async function GET(request: NextRequest) {
       userName = 'STANDARD CUSTOMER ACCOUNT';
     }
 
-    // Query orders table by user_id or email
-    const { data: ordersRows } = await adminSupabase
-      .from('orders')
-      .select('*')
-      .or(`user_id.eq.${effectiveUserId},user_id.eq.${effectiveEmail}`);
+    // Query orders table first (strictly avoiding combining with purchase_transactions table)
+    let targetRows: any[] = [];
+    
+    let ordersQuery = adminSupabase.from('orders').select('*');
+    if (effectiveUserId && effectiveEmail) {
+      ordersQuery = ordersQuery.or(`user_id.eq.${effectiveUserId},user_id.eq.${effectiveEmail}`);
+    } else if (effectiveUserId) {
+      ordersQuery = ordersQuery.eq('user_id', effectiveUserId);
+    } else if (effectiveEmail) {
+      ordersQuery = ordersQuery.eq('user_id', effectiveEmail);
+    }
 
-    // Query purchase_transactions table by user_id or email
-    const { data: txRows } = await adminSupabase
-      .from('purchase_transactions')
-      .select('*')
-      .or(`user_id.eq.${effectiveUserId},user_id.eq.${effectiveEmail}`);
+    const { data: ordersRows } = await ordersQuery.order('created_at', { ascending: false });
 
-    let combined = [...(ordersRows || []), ...(txRows || [])];
+    if (ordersRows && ordersRows.length > 0) {
+      targetRows = ordersRows;
+    } else {
+      // Fall back to purchase_transactions table ONLY if orders table has 0 records
+      let txQuery = adminSupabase.from('purchase_transactions').select('*');
+      if (effectiveUserId && effectiveEmail) {
+        txQuery = txQuery.or(`user_id.eq.${effectiveUserId},user_id.eq.${effectiveEmail}`);
+      } else if (effectiveUserId) {
+        txQuery = txQuery.eq('user_id', effectiveUserId);
+      } else if (effectiveEmail) {
+        txQuery = txQuery.eq('user_id', effectiveEmail);
+      }
 
-    // If no records found under exact user_id, check for legacy user_id '133c72ad-250d-4395-9e9b-fe913552533f' if email is user@shadowtopup.com
-    if (combined.length === 0 && (effectiveEmail === 'user@shadowtopup.com' || effectiveEmail.includes('user@shadow'))) {
+      const { data: txRows } = await txQuery.order('created_at', { ascending: false });
+      if (txRows && txRows.length > 0) {
+        targetRows = txRows;
+      }
+    }
+
+    // Check legacy user_id '133c72ad-250d-4395-9e9b-fe913552533f' if empty and user is standard customer
+    if (targetRows.length === 0 && (effectiveEmail === 'user@shadowtopup.com' || effectiveEmail.includes('user@shadow'))) {
       const { data: legacyOrders } = await adminSupabase
         .from('orders')
         .select('*')
-        .eq('user_id', '133c72ad-250d-4395-9e9b-fe913552533f');
-      const { data: legacyTx } = await adminSupabase
-        .from('purchase_transactions')
-        .select('*')
-        .eq('user_id', '133c72ad-250d-4395-9e9b-fe913552533f');
-      combined = [...(legacyOrders || []), ...(legacyTx || [])];
+        .eq('user_id', '133c72ad-250d-4395-9e9b-fe913552533f')
+        .order('created_at', { ascending: false });
+
+      if (legacyOrders && legacyOrders.length > 0) {
+        targetRows = legacyOrders;
+      } else {
+        const { data: legacyTx } = await adminSupabase
+          .from('purchase_transactions')
+          .select('*')
+          .eq('user_id', '133c72ad-250d-4395-9e9b-fe913552533f')
+          .order('created_at', { ascending: false });
+        if (legacyTx && legacyTx.length > 0) {
+          targetRows = legacyTx;
+        }
+      }
     }
 
-    // Deduplicate by ID
-    const seen = new Set<string>();
-    const uniqueRows = combined.filter((row: any) => {
-      const idKey = row.id || row.raw_id;
-      if (!idKey || seen.has(idKey)) return false;
-      seen.add(idKey);
-      return true;
-    });
-
-    const mappedOrders = uniqueRows.map((row: any) => {
+    const mappedOrders = targetRows.map((row: any) => {
       const rawStatus = (row.status || 'pending').toLowerCase();
       const isCompleted = ['completed', 'success', 'verified'].includes(rawStatus);
       const isRejected = ['rejected', 'failed'].includes(rawStatus);
