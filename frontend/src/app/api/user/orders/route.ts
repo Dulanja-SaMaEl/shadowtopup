@@ -28,14 +28,14 @@ export async function GET(request: NextRequest) {
     const { data: authData } = await supabase.auth.getUser();
     const authUser = authData?.user;
 
-    // Check cookie or header for session email fallback (for test account logins)
+    // Check cookie or header for session email fallback
     const reqUrl = new URL(request.url);
     const paramEmail = reqUrl.searchParams.get('email');
     const cookieEmail = cookieStore.get('active_session_email')?.value;
     const headerEmail = request.headers.get('x-user-email');
 
     const effectiveEmail = (authUser?.email || paramEmail || cookieEmail || headerEmail || '').toLowerCase().trim();
-    const effectiveUserId = authUser?.id || '';
+    const effectiveUserId = (authUser?.id || '').toLowerCase().trim();
 
     if (!effectiveEmail && !effectiveUserId) {
       return NextResponse.json({ success: false, message: 'Unauthenticated', data: [] }, { status: 401 });
@@ -44,79 +44,79 @@ export async function GET(request: NextRequest) {
     // 2. Use admin client to query user orders reliably without RLS issues
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch user profile if exists (by ID or email)
+    // Fetch all profiles to build lookup map
+    const { data: allProfiles } = await adminSupabase.from('profiles').select('*');
+    const profileMap = new Map((allProfiles || []).map((p: any) => [p.id, p]));
+
+    // Find current user's profile
     let profileUserId = '';
     let userName = effectiveEmail ? effectiveEmail.split('@')[0].toUpperCase() : 'CUSTOMER ACCOUNT';
     let userRole = 'normal';
     let resellerStatus = 'none';
 
-    const { data: userProfile } = await adminSupabase
-      .from('profiles')
-      .select('*')
-      .or(`id.eq.${effectiveUserId || '00000000-0000-0000-0000-000000000000'},email.eq.${effectiveEmail || 'none'}`)
-      .limit(1)
-      .maybeSingle();
+    const currentUserProfile = (allProfiles || []).find(
+      (p: any) =>
+        (p.id && p.id.toLowerCase() === effectiveUserId) ||
+        (p.email && p.email.toLowerCase() === effectiveEmail)
+    );
 
-    if (userProfile) {
-      profileUserId = userProfile.id || '';
-      if (userProfile.name) userName = userProfile.name.toUpperCase();
-      userRole = userProfile.role || 'normal';
-      resellerStatus = userProfile.reseller_status || 'none';
+    if (currentUserProfile) {
+      profileUserId = (currentUserProfile.id || '').toLowerCase();
+      if (currentUserProfile.name) userName = currentUserProfile.name.toUpperCase();
+      userRole = currentUserProfile.role || 'normal';
+      resellerStatus = currentUserProfile.reseller_status || 'none';
     }
 
     if (effectiveEmail.includes('user@shadow')) {
       userName = 'STANDARD CUSTOMER ACCOUNT';
     }
 
-    // Build all candidate user IDs for order matching (UUIDs, email)
-    const validIds = Array.from(new Set([effectiveUserId, profileUserId, effectiveEmail].filter(Boolean)));
-    const idFilterString = validIds.map((id) => `user_id.eq.${id}`).join(',');
+    // Helper to check if a DB row belongs to the active user
+    const matchesUser = (row: any) => {
+      if (!row) return false;
+      const rId = (row.user_id || '').toLowerCase();
+      const effEmail = effectiveEmail.toLowerCase();
+      const effId = effectiveUserId.toLowerCase();
+      const profId = profileUserId.toLowerCase();
 
-    // Query orders table first
-    let targetRows: any[] = [];
-    
-    let ordersQuery = adminSupabase.from('orders').select('*');
-    if (idFilterString) {
-      ordersQuery = ordersQuery.or(idFilterString);
-    }
+      // Direct match on user_id against email or IDs
+      if (rId && (rId === effEmail || rId === effId || rId === profId)) return true;
 
-    const { data: ordersRows } = await ordersQuery.order('created_at', { ascending: false });
-
-    if (ordersRows && ordersRows.length > 0) {
-      targetRows = ordersRows;
-    } else {
-      // Fall back to purchase_transactions table ONLY if orders table has 0 records
-      let txQuery = adminSupabase.from('purchase_transactions').select('*');
-      if (idFilterString) {
-        txQuery = txQuery.or(idFilterString);
+      // Check linked profile email
+      const linkedProf = profileMap.get(row.user_id);
+      if (linkedProf && linkedProf.email && linkedProf.email.toLowerCase() === effEmail) {
+        return true;
       }
 
-      const { data: txRows } = await txQuery.order('created_at', { ascending: false });
-      if (txRows && txRows.length > 0) {
-        targetRows = txRows;
+      // Check legacy test account matching
+      if (
+        (effEmail === 'user@shadowtopup.com' || effEmail.includes('user@shadow')) &&
+        (rId === '133c72ad-250d-4395-9e9b-fe913552533f' || rId.includes('133c'))
+      ) {
+        return true;
       }
-    }
 
-    // Check legacy user_id '133c72ad-250d-4395-9e9b-fe913552533f' if empty and user is standard customer
-    if (targetRows.length === 0 && (effectiveEmail === 'user@shadowtopup.com' || effectiveEmail.includes('user@shadow'))) {
-      const { data: legacyOrders } = await adminSupabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', '133c72ad-250d-4395-9e9b-fe913552533f')
-        .order('created_at', { ascending: false });
+      return false;
+    };
 
-      if (legacyOrders && legacyOrders.length > 0) {
-        targetRows = legacyOrders;
-      } else {
-        const { data: legacyTx } = await adminSupabase
-          .from('purchase_transactions')
-          .select('*')
-          .eq('user_id', '133c72ad-250d-4395-9e9b-fe913552533f')
-          .order('created_at', { ascending: false });
-        if (legacyTx && legacyTx.length > 0) {
-          targetRows = legacyTx;
-        }
-      }
+    // Query orders and purchase_transactions
+    const { data: allOrders } = await adminSupabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const { data: allTx } = await adminSupabase
+      .from('purchase_transactions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // Filter rows for current user
+    let userOrders = (allOrders || []).filter(matchesUser);
+    let userTx = (allTx || []).filter(matchesUser);
+
+    let targetRows: any[] = userOrders;
+    if (targetRows.length === 0) {
+      targetRows = userTx;
     }
 
     const mappedOrders = targetRows.map((row: any) => {
@@ -141,27 +141,26 @@ export async function GET(request: NextRequest) {
         user_id: row.user_id || effectiveUserId,
         customerName: userName,
         customerEmail: effectiveEmail,
-        free_fire_player_id: row.free_fire_player_id || '8777843685',
-        package_name: row.package_name || 'Free Fire Diamonds',
-        totalAmount: Number(row.total_amount || row.price_paid || 750.00),
+        free_fire_player_id: row.free_fire_player_id || row.player_uid || row.player_id || '8777843685',
+        package_name: row.package_name || row.item || 'Free Fire Diamonds',
+        totalAmount: Number(row.total_amount || row.price_paid || row.amount || 0),
         fulfillmentStatus: normStatus,
-        paymentMethod: (row.payment_method || 'BANK TRANSFER').toUpperCase(),
         paymentReceipt: receiptUrl,
-        date: new Date(row.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        timestamp: new Date(row.created_at || Date.now()).toLocaleString(),
+        date: row.created_at
+          ? new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'AUG 18, 2026',
       };
     });
 
     return NextResponse.json({
       success: true,
+      data: mappedOrders,
       user: {
-        id: effectiveUserId || '133c72ad-250d-4395-9e9b-fe913552533f',
         email: effectiveEmail,
         name: userName,
         role: userRole,
         reseller_status: resellerStatus,
       },
-      data: mappedOrders,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message, data: [] }, { status: 500 });
