@@ -71,31 +71,51 @@ export default function UserDashboardPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    let currentEmail = 'USER@SHADOWTOPUP.COM';
-
-    if (typeof window !== 'undefined') {
-      const storedEmail = localStorage.getItem('active_session_email');
-      const storedRole = localStorage.getItem('active_session_role') as any;
-      const storedName = localStorage.getItem('active_session_name');
-
-      if (storedEmail) {
-        currentEmail = storedEmail.toUpperCase();
-        const nameVal = storedName ? storedName.toUpperCase() : storedEmail.split('@')[0].toUpperCase();
-        setProfile((prev) => ({
-          ...prev!,
-          email: currentEmail,
-          name: nameVal,
-          role: storedRole || 'normal',
-          reseller_status: ['gold', 'silver'].includes(storedRole) ? 'approved' : 'none',
-        }));
-        setEditName(nameVal);
-        setEditEmail(currentEmail);
-      }
-    }
-
     async function loadUserDatabaseOrders() {
       const { data: authData } = await supabase.auth.getUser();
       const authUser = authData?.user;
+      
+      let currentEmail = 'USER@SHADOWTOPUP.COM';
+      let currentName = 'STANDARD CUSTOMER ACCOUNT';
+
+      if (authUser) {
+        currentEmail = authUser.email || 'USER@SHADOWTOPUP.COM';
+        currentName = authUser.user_metadata?.full_name || authUser.email?.split('@')[0].toUpperCase() || 'CUSTOMER ACCOUNT';
+        
+        // Fetch extended profile data if exists
+        const { data: profileRow } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+        if (profileRow) {
+          if (profileRow.name) currentName = profileRow.name.toUpperCase();
+          if (profileRow.email) currentEmail = profileRow.email.toUpperCase();
+        }
+
+        setProfile((prev) => ({
+          ...prev!,
+          id: authUser.id,
+          email: currentEmail.toUpperCase(),
+          name: currentName,
+          role: profileRow?.role || 'normal',
+          reseller_status: profileRow?.reseller_status || 'none',
+        }));
+        
+        setEditName(currentName);
+        setEditEmail(currentEmail.toUpperCase());
+      } else {
+        // Fallback for unauthenticated view (should ideally redirect to login, but kept for UI structure)
+        if (typeof window !== 'undefined') {
+          const storedEmail = localStorage.getItem('active_session_email');
+          const storedName = localStorage.getItem('active_session_name');
+          if (storedEmail) {
+            currentEmail = storedEmail.toUpperCase();
+            currentName = storedName ? storedName.toUpperCase() : storedEmail.split('@')[0].toUpperCase();
+          }
+        }
+        setProfile((prev) => ({
+          ...prev!,
+          email: currentEmail,
+          name: currentName,
+        }));
+      }
 
       const dbOrders = await fetchDatabaseOrders();
       

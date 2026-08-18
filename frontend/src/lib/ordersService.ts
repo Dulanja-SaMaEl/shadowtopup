@@ -56,9 +56,8 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
         const normStatus = isCompleted ? 'COMPLETED' : isRejected ? 'REJECTED' : 'PENDING';
 
         const userProf = row.user_id ? profileMap.get(row.user_id) : null;
-
         const cName = userProf?.name || 'Customer Account';
-        const cEmail = userProf?.email || 'user@shadowstore.com';
+        const cEmail = userProf?.email || 'user@shadowtopup.com';
 
         return {
           id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
