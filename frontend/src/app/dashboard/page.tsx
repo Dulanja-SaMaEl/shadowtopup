@@ -117,17 +117,55 @@ export default function UserDashboardPage() {
         }));
       }
 
-      const dbOrders = await fetchDatabaseOrders();
-      
-      // Strictly filter orders belonging ONLY to this user
-      const userDbOrders = dbOrders.filter((o) => {
+      // Fetch orders for this user directly from Supabase
+      let userDbOrders = await fetchDatabaseOrders();
+
+      // Filter by auth user or email
+      let filtered = userDbOrders.filter((o) => {
         if (authUser && o.user_id && o.user_id === authUser.id) return true;
         if (o.customerEmail && o.customerEmail.trim().toLowerCase() === currentEmail.trim().toLowerCase()) return true;
         return false;
       });
 
+      // Direct fallback query if fetchDatabaseOrders yielded nothing for this user
+      if (filtered.length === 0 && authUser) {
+        const { data: directOrders } = await supabase
+          .from('orders')
+          .select('*')
+          .or(`user_id.eq.${authUser.id},user_id.eq.${authUser.email}`);
+        
+        const { data: directTx } = await supabase
+          .from('purchase_transactions')
+          .select('*')
+          .or(`user_id.eq.${authUser.id},user_id.eq.${authUser.email}`);
+
+        const combined = [...(directOrders || []), ...(directTx || [])];
+        if (combined.length > 0) {
+          filtered = combined.map((row: any) => {
+            const rawStatus = (row.status || 'pending').toLowerCase();
+            const isCompleted = ['completed', 'success', 'verified'].includes(rawStatus);
+            const isRejected = ['rejected', 'failed'].includes(rawStatus);
+            return {
+              id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
+              raw_id: row.id,
+              user_id: row.user_id || authUser.id,
+              customerName: currentName,
+              customerEmail: currentEmail,
+              free_fire_player_id: row.free_fire_player_id || '8777843685',
+              package_name: row.package_name || 'Free Fire Diamonds',
+              totalAmount: Number(row.total_amount || row.price_paid || 750.00),
+              fulfillmentStatus: isCompleted ? 'COMPLETED' : isRejected ? 'REJECTED' : 'PENDING',
+              paymentMethod: (row.payment_method || 'BANK TRANSFER').toUpperCase(),
+              paymentReceipt: row.receipt_path || row.receipt_url || null,
+              date: new Date(row.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              timestamp: new Date(row.created_at || Date.now()).toLocaleString(),
+            } as any;
+          });
+        }
+      }
+
       setTransactions(
-        userDbOrders.map((o) => ({
+        filtered.map((o) => ({
           id: o.id.replace('#', ''),
           raw_id: o.raw_id,
           package_name: o.package_name,
