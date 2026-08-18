@@ -18,38 +18,62 @@ export async function POST(request: NextRequest) {
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
-    // Update orders table with receipt URL and change status to proof_submitted
-    const { error: orderErr } = await adminSupabase
-      .from('orders')
-      .update({
-        receipt_path: receiptUrl,
-        receipt_url: receiptUrl,
-        status: 'proof_submitted',
-      })
-      .eq('id', orderId);
+    let updatedOrdersCount = 0;
+    let updatedTxCount = 0;
+    let errors: string[] = [];
 
-    // Update purchase_transactions table as well
-    const { error: txErr } = await adminSupabase
-      .from('purchase_transactions')
-      .update({
-        receipt_path: receiptUrl,
-        receipt_url: receiptUrl,
-        status: 'proof_submitted',
-      })
-      .eq('id', orderId);
+    // Helper to update a table safely
+    const updateTableReceipt = async (tableName: string) => {
+      // 1. Try updating receipt_path first
+      let { data, error: err1 } = await adminSupabase
+        .from(tableName)
+        .update({ receipt_path: receiptUrl })
+        .eq('id', orderId)
+        .select();
 
-    if (orderErr) {
-      console.error('Error updating orders table:', orderErr);
-    }
-    if (txErr) {
-      console.error('Error updating purchase_transactions table:', txErr);
-    }
+      if (err1) {
+        // Try updating receipt_url if receipt_path failed
+        const { data: data2, error: err2 } = await adminSupabase
+          .from(tableName)
+          .update({ receipt_url: receiptUrl })
+          .eq('id', orderId)
+          .select();
+        
+        if (err2) {
+          errors.push(`Table ${tableName} receipt update error: ${err1.message} / ${err2.message}`);
+        } else if (data2 && data2.length > 0) {
+          data = data2;
+        }
+      }
+
+      // 2. Try updating status to proof_submitted
+      const { error: statusErr } = await adminSupabase
+        .from(tableName)
+        .update({ status: 'proof_submitted' })
+        .eq('id', orderId);
+
+      if (statusErr) {
+        // If proof_submitted violates constraint, try status: 'pending' or 'submitted'
+        await adminSupabase
+          .from(tableName)
+          .update({ status: 'pending' })
+          .eq('id', orderId);
+        errors.push(`Table ${tableName} status update note: ${statusErr.message}`);
+      }
+
+      return data ? data.length : 0;
+    };
+
+    updatedOrdersCount = await updateTableReceipt('orders');
+    updatedTxCount = await updateTableReceipt('purchase_transactions');
 
     return NextResponse.json({
       success: true,
-      message: 'Receipt and order status updated successfully',
+      message: 'Receipt update processed',
       receiptUrl,
-      status: 'proof_submitted',
+      updatedOrdersCount,
+      updatedTxCount,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });

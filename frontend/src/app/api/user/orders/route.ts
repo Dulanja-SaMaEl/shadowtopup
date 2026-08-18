@@ -121,7 +121,9 @@ export async function GET(request: NextRequest) {
       const rawStatus = (row.status || 'pending').toLowerCase();
       const isCompleted = ['completed', 'success', 'verified'].includes(rawStatus);
       const isRejected = ['rejected', 'failed'].includes(rawStatus);
-      const isProofSubmitted = rawStatus.includes('proof') || rawStatus.includes('submit');
+
+      const receiptUrl = row.receipt_path || row.receipt_url || row.payment_receipt || row.receipt || null;
+      const isProofSubmitted = Boolean(receiptUrl) || rawStatus.includes('proof') || rawStatus.includes('submit');
 
       const normStatus = isCompleted
         ? 'COMPLETED'
@@ -130,8 +132,6 @@ export async function GET(request: NextRequest) {
         : isProofSubmitted
         ? 'PROOF SUBMITTED'
         : 'PENDING';
-
-      const receiptUrl = row.receipt_path || row.receipt_url || row.payment_receipt || row.receipt || null;
 
       return {
         id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
