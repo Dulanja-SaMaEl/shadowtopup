@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { Award, Clock, Star, Users, Check, X, ArrowUpCircle } from 'lucide-react';
+import { Award, Clock, Star, Users, Check, X, ArrowUpCircle, ShieldCheck, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface ResellerUser {
   id: string;
@@ -15,160 +14,209 @@ interface ResellerUser {
 }
 
 export default function AdminResellersPage() {
-  const [pendingApplications, setPendingApplications] = useState<ResellerUser[]>([
-    { id: 'p1', name: 'Samir Perera', email: 'samir.perera@example.com', role: 'normal', requested_tier: 'gold', reseller_status: 'pending', expires: 'Pending Approval' },
-    { id: 'p2', name: 'Kavindu Silva', email: 'kavindu.silva@example.com', role: 'normal', requested_tier: 'silver', reseller_status: 'pending', expires: 'Pending Approval' },
-  ]);
+  const [pendingApplications, setPendingApplications] = useState<ResellerUser[]>([]);
+  const [goldResellers, setGoldResellers] = useState<ResellerUser[]>([]);
+  const [silverResellers, setSilverResellers] = useState<ResellerUser[]>([]);
+  const [normalUsers, setNormalUsers] = useState<ResellerUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const [goldResellers, setGoldResellers] = useState<ResellerUser[]>([
-    { id: 'g1', name: 'Gold Reseller Account', email: 'gold@shadowtopup.com', role: 'gold', expires: 'Aug 30, 2027' },
-    { id: 'g2', name: 'Lanka Topup Hub', email: 'lankatopup@gmail.com', role: 'gold', expires: 'Dec 15, 2026' },
-  ]);
+  const loadResellers = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/resellers');
+      const data = await res.json();
+      if (data.success && data.profiles) {
+        const rawProfiles: any[] = data.profiles;
 
-  const [silverResellers, setSilverResellers] = useState<ResellerUser[]>([
-    { id: 's1', name: 'Dulanja Abeysinghe', email: 'dulanja150abeysinghe@gmail.com', role: 'silver', expires: 'Jul 23, 2026' },
-    { id: 's2', name: 'Silver Reseller Account', email: 'silver@shadowtopup.com', role: 'silver', expires: 'Nov 10, 2026' },
-  ]);
+        const pending = rawProfiles.filter((u) => u.reseller_status === 'pending');
+        const gold = rawProfiles.filter((u) => u.role === 'gold');
+        const silver = rawProfiles.filter((u) => u.role === 'silver');
+        const normal = rawProfiles.filter((u) => u.role === 'normal' && u.reseller_status !== 'pending');
 
-  const [normalUsers, setNormalUsers] = useState<ResellerUser[]>([
-    { id: 'n1', name: 'Standard User Account', email: 'user@shadowtopup.com', role: 'normal', expires: 'N/A' },
-    { id: 'n2', name: 'User One', email: 'user1@demo.com', role: 'normal', expires: 'N/A' },
-    { id: 'n3', name: 'Test Customer', email: 'testcustomer@gmail.com', role: 'normal', expires: 'N/A' },
-  ]);
+        setPendingApplications(
+          pending.map((u) => ({
+            id: u.id,
+            name: u.name || u.email?.split('@')[0] || 'Applicant',
+            email: u.email || 'N/A',
+            role: u.role || 'normal',
+            requested_tier: u.requested_tier || 'silver',
+            reseller_status: 'pending',
+            expires: 'Pending Approval',
+          }))
+        );
 
-  const supabase = createClient();
+        setGoldResellers(
+          gold.map((u) => ({
+            id: u.id,
+            name: u.name || u.email?.split('@')[0] || 'Gold Reseller',
+            email: u.email || 'N/A',
+            role: 'gold',
+            expires: u.reseller_expires_at ? new Date(u.reseller_expires_at).toLocaleDateString() : 'Active Partner',
+          }))
+        );
+
+        setSilverResellers(
+          silver.map((u) => ({
+            id: u.id,
+            name: u.name || u.email?.split('@')[0] || 'Silver Reseller',
+            email: u.email || 'N/A',
+            role: 'silver',
+            expires: u.reseller_expires_at ? new Date(u.reseller_expires_at).toLocaleDateString() : 'Active Partner',
+          }))
+        );
+
+        setNormalUsers(
+          normal.map((u) => ({
+            id: u.id,
+            name: u.name || u.email?.split('@')[0] || 'Customer Account',
+            email: u.email || 'N/A',
+            role: 'normal',
+            expires: 'N/A',
+          }))
+        );
+      }
+    } catch (err) {
+      console.error('Error loading admin resellers:', err);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    async function loadResellers() {
-      const { data } = await supabase.from('profiles').select('*');
-      if (data && data.length > 0) {
-        const pending = data.filter((u) => u.reseller_status === 'pending');
-        const gold = data.filter((u) => u.role === 'gold');
-        const silver = data.filter((u) => u.role === 'silver');
-        const normal = data.filter((u) => u.role === 'normal' && u.reseller_status !== 'pending');
-
-        if (pending.length > 0) {
-          setPendingApplications(
-            pending.map((u) => ({
-              id: u.id,
-              name: u.name || 'Applicant',
-              email: u.email,
-              role: u.role || 'normal',
-              requested_tier: u.requested_tier || 'silver',
-              reseller_status: 'pending',
-              expires: 'Pending Approval',
-            }))
-          );
-        }
-
-        if (gold.length > 0) {
-          setGoldResellers(
-            gold.map((u) => ({
-              id: u.id,
-              name: u.name || 'Gold Reseller',
-              email: u.email,
-              role: 'gold',
-              expires: u.reseller_expires_at ? new Date(u.reseller_expires_at).toLocaleDateString() : 'Aug 30, 2027',
-            }))
-          );
-        }
-
-        if (silver.length > 0) {
-          setSilverResellers(
-            silver.map((u) => ({
-              id: u.id,
-              name: u.name || 'Silver Reseller',
-              email: u.email,
-              role: 'silver',
-              expires: u.reseller_expires_at ? new Date(u.reseller_expires_at).toLocaleDateString() : 'Jul 23, 2026',
-            }))
-          );
-        }
-
-        if (normal.length > 0) {
-          setNormalUsers(
-            normal.map((u) => ({
-              id: u.id,
-              name: u.name || 'User Account',
-              email: u.email,
-              role: 'normal',
-              expires: 'N/A',
-            }))
-          );
-        }
-      }
-    }
     loadResellers();
   }, []);
 
   // Action Handlers
   const handleApproveApplication = async (app: ResellerUser) => {
-    const newRole = app.requested_tier || 'silver';
-    await supabase.from('profiles').update({ role: newRole, reseller_status: 'approved' }).eq('id', app.id);
-
-    setPendingApplications(pendingApplications.filter((p) => p.id !== app.id));
-
-    const approvedUser: ResellerUser = { ...app, role: newRole as any, expires: 'Aug 30, 2027' };
-    if (newRole === 'gold') {
-      setGoldResellers([...goldResellers, approvedUser]);
-    } else {
-      setSilverResellers([...silverResellers, approvedUser]);
+    setProcessingId(app.id);
+    try {
+      const res = await fetch('/api/admin/resellers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: app.id,
+          action: 'approve',
+          target_role: app.requested_tier || 'silver',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await loadResellers();
+      }
+    } catch (e) {
+      console.error('Error approving reseller application:', e);
     }
+    setProcessingId(null);
   };
 
   const handleRejectApplication = async (app: ResellerUser) => {
-    await supabase.from('profiles').update({ reseller_status: 'rejected' }).eq('id', app.id);
-    setPendingApplications(pendingApplications.filter((p) => p.id !== app.id));
+    setProcessingId(app.id);
+    try {
+      const res = await fetch('/api/admin/resellers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: app.id, action: 'reject' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await loadResellers();
+      }
+    } catch (e) {
+      console.error('Error rejecting reseller application:', e);
+    }
+    setProcessingId(null);
   };
 
-  const handleDemoteToNormal = async (user: ResellerUser) => {
-    await supabase.from('profiles').update({ role: 'normal' }).eq('id', user.id);
-    if (user.role === 'gold') {
-      setGoldResellers(goldResellers.filter((g) => g.id !== user.id));
-    } else if (user.role === 'silver') {
-      setSilverResellers(silverResellers.filter((s) => s.id !== user.id));
+  const handlePromoteUser = async (user: ResellerUser, targetTier: 'silver' | 'gold' | 'normal') => {
+    setProcessingId(user.id);
+    try {
+      const res = await fetch('/api/admin/resellers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, action: 'promote', target_role: targetTier }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await loadResellers();
+      }
+    } catch (e) {
+      console.error('Error updating user reseller tier:', e);
     }
-    setNormalUsers([...normalUsers, { ...user, role: 'normal', expires: 'N/A' }]);
-  };
-
-  const handlePromoteUser = async (user: ResellerUser, targetTier: 'silver' | 'gold') => {
-    await supabase.from('profiles').update({ role: targetTier }).eq('id', user.id);
-    setNormalUsers(normalUsers.filter((n) => n.id !== user.id));
-
-    const promoted: ResellerUser = { ...user, role: targetTier, expires: 'Aug 30, 2027' };
-    if (targetTier === 'gold') {
-      setGoldResellers([...goldResellers, promoted]);
-    } else {
-      setSilverResellers([...silverResellers, promoted]);
-    }
+    setProcessingId(null);
   };
 
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-black text-white uppercase tracking-wider">Reseller Management</h1>
-        <p className="text-xs text-slate-400 mt-1">Review reseller tier applications, manage active Gold & Silver subscribers, and promote standard users.</p>
-      </div>
-
-      {/* 1. Pending Tier Applications */}
-      <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-400" /> Pending Tier Applications
-          </h3>
-          <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-amber-400 font-mono">
-            {pendingApplications.length} Requests
-          </span>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white uppercase tracking-wider">Reseller Tier Management</h1>
+          <p className="text-xs text-slate-400 mt-1">Review reseller applications, grant Silver & Gold tiers, and manage partner accounts.</p>
         </div>
 
-        {pendingApplications.length === 0 ? (
-          <div className="py-8 text-center bg-[#0e0c1f] rounded-2xl border border-slate-800/40">
-            <p className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
-              No pending reseller applications at this time.
-            </p>
+        <button
+          onClick={loadResellers}
+          className="px-4 py-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh Resellers
+        </button>
+      </div>
+
+      {/* KPI Stats Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="p-5 rounded-2xl bg-[#141229] border border-amber-500/30 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+            <Clock className="w-5 h-5" />
           </div>
-        ) : (
+          <div>
+            <span className="text-[9px] font-mono font-bold uppercase text-slate-400">Pending Requests</span>
+            <h3 className="text-xl font-black text-amber-300 font-mono">{pendingApplications.length}</h3>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#141229] border border-amber-500/30 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+            <Award className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[9px] font-mono font-bold uppercase text-slate-400">Gold Partners</span>
+            <h3 className="text-xl font-black text-amber-400 font-mono">{goldResellers.length}</h3>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#141229] border border-cyan-500/30 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+            <Star className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[9px] font-mono font-bold uppercase text-slate-400">Silver Partners</span>
+            <h3 className="text-xl font-black text-cyan-300 font-mono">{silverResellers.length}</h3>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#141229] border border-purple-950/40 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-300 flex items-center justify-center">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[9px] font-mono font-bold uppercase text-slate-400">Normal Customers</span>
+            <h3 className="text-xl font-black text-white font-mono">{normalUsers.length}</h3>
+          </div>
+        </div>
+      </div>
+
+      {/* 1. Pending Reseller Applications Section */}
+      {pendingApplications.length > 0 && (
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-amber-950/30 via-[#141229] to-[#141229] border border-amber-500/40 space-y-6 shadow-2xl">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-400" /> Pending Reseller Applications
+            </h3>
+            <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold">
+              {pendingApplications.length} ACTION REQUIRED
+            </span>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-[#0e0c1f] text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
@@ -181,37 +229,31 @@ export default function AdminResellersPage() {
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {pendingApplications.map((app) => (
-                  <tr key={app.id} className="hover:bg-slate-900/40">
-                    <td className="p-4">
-                      <div>
-                        <h5 className="font-bold text-white text-xs">{app.name}</h5>
-                        <p className="text-[10px] text-slate-400 font-mono">{app.email}</p>
-                      </div>
+                  <tr key={app.id} className="hover:bg-slate-900/50">
+                    <td className="p-4 font-bold text-white">
+                      {app.name}
+                      <span className="block text-[10px] text-slate-400 font-mono font-normal">{app.email}</span>
+                    </td>
+                    <td className="p-4 font-mono font-bold text-amber-300 uppercase">
+                      {app.requested_tier} TIER
                     </td>
                     <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider font-mono ${
-                        app.requested_tier === 'gold'
-                          ? 'bg-amber-500/20 border border-amber-500/30 text-amber-400'
-                          : 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-400'
-                      }`}>
-                        {(app.requested_tier || 'silver').toUpperCase()} TIER
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold uppercase">
-                        PENDING
+                      <span className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold uppercase">
+                        PENDING APPROVAL
                       </span>
                     </td>
                     <td className="p-4 flex items-center gap-2">
                       <button
                         onClick={() => handleApproveApplication(app)}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] uppercase flex items-center gap-1"
+                        disabled={processingId === app.id}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-[10px] uppercase flex items-center gap-1 shadow-md shadow-emerald-600/20"
                       >
-                        <Check className="w-3.5 h-3.5" /> Approve
+                        <Check className="w-3.5 h-3.5" /> Approve {app.requested_tier?.toUpperCase()}
                       </button>
                       <button
                         onClick={() => handleRejectApplication(app)}
-                        className="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-[10px] font-bold uppercase flex items-center gap-1"
+                        disabled={processingId === app.id}
+                        className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-mono font-bold text-[10px] uppercase flex items-center gap-1"
                       >
                         <X className="w-3.5 h-3.5" /> Reject
                       </button>
@@ -221,156 +263,167 @@ export default function AdminResellersPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* 2. Gold Tier Resellers */}
-      <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
-        <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
-          <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> Gold Tier Resellers ({goldResellers.length})
-        </h3>
-
-        {goldResellers.length === 0 ? (
-          <div className="py-8 text-center bg-[#0e0c1f] rounded-2xl border border-slate-800/40">
-            <p className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
-              No active Gold tier resellers found.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#0e0c1f] text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
-                <tr>
-                  <th className="p-4">User</th>
-                  <th className="p-4">Subscription Expires</th>
-                  <th className="p-4">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {goldResellers.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-900/40">
-                    <td className="p-4">
-                      <div>
-                        <h5 className="font-bold text-white text-xs">{r.name}</h5>
-                        <p className="text-[10px] text-slate-400 font-mono">{r.email}</p>
-                      </div>
-                    </td>
-                    <td className="p-4 font-mono font-bold text-amber-400 text-xs">{r.expires}</td>
-                    <td className="p-4">
-                      <button
-                        onClick={() => handleDemoteToNormal(r)}
-                        className="px-4 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 text-[10px] font-bold uppercase tracking-wider"
-                      >
-                        Demote to Normal
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* 3. Silver Tier Resellers */}
-      <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
-        <h3 className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-2">
-          <Star className="w-4 h-4 text-cyan-400 fill-cyan-400" /> Silver Tier Resellers ({silverResellers.length})
-        </h3>
-
-        {silverResellers.length === 0 ? (
-          <div className="py-8 text-center bg-[#0e0c1f] rounded-2xl border border-slate-800/40">
-            <p className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
-              No active Silver tier resellers found.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#0e0c1f] text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
-                <tr>
-                  <th className="p-4">User</th>
-                  <th className="p-4">Subscription Expires</th>
-                  <th className="p-4">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {silverResellers.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-900/40">
-                    <td className="p-4">
-                      <div>
-                        <h5 className="font-bold text-white text-xs">{r.name}</h5>
-                        <p className="text-[10px] text-slate-400 font-mono">{r.email}</p>
-                      </div>
-                    </td>
-                    <td className="p-4 font-mono font-bold text-cyan-400 text-xs">{r.expires}</td>
-                    <td className="p-4 flex items-center gap-2">
-                      <button
-                        onClick={() => handlePromoteUser(r, 'gold')}
-                        className="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 text-[10px] font-bold uppercase tracking-wider"
-                      >
-                        Upgrade Gold
-                      </button>
-                      <button
-                        onClick={() => handleDemoteToNormal(r)}
-                        className="px-3 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 text-[10px] font-bold uppercase tracking-wider"
-                      >
-                        Demote
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* 4. Standard Normal Users */}
-      <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
-        <h3 className="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-          <Users className="w-4 h-4 text-purple-400" /> Standard Normal Accounts ({normalUsers.length})
+      {/* 2. Gold Resellers Table */}
+      <div className="p-6 rounded-3xl bg-[#141229] border border-amber-500/40 space-y-6 shadow-2xl">
+        <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+          <Award className="w-4 h-4 text-amber-400" /> Active Gold Tier Resellers (Max Wholesale Discount)
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-[#0e0c1f] text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
               <tr>
-                <th className="p-4">User</th>
-                <th className="p-4">Current Tier</th>
-                <th className="p-4">Promote Tier Action</th>
+                <th className="p-4">Partner Account</th>
+                <th className="p-4">Email</th>
+                <th className="p-4">Status / Expiry</th>
+                <th className="p-4">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {normalUsers.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-900/40">
-                  <td className="p-4">
-                    <div>
-                      <h5 className="font-bold text-white text-xs">{u.name}</h5>
-                      <p className="text-[10px] text-slate-400 font-mono">{u.email}</p>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[9px] font-bold uppercase">
-                      NORMAL
-                    </span>
-                  </td>
-                  <td className="p-4 flex items-center gap-2">
-                    <button
-                      onClick={() => handlePromoteUser(u, 'silver')}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30 text-[10px] font-bold uppercase font-mono"
-                    >
-                      + Promote Silver
-                    </button>
-                    <button
-                      onClick={() => handlePromoteUser(u, 'gold')}
-                      className="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 text-[10px] font-bold uppercase font-mono"
-                    >
-                      + Promote Gold
-                    </button>
+              {goldResellers.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="p-6 text-center text-slate-500 font-mono">
+                    No Gold tier resellers assigned yet.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                goldResellers.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-900/50">
+                    <td className="p-4 font-bold text-white flex items-center gap-2">
+                      <Award className="w-4 h-4 text-amber-400" /> {user.name}
+                    </td>
+                    <td className="p-4 font-mono text-slate-300">{user.email}</td>
+                    <td className="p-4 font-mono text-amber-300 text-[11px]">{user.expires}</td>
+                    <td className="p-4 flex items-center gap-2">
+                      <button
+                        onClick={() => handlePromoteUser(user, 'silver')}
+                        disabled={processingId === user.id}
+                        className="px-3 py-1.5 rounded-lg bg-cyan-950 border border-cyan-800 text-cyan-300 text-[10px] font-mono font-bold uppercase"
+                      >
+                        Downgrade to Silver
+                      </button>
+                      <button
+                        onClick={() => handlePromoteUser(user, 'normal')}
+                        disabled={processingId === user.id}
+                        className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-[10px] font-mono font-bold uppercase"
+                      >
+                        Demote to Normal
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 3. Silver Resellers Table */}
+      <div className="p-6 rounded-3xl bg-[#141229] border border-cyan-500/40 space-y-6 shadow-2xl">
+        <h3 className="text-sm font-black text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+          <Star className="w-4 h-4 text-cyan-400" /> Active Silver Tier Resellers (Standard Discount)
+        </h3>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-[#0e0c1f] text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="p-4">Partner Account</th>
+                <th className="p-4">Email</th>
+                <th className="p-4">Status / Expiry</th>
+                <th className="p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {silverResellers.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="p-6 text-center text-slate-500 font-mono">
+                    No Silver tier resellers assigned yet.
+                  </td>
+                </tr>
+              ) : (
+                silverResellers.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-900/50">
+                    <td className="p-4 font-bold text-white flex items-center gap-2">
+                      <Star className="w-4 h-4 text-cyan-400" /> {user.name}
+                    </td>
+                    <td className="p-4 font-mono text-slate-300">{user.email}</td>
+                    <td className="p-4 font-mono text-cyan-300 text-[11px]">{user.expires}</td>
+                    <td className="p-4 flex items-center gap-2">
+                      <button
+                        onClick={() => handlePromoteUser(user, 'gold')}
+                        disabled={processingId === user.id}
+                        className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-mono font-bold uppercase shadow-md shadow-amber-600/20"
+                      >
+                        Upgrade to Gold
+                      </button>
+                      <button
+                        onClick={() => handlePromoteUser(user, 'normal')}
+                        disabled={processingId === user.id}
+                        className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-[10px] font-mono font-bold uppercase"
+                      >
+                        Demote to Normal
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 4. Normal Users List (Grant Reseller Tier) */}
+      <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6 shadow-2xl">
+        <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+          <Users className="w-4 h-4 text-purple-400" /> Standard Customer Accounts (Grant Reseller Access)
+        </h3>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-[#0e0c1f] text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="p-4">User Account</th>
+                <th className="p-4">Email</th>
+                <th className="p-4">Current Role</th>
+                <th className="p-4">Grant Tier</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {normalUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="p-6 text-center text-slate-500 font-mono">
+                    No standard user accounts found.
+                  </td>
+                </tr>
+              ) : (
+                normalUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-900/50">
+                    <td className="p-4 font-bold text-white">{user.name}</td>
+                    <td className="p-4 font-mono text-slate-300">{user.email}</td>
+                    <td className="p-4 font-mono text-slate-400 text-[11px]">NORMAL USER</td>
+                    <td className="p-4 flex items-center gap-2">
+                      <button
+                        onClick={() => handlePromoteUser(user, 'silver')}
+                        disabled={processingId === user.id}
+                        className="px-3 py-1.5 rounded-lg bg-cyan-950 border border-cyan-800 text-cyan-300 hover:bg-cyan-900 text-[10px] font-mono font-bold uppercase"
+                      >
+                        + Grant Silver
+                      </button>
+                      <button
+                        onClick={() => handlePromoteUser(user, 'gold')}
+                        disabled={processingId === user.id}
+                        className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-mono font-bold uppercase shadow-md shadow-amber-600/20"
+                      >
+                        + Grant Gold
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
