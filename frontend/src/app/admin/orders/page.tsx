@@ -31,8 +31,9 @@ export default function AdminOrdersPage() {
     if (!matchesSearch) return false;
 
     if (activeFilter === 'ALL ORDERS') return true;
-    if (activeFilter === 'COMPLETED') return ord.fulfillmentStatus === 'COMPLETED';
-    if (activeFilter === 'PENDING PAYMENT' || activeFilter === 'PROOF SUBMITTED') return ord.fulfillmentStatus === 'PENDING';
+    if (activeFilter === 'COMPLETED' || activeFilter === 'VERIFIED') return ord.fulfillmentStatus === 'COMPLETED';
+    if (activeFilter === 'PROOF SUBMITTED') return Boolean(ord.paymentReceipt);
+    if (activeFilter === 'PENDING PAYMENT') return ord.fulfillmentStatus === 'PENDING' && !ord.paymentReceipt;
     if (activeFilter === 'REJECTED') return ord.fulfillmentStatus === 'REJECTED';
 
     return true;
@@ -107,152 +108,154 @@ export default function AdminOrdersPage() {
                 <th className="p-4">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {filteredOrders.map((ord) => (
-                <tr key={ord.raw_id} className="hover:bg-slate-900/40 transition-colors">
-                  <td className="p-4 font-mono font-bold text-purple-400">{ord.id}</td>
-                  <td className="p-4">
-                    <div>
-                      <h5 className="font-bold text-white">{ord.customerName}</h5>
-                      <p className="text-[10px] text-slate-400 font-mono">{ord.customerEmail}</p>
-                    </div>
-                  </td>
-                  <td className="p-4 font-bold text-slate-200">{ord.package_name}</td>
-                  <td className="p-4 font-bold text-emerald-400 font-mono">LKR {ord.totalAmount.toFixed(2)}</td>
-                  <td className="p-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider inline-flex items-center gap-1 ${
-                        ord.fulfillmentStatus === 'COMPLETED'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                          : ord.fulfillmentStatus === 'PENDING'
-                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                          : 'bg-red-500/10 text-red-400 border border-red-500/30'
-                      }`}
-                    >
-                      {ord.fulfillmentStatus}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    {ord.paymentReceipt ? (
+            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+              {filteredOrders.length > 0 ? (
+                filteredOrders.map((ord) => (
+                  <tr key={ord.raw_id} className="hover:bg-slate-900/40">
+                    <td className="p-4 font-mono font-bold text-purple-400">{ord.id}</td>
+                    <td className="p-4">
+                      <div className="font-bold text-white uppercase">{ord.customerName}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{ord.customerEmail}</div>
+                    </td>
+                    <td className="p-4 font-bold text-slate-200">{ord.package_name}</td>
+                    <td className="p-4 font-mono font-bold text-emerald-400">
+                      LKR {Number(ord.totalAmount).toFixed(2)}
+                    </td>
+                    <td className="p-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-[9px] font-mono font-bold uppercase ${
+                          ord.fulfillmentStatus === 'COMPLETED'
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : ord.fulfillmentStatus === 'PENDING'
+                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        }`}
+                      >
+                        {ord.fulfillmentStatus}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      {ord.paymentReceipt ? (
+                        <a
+                          href={ord.paymentReceipt}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-950/60 text-cyan-400 border border-cyan-800/60 rounded-xl text-[10px] font-bold hover:bg-cyan-900/60 transition-all"
+                        >
+                          <ImageIcon className="w-3 h-3" /> View Receipt
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 font-mono">No Receipt</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-[10px] font-mono text-slate-400">{ord.date}</td>
+                    <td className="p-4">
                       <button
                         onClick={() => setSelectedOrder(ord)}
-                        className="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 font-mono text-[10px] font-bold inline-flex items-center gap-1 uppercase transition-all"
+                        className="px-4 py-1.5 rounded-xl bg-purple-950 border border-purple-800 text-purple-300 font-bold text-[10px] hover:bg-purple-900/60 uppercase"
                       >
-                        <ImageIcon className="w-3.5 h-3.5" /> View Receipt
+                        Review &gt;
                       </button>
-                    ) : (
-                      <span className="text-slate-500 font-mono text-[10px] uppercase">No Receipt</span>
-                    )}
-                  </td>
-                  <td className="p-4 text-slate-400 font-mono text-[10px]">{ord.date}</td>
-                  <td className="p-4">
-                    <button
-                      onClick={() => setSelectedOrder(ord)}
-                      className="px-4 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 text-[10px] font-bold uppercase tracking-wider"
-                    >
-                      Review ›
-                    </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-slate-400 font-mono text-xs">
+                    No orders matching status tab &quot;{activeFilter}&quot;. Try selecting &quot;ALL ORDERS&quot;.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Review & Receipt Inspector Modal */}
+      {/* Review Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-[#141229] border border-purple-950/80 rounded-3xl p-6 space-y-6 shadow-2xl">
+          <div className="w-full max-w-lg bg-[#141229] border border-purple-950/60 rounded-3xl p-6 space-y-6 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-800 pb-4">
               <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4 h-4 text-purple-400" /> Review Database Order {selectedOrder.id}
+                <FileText className="w-4 h-4 text-purple-400" /> Review Order {selectedOrder.id}
               </h3>
               <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs bg-[#0e0c1f] p-4 rounded-2xl border border-slate-800">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Customer:</span>
-                <span className="text-white font-bold">{selectedOrder.customerName}</span>
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-[#0e0c1f] rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 font-mono">CUSTOMER</span>
+                  <p className="font-bold text-white uppercase">{selectedOrder.customerName}</p>
+                  <p className="text-[10px] text-slate-500 font-mono">{selectedOrder.customerEmail}</p>
+                </div>
+                <div className="p-3 bg-[#0e0c1f] rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 font-mono">PLAYER UID</span>
+                  <p className="font-mono font-bold text-cyan-400">{selectedOrder.free_fire_player_id}</p>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Email:</span>
-                <span className="text-slate-300 font-mono">{selectedOrder.customerEmail}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Player UID:</span>
-                <span className="text-cyan-400 font-mono font-bold">{selectedOrder.free_fire_player_id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Package:</span>
-                <span className="text-purple-300 font-bold">{selectedOrder.package_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Total Paid:</span>
-                <span className="text-emerald-400 font-bold font-mono">LKR {selectedOrder.totalAmount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Current Status:</span>
-                <span className="text-amber-400 font-bold">{selectedOrder.fulfillmentStatus}</span>
-              </div>
-            </div>
 
-            {/* Bank Transfer Receipt Section */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Uploaded Bank Payment Receipt</span>
-                {selectedOrder.paymentReceipt && (
-                  <a
-                    href={selectedOrder.paymentReceipt}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-cyan-400 hover:underline text-[10px] font-bold flex items-center gap-1"
-                  >
-                    Open Full Image <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
+              <div className="p-4 bg-[#0e0c1f] rounded-xl border border-slate-800 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-slate-400 font-mono">PACKAGE</span>
+                  <span className="font-bold text-white">{selectedOrder.package_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400 font-mono">PAYMENT METHOD</span>
+                  <span className="font-mono text-purple-300">{selectedOrder.paymentMethod}</span>
+                </div>
+                <div className="flex justify-between border-t border-slate-800 pt-2">
+                  <span className="text-slate-400 font-mono">TOTAL PAID</span>
+                  <span className="font-mono font-black text-emerald-400 text-sm">
+                    LKR {Number(selectedOrder.totalAmount).toFixed(2)}
+                  </span>
+                </div>
               </div>
 
               {selectedOrder.paymentReceipt ? (
-                <div className="rounded-2xl bg-slate-950 border border-slate-800 p-2 overflow-hidden h-52 flex items-center justify-center">
-                  <img
-                    src={selectedOrder.paymentReceipt}
-                    alt="Bank Transfer Receipt"
-                    className="max-h-full max-w-full object-contain rounded-xl"
-                  />
+                <div className="p-4 bg-[#0e0c1f] rounded-xl border border-slate-800 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-mono">UPLOADED BANK RECEIPT</span>
+                    <a
+                      href={selectedOrder.paymentReceipt}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-cyan-400 hover:underline text-[10px] font-bold flex items-center gap-1"
+                    >
+                      Full Size <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="h-44 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+                    <img
+                      src={selectedOrder.paymentReceipt}
+                      alt="Bank Transfer Receipt"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
                 </div>
               ) : (
-                <div className="rounded-2xl bg-slate-950 border border-slate-800/80 p-8 text-center text-slate-500 text-xs font-mono">
-                  No bank receipt uploaded yet for this order.
+                <div className="p-4 bg-[#0e0c1f] rounded-xl border border-slate-800 text-slate-500 font-mono text-center">
+                  NO RECEIPT UPLOADED YET
                 </div>
               )}
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-slate-800">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Update Status (Directly in Supabase DB)</span>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => handleUpdateStatus('COMPLETED')}
-                  className="py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 font-bold text-xs uppercase shadow-lg shadow-emerald-500/10 transition-all"
-                >
-                  Approve Order
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus('PENDING')}
-                  className="py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-400 font-bold text-xs uppercase transition-all"
-                >
-                  Hold
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus('REJECTED')}
-                  className="py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 font-bold text-xs uppercase shadow-lg shadow-red-500/10 transition-all"
-                >
-                  Reject Order
-                </button>
-              </div>
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => handleUpdateStatus('REJECTED')}
+                className="py-3 rounded-xl bg-red-950/80 border border-red-800 text-red-400 font-bold text-xs uppercase hover:bg-red-900/80 flex items-center justify-center gap-2"
+              >
+                <XCircle className="w-4 h-4" /> Reject Order
+              </button>
+              <button
+                onClick={() => handleUpdateStatus('COMPLETED')}
+                className="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Approve &amp; Deliver
+              </button>
             </div>
           </div>
         </div>
