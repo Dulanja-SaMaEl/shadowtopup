@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         id: 'shell_1',
         account_username: 'SHADOW_TOPUP1',
         password: 'Shadow-2008',
-        available_balance: 2213,
+        available_balance: 13,
         is_main: true,
         last_synced_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
