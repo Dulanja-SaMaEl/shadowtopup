@@ -199,9 +199,7 @@ export async function POST(request: NextRequest) {
 
       // 3. Fetch all packages to recalculate prices
       const costPerShell = basePriceNum / 1300;
-      const nMarkup = nMarkupNum / 100;
-      const sMarkup = sMarkupNum / 100;
-      const gMarkup = gMarkupNum / 100;
+      const isFixed = String(markupType).includes('Fixed');
 
       const { data: packages } = await adminSupabase.from('packages').select('*');
 
@@ -210,9 +208,19 @@ export async function POST(request: NextRequest) {
           const shells = Number(pkg.shell_cost) || 100;
           const baseCost = shells * costPerShell;
 
-          const newNormalPrice = Math.round(baseCost * (1 + nMarkup));
-          const newSilverPrice = Math.round(baseCost * (1 + sMarkup));
-          const newGoldPrice = Math.round(baseCost * (1 + gMarkup));
+          let newNormalPrice: number;
+          let newSilverPrice: number;
+          let newGoldPrice: number;
+
+          if (isFixed) {
+            newNormalPrice = Math.round(baseCost + nMarkupNum);
+            newSilverPrice = Math.round(baseCost + sMarkupNum);
+            newGoldPrice = Math.round(baseCost + gMarkupNum);
+          } else {
+            newNormalPrice = Math.round(baseCost * (1 + nMarkupNum / 100));
+            newSilverPrice = Math.round(baseCost * (1 + sMarkupNum / 100));
+            newGoldPrice = Math.round(baseCost * (1 + gMarkupNum / 100));
+          }
 
           const { error: updateErr } = await adminSupabase
             .from('packages')

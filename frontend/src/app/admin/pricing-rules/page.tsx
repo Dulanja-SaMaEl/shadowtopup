@@ -39,13 +39,18 @@ export default function AdminPricingRulesPage() {
   }, []);
 
   // Live simulation calculations
+  const isFixed = markupType.includes('Fixed');
   const basePriceNum = parseFloat(basePrice) || 3380;
   const unitShellCost = basePriceNum / 1300;
 
   const sample100ShellCost = 100 * unitShellCost;
-  const sample100Normal = sample100ShellCost * (1 + (parseFloat(normalMarkup) || 35) / 100);
-  const sample100Silver = sample100ShellCost * (1 + (parseFloat(silverMarkup) || 23) / 100);
-  const sample100Gold = sample100ShellCost * (1 + (parseFloat(goldMarkup) || 15) / 100);
+  const nVal = parseFloat(normalMarkup) || 0;
+  const sVal = parseFloat(silverMarkup) || 0;
+  const gVal = parseFloat(goldMarkup) || 0;
+
+  const sample100Normal = isFixed ? sample100ShellCost + nVal : sample100ShellCost * (1 + nVal / 100);
+  const sample100Silver = isFixed ? sample100ShellCost + sVal : sample100ShellCost * (1 + sVal / 100);
+  const sample100Gold = isFixed ? sample100ShellCost + gVal : sample100ShellCost * (1 + gVal / 100);
 
   const handleUpdate = async () => {
     setUpdating(true);
@@ -58,9 +63,9 @@ export default function AdminPricingRulesPage() {
         body: JSON.stringify({
           basePrice1300: basePriceNum,
           markupType: markupType,
-          normalMarkup: parseFloat(normalMarkup) || 35,
-          silverMarkup: parseFloat(silverMarkup) || 23,
-          goldMarkup: parseFloat(goldMarkup) || 15,
+          normalMarkup: nVal,
+          silverMarkup: sVal,
+          goldMarkup: gVal,
         }),
       });
 
@@ -69,6 +74,7 @@ export default function AdminPricingRulesPage() {
         setMsg({ type: 'success', text: data.message });
         if (data.pricingRules) {
           setBasePrice(data.pricingRules.basePrice1300.toString());
+          if (data.pricingRules.markupType) setMarkupType(data.pricingRules.markupType);
           setNormalMarkup(data.pricingRules.normalMarkup.toString());
           setSilverMarkup(data.pricingRules.silverMarkup.toString());
           setGoldMarkup(data.pricingRules.goldMarkup.toString());
@@ -141,10 +147,10 @@ export default function AdminPricingRulesPage() {
               disabled={loadingSettings}
               value={markupType}
               onChange={(e) => setMarkupType(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono text-xs focus:outline-none disabled:opacity-50"
+              className="w-full px-4 py-3 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono text-xs font-bold focus:outline-none disabled:opacity-50 focus:border-purple-500"
             >
-              <option>Percentage (%)</option>
-              <option>Fixed Amount (LKR)</option>
+              <option value="Percentage (%)">Percentage (%)</option>
+              <option value="Fixed Amount (LKR)">Fixed Amount (LKR)</option>
             </select>
           </div>
 
@@ -152,7 +158,7 @@ export default function AdminPricingRulesPage() {
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1">
               <label className="block text-[9px] font-extrabold uppercase tracking-widest text-emerald-400">
-                Normal User (%)
+                Normal User {isFixed ? '(+LKR)' : '(%)'}
               </label>
               <input
                 type="text"
@@ -165,7 +171,7 @@ export default function AdminPricingRulesPage() {
 
             <div className="space-y-1">
               <label className="block text-[9px] font-extrabold uppercase tracking-widest text-cyan-400">
-                Silver Reseller (%)
+                Silver Reseller {isFixed ? '(+LKR)' : '(%)'}
               </label>
               <input
                 type="text"
@@ -178,7 +184,7 @@ export default function AdminPricingRulesPage() {
 
             <div className="space-y-1">
               <label className="block text-[9px] font-extrabold uppercase tracking-widest text-amber-400">
-                Gold Reseller (%)
+                Gold Reseller {isFixed ? '(+LKR)' : '(%)'}
               </label>
               <input
                 type="text"
@@ -191,7 +197,9 @@ export default function AdminPricingRulesPage() {
           </div>
 
           <p className="text-[10px] text-slate-400">
-            These profit margins apply automatically on top of the calculated Garena Shell base cost across all database packages.
+            {isFixed
+              ? 'Fixed LKR markup values are added directly onto the base shell cost for each tier.'
+              : 'These profit margins apply automatically on top of the calculated Garena Shell base cost across all database packages.'}
           </p>
 
           <button
@@ -231,7 +239,7 @@ export default function AdminPricingRulesPage() {
         {/* Right Info Box: Calculation Logic Breakdown */}
         <div className="p-8 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6 shadow-2xl">
           <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-            <Info className="w-4 h-4 text-purple-400" /> Calculation Logic Breakdown
+            <Info className="w-4 h-4 text-purple-400" /> Calculation Logic Breakdown ({markupType})
           </h3>
 
           <div className="space-y-4 text-xs text-slate-300 font-sans leading-relaxed">
@@ -247,7 +255,10 @@ export default function AdminPricingRulesPage() {
             </div>
 
             <p>
-              <strong className="text-white font-bold">Step 3:</strong> Markup percentage is added per customer tier (Normal, Silver, Gold).
+              <strong className="text-white font-bold">Step 3:</strong>{' '}
+              {isFixed
+                ? 'Fixed LKR markup amount is added to base cost per customer tier.'
+                : 'Markup percentage is added per customer tier (Normal, Silver, Gold).'}
             </p>
           </div>
 
@@ -259,9 +270,15 @@ export default function AdminPricingRulesPage() {
             <div className="font-mono text-xs text-slate-300 space-y-1.5 leading-relaxed">
               <p className="text-slate-400 font-bold">1,300 Shells = LKR {basePriceNum.toFixed(2)} (LKR {unitShellCost.toFixed(2)}/shell)</p>
               <p className="text-purple-300">Base Shell Cost (100 Shells) = LKR {sample100ShellCost.toFixed(2)}</p>
-              <p className="text-emerald-400 font-bold">Normal Price (+{normalMarkup}%): LKR {sample100Normal.toFixed(2)}</p>
-              <p className="text-cyan-300 font-bold">Silver Reseller (+{silverMarkup}%): LKR {sample100Silver.toFixed(2)}</p>
-              <p className="text-amber-300 font-bold">Gold Reseller (+{goldMarkup}%): LKR {sample100Gold.toFixed(2)}</p>
+              <p className="text-emerald-400 font-bold">
+                Normal Price ({isFixed ? `+LKR ${nVal}` : `+${nVal}%`}): LKR {sample100Normal.toFixed(2)}
+              </p>
+              <p className="text-cyan-300 font-bold">
+                Silver Reseller ({isFixed ? `+LKR ${sVal}` : `+${sVal}%`}): LKR {sample100Silver.toFixed(2)}
+              </p>
+              <p className="text-amber-300 font-bold">
+                Gold Reseller ({isFixed ? `+LKR ${gVal}` : `+${gVal}%`}): LKR {sample100Gold.toFixed(2)}
+              </p>
             </div>
           </div>
         </div>
