@@ -6,10 +6,10 @@ const WEEKLY_PASS_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/reba
 const WEEKLY_LITE_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/rebate/0000/004/010/logo.png';
 const MONTHLY_PASS_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/rebate/0000/081/041/logo.png';
 
-// Official Verified Garena MY Packages with exact Shell Costs
+// Official Verified Garena MY Packages with exact Shell Costs & valid UUIDs
 export const OFFICIAL_GARENA_PACKAGES = [
   {
-    id: 'pkg-weekly-lite',
+    id: '11111111-1111-1111-1111-111111111001',
     package_name: 'Weekly Lite Pass',
     package_type: 'weekly_pass',
     diamond_amount: 120,
@@ -22,7 +22,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-weekly-membership',
+    id: '11111111-1111-1111-1111-111111111002',
     package_name: 'Weekly Membership Pass',
     package_type: 'weekly_pass',
     diamond_amount: 450,
@@ -35,7 +35,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-monthly-membership',
+    id: '11111111-1111-1111-1111-111111111003',
     package_name: 'Monthly Membership Pass',
     package_type: 'monthly_pass',
     diamond_amount: 2600,
@@ -48,7 +48,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-lvl-6',
+    id: '11111111-1111-1111-1111-111111111004',
     package_name: 'Level Up Pass - LV6',
     package_type: 'levelup_pass',
     diamond_amount: 200,
@@ -61,7 +61,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-lvl-10',
+    id: '11111111-1111-1111-1111-111111111005',
     package_name: 'Level Up Pass - LV10',
     package_type: 'levelup_pass',
     diamond_amount: 400,
@@ -74,7 +74,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-lvl-30',
+    id: '11111111-1111-1111-1111-111111111006',
     package_name: 'Level Up Pass - LV30 (LV15/20/25/30)',
     package_type: 'levelup_pass',
     diamond_amount: 1000,
@@ -87,7 +87,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-25',
+    id: '11111111-1111-1111-1111-111111111007',
     package_name: '25 Diamonds',
     package_type: 'diamond',
     diamond_amount: 25,
@@ -100,7 +100,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-100',
+    id: '11111111-1111-1111-1111-111111111008',
     package_name: '100 Diamonds',
     package_type: 'diamond',
     diamond_amount: 100,
@@ -113,7 +113,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-310',
+    id: '11111111-1111-1111-1111-111111111009',
     package_name: '310 Diamonds',
     package_type: 'diamond',
     diamond_amount: 310,
@@ -126,7 +126,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-520',
+    id: '11111111-1111-1111-1111-111111111010',
     package_name: '520 Diamonds',
     package_type: 'diamond',
     diamond_amount: 520,
@@ -138,7 +138,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-1060',
+    id: '11111111-1111-1111-1111-111111111011',
     package_name: '1060 Diamonds',
     package_type: 'diamond',
     diamond_amount: 1060,
@@ -151,7 +151,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-2180',
+    id: '11111111-1111-1111-1111-111111111012',
     package_name: '2180 Diamonds',
     package_type: 'diamond',
     diamond_amount: 2180,
@@ -163,7 +163,7 @@ export const OFFICIAL_GARENA_PACKAGES = [
     is_active: true,
   },
   {
-    id: 'pkg-5600',
+    id: '11111111-1111-1111-1111-111111111013',
     package_name: '5600 Diamonds',
     package_type: 'diamond',
     diamond_amount: 5600,
