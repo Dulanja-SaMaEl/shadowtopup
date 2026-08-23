@@ -149,9 +149,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'Failed to process wallet payment deduction.' }, { status: 500 });
       }
 
-      // 3. Deduct Shell cost from the Garena Shell account stock
-      const updatedShellBalance = targetShellAcc.available_balance - requiredShellCost;
-      if (targetShellAcc.id && !targetShellAcc.id.startsWith('shell_fallback')) {
+      // 3. Deduct Shell cost from Garena Shell account stock in Supabase DB
+      const updatedShellBalance = Math.max(0, targetShellAcc.available_balance - requiredShellCost);
+      targetShellAcc.available_balance = updatedShellBalance;
+
+      // Upsert into shell_accounts table to ensure DB reflects real-time shell deduction
+      const { data: existingShellAcc } = await adminSupabase
+        .from('shell_accounts')
+        .select('*')
+        .eq('account_username', targetShellAcc.account_username || 'SHADOW_TOPUP1')
+        .maybeSingle();
+
+      if (existingShellAcc) {
         await adminSupabase
           .from('shell_accounts')
           .update({
@@ -159,7 +168,17 @@ export async function POST(request: NextRequest) {
             last_synced_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq('id', targetShellAcc.id);
+          .eq('id', existingShellAcc.id);
+      } else {
+        await adminSupabase.from('shell_accounts').insert([{
+          account_username: targetShellAcc.account_username || 'SHADOW_TOPUP1',
+          password: 'Shadow-2008',
+          available_balance: updatedShellBalance,
+          is_main: true,
+          last_synced_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }]);
       }
 
       // Log wallet transaction

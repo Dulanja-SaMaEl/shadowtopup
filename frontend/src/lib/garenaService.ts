@@ -190,7 +190,7 @@ export async function executeGarenaTopup(
   const optionId = GARENA_MY_OPTION_MAP[packageName] || GARENA_MY_OPTION_MAP[packageName.toLowerCase()] || '93821';
 
   try {
-    // 1. Authenticate with Garena SSO for Shell Account
+    // 1. Step 1: Authenticate with Garena SSO for Shell Account
     let ssoKey = '';
     const hashedPassword = hashGarenaPassword(accountPassword);
     const ssoUrl = 'https://sso.garena.com/api/login';
@@ -218,7 +218,7 @@ export async function executeGarenaTopup(
       ssoKey = ssoData.sso_key || ssoData.access_token || '';
     }
 
-    // 2. Login & Verify Free Fire Player ID on shop.garena.my
+    // 2. Step 2: Login & Verify Free Fire Player ID on shop.garena.my
     const loginUrl = 'https://shop.garena.my/api/auth/player_id_login';
     const loginRes = await fetch(loginUrl, {
       method: 'POST',
@@ -244,7 +244,7 @@ export async function executeGarenaTopup(
       playerSessionToken = loginData.token || loginData.session_key || '';
     }
 
-    // 3. Prepay / Checkout Step on Garena Topup Center
+    // 3. Step 3: Prepay / Checkout Step on Garena Topup Center
     const prepayUrl = 'https://shop.garena.my/api/prepay';
     const prepayRes = await fetch(prepayUrl, {
       method: 'POST',
@@ -272,7 +272,7 @@ export async function executeGarenaTopup(
       }
     }
 
-    // 4. Submit Payment to Garena Topup API
+    // 4. Step 4: Submit Payment to Garena Topup API
     const payUrl = 'https://shop.garena.my/api/pay';
     const payRes = await fetch(payUrl, {
       method: 'POST',
@@ -290,6 +290,7 @@ export async function executeGarenaTopup(
         player_id: cleanUid,
         tx_id: prepayTxId,
         sso_key: ssoKey,
+        account_name: accountUsername,
       }),
     });
 
