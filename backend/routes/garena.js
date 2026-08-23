@@ -75,7 +75,7 @@ router.post('/fulfill', async (req, res) => {
     await page.evaluate((targetPkg) => {
       const els = Array.from(document.querySelectorAll('div, button, span, p'));
       const found = els.find((e) => e.textContent && e.textContent.trim().toLowerCase().includes(targetPkg.toLowerCase()));
-      if (found) (found as HTMLElement).click();
+      if (found) found.click();
     }, pkgStr);
 
     await new Promise((r) => setTimeout(r, 2000));
@@ -85,7 +85,7 @@ router.post('/fulfill', async (req, res) => {
     await page.evaluate(() => {
       const els = Array.from(document.querySelectorAll('div, button, span, li, p'));
       const shellBtn = els.find((e) => e.textContent && e.textContent.trim().includes('Garena Shells'));
-      if (shellBtn) (shellBtn as HTMLElement).click();
+      if (shellBtn) shellBtn.click();
     });
 
     await new Promise((r) => setTimeout(r, 2500));
@@ -95,7 +95,7 @@ router.post('/fulfill', async (req, res) => {
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button, a'));
       const payBtn = btns.find((b) => b.textContent?.trim().includes('Proceed') || b.textContent?.trim().includes('Payment'));
-      if (payBtn) (payBtn as HTMLElement).click();
+      if (payBtn) payBtn.click();
     });
 
     await new Promise((r) => setTimeout(r, 4000));
