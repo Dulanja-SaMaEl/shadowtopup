@@ -75,24 +75,52 @@ export async function executeAutomatedGarenaTopup(
   const generatedTxId = `GAR_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
 
   try {
-    // Attempt Puppeteer headless browser checkout sequence
-    const puppeteer = require('puppeteer-extra');
-    const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-    puppeteer.use(StealthPlugin());
-
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-    });
-
-    const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-
+    // 1. Call Render Express Backend Microservice Worker
+    const renderBackendUrl = process.env.NEXT_PUBLIC_RENDER_BACKEND_URL || process.env.RENDER_BACKEND_URL || 'https://shadowtopup-backend.onrender.com';
     try {
-      console.log(`[Garena Engine] Step 1: Navigating to shop.garena.my for Player UID ${cleanUid}...`);
+      console.log(`[Garena Engine] Dispatching order to Render Worker at ${renderBackendUrl}...`);
+      const workerRes = await fetch(`${renderBackendUrl}/api/garena/fulfill`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerUid: cleanUid,
+          packageName,
+          shellUsername: username,
+          shellPassword: password,
+        }),
+      });
+
+      if (workerRes.ok) {
+        const workerData = await workerRes.json();
+        if (workerData.success) {
+          return {
+            success: true,
+            transactionId: generatedTxId,
+            playerNickname: 'Free Fire Player',
+            message: workerData.message || `Automated topup dispatched on shop.garena.my for Player ID ${cleanUid}`,
+          };
+        }
+      }
+    } catch (renderErr: any) {
+      console.warn('[Garena Engine] Render worker call note:', renderErr.message);
+    }
+
+    // 2. Fallback local Puppeteer headless browser sequence
+    try {
+      const puppeteer = require('puppeteer-extra');
+      const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+      puppeteer.use(StealthPlugin());
+
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+      });
+
+      const page = await browser.newPage();
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
       await page.goto('https://shop.garena.my/app/100067/idlogin', { waitUntil: 'networkidle2', timeout: 25000 });
 
-      // Step 2: Enter Player ID
       const inputSel = 'input[placeholder*="player ID"], input[placeholder*="Player ID"]';
       await page.waitForSelector(inputSel, { timeout: 10000 });
       await page.type(inputSel, cleanUid);
@@ -105,7 +133,6 @@ export async function executeAutomatedGarenaTopup(
 
       await new Promise((r) => setTimeout(r, 3000));
 
-      // Step 3: Select Package
       await page.evaluate((pkgName: string) => {
         const els = Array.from(document.querySelectorAll('div, button, span, p'));
         const pkgEl = els.find((e) => e.textContent && e.textContent.trim().includes(pkgName));
@@ -114,7 +141,6 @@ export async function executeAutomatedGarenaTopup(
 
       await new Promise((r) => setTimeout(r, 2000));
 
-      // Step 4: Select Garena Shells payment method
       await page.evaluate(() => {
         const els = Array.from(document.querySelectorAll('div, button, span, li, p'));
         const shellBtn = els.find((e) => e.textContent && e.textContent.trim().includes('Garena Shells'));
@@ -122,11 +148,9 @@ export async function executeAutomatedGarenaTopup(
       });
 
       await new Promise((r) => setTimeout(r, 2000));
-      console.log(`[Garena Engine] Browser checkout sequence dispatched successfully for ${cleanUid}`);
+      await browser.close().catch(() => {});
     } catch (browserErr: any) {
       console.warn('[Garena Engine] Browser automation note:', browserErr.message);
-    } finally {
-      await browser.close().catch(() => {});
     }
   } catch (e) {
     console.warn('[Garena Engine] Puppeteer environment note:', e);
