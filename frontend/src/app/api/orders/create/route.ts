@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { executeGarenaTopup } from '@/lib/garenaService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
     let initialStatus = receiptUrl ? 'proof_submitted' : 'pending';
-    let shellAccountUsed: any = null;
+    let topupDispatchMsg = '';
 
     // Handle Shadow Wallet Payment & Automated Garena Shell Delivery
     if (paymentMethod === 'shadow_wallet') {
@@ -119,7 +120,22 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // 1. Deduct user's Shadow Wallet balance
+      // 1. Execute Topup Dispatch to target Free Fire Account via Garena API
+      const topupRes = await executeGarenaTopup(sanitizedPlayerUid, requiredShellCost, packageName, {
+        username: targetShellAcc.account_username,
+        password: targetShellAcc.password,
+      });
+
+      if (!topupRes.success) {
+        return NextResponse.json({
+          success: false,
+          message: `Topup delivery failed: ${topupRes.message}. Your wallet balance was NOT charged.`,
+        }, { status: 400 });
+      }
+
+      topupDispatchMsg = topupRes.message;
+
+      // 2. Deduct user's Shadow Wallet balance
       const newWalletBalance = currentWalletBalance - amountToDeduct;
       const { error: updateBalErr } = await adminSupabase
         .from('profiles')
@@ -133,7 +149,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'Failed to process wallet payment deduction.' }, { status: 500 });
       }
 
-      // 2. Deduct Shell cost from the Garena Shell account stock
+      // 3. Deduct Shell cost from the Garena Shell account stock
       const updatedShellBalance = targetShellAcc.available_balance - requiredShellCost;
       if (targetShellAcc.id && !targetShellAcc.id.startsWith('shell_fallback')) {
         await adminSupabase
@@ -145,8 +161,6 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', targetShellAcc.id);
       }
-
-      shellAccountUsed = targetShellAcc;
 
       // Log wallet transaction
       await adminSupabase.from('wallet_transactions').insert([{
