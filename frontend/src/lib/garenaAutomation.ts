@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import crypto from 'crypto';
 
 export interface AutomatedTopupResult {
   success: boolean;
@@ -58,6 +59,10 @@ export const GARENA_MY_OPTION_MAP: Record<string, string> = {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+function hashGarenaPassword(password: string): string {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
 /**
  * Automates Garena Free Fire Topup on shop.garena.my using Puppeteer browser automation
  */
@@ -74,6 +79,28 @@ export async function executeAutomatedGarenaTopup(
 
   let browser = null;
   try {
+    // 1. Fetch SSO Key for Shell Account
+    let ssoKey = '';
+    try {
+      const ssoRes = await fetch('https://sso.garena.com/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          account: username,
+          password: hashGarenaPassword(password),
+          account_type: '1',
+          format: 'json',
+          app_id: '100057',
+        }).toString(),
+      });
+      if (ssoRes.ok) {
+        const ssoData = await ssoRes.json();
+        ssoKey = ssoData.sso_key || ssoData.access_token || '';
+      }
+    } catch (e) {
+      console.error('SSO Pre-login fetch error:', e);
+    }
+
     browser = await puppeteer.launch({
       headless: true,
       args: [
@@ -89,28 +116,37 @@ export async function executeAutomatedGarenaTopup(
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    // 1. Navigate to Garena MY Free Fire ID Login
+    if (ssoKey) {
+      await page.setCookie({
+        name: 'sso_key',
+        value: ssoKey,
+        domain: '.garena.my',
+        path: '/',
+      });
+    }
+
+    // 2. Navigate to Garena MY Free Fire ID Login
     await page.goto('https://shop.garena.my/app/100067/idlogin', { waitUntil: 'networkidle2', timeout: 30000 });
 
-    // 2. Input Player ID
-    const inputSelector = 'input[placeholder*="Player"], input[type="text"], input[name="login_id"]';
+    // 3. Input Player ID
+    const inputSelector = 'input[placeholder*="player ID"], input[placeholder*="Player ID"]';
     await page.waitForSelector(inputSelector, { timeout: 10000 });
     await page.type(inputSelector, cleanUid);
 
     // Click Login
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button'));
-      const loginBtn = btns.find(b => b.textContent?.toLowerCase().includes('login') || b.type === 'submit');
+      const loginBtn = btns.find(b => b.textContent?.trim() === 'Login' || b.type === 'submit');
       if (loginBtn) (loginBtn as HTMLElement).click();
     });
 
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
 
-    // 3. Direct Navigate to Payment & Option Selection URL
+    // 4. Direct Navigate to Payment & Option Selection URL
     const buyUrl = `https://shop.garena.my/buy?app=100067&channel=202070&item=${optionId}`;
     await page.goto(buyUrl, { waitUntil: 'networkidle2', timeout: 30000 });
 
-    // 4. Click Proceed to Payment
+    // 5. Click Proceed to Payment
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button, a'));
       const payBtn = btns.find(b => b.textContent?.toLowerCase().includes('proceed') || b.textContent?.toLowerCase().includes('pay') || b.textContent?.toLowerCase().includes('buy'));
@@ -119,24 +155,6 @@ export async function executeAutomatedGarenaTopup(
 
     await delay(3000);
 
-    // 5. Handle Garena SSO Login if prompted
-    const ssoUserSelector = 'input[name="account"], input[name="username"], #account, input[type="text"]';
-    const ssoPassSelector = 'input[name="password"], #password, input[type="password"]';
-
-    const hasSsoForm = await page.$(ssoPassSelector);
-    if (hasSsoForm) {
-      await page.type(ssoUserSelector, username);
-      await page.type(ssoPassSelector, password);
-
-      await page.evaluate(() => {
-        const btns = Array.from(document.querySelectorAll('button, input[type="submit"]'));
-        const loginBtn = btns.find(b => b.textContent?.toLowerCase().includes('login') || (b as HTMLInputElement).value?.toLowerCase().includes('login'));
-        if (loginBtn) (loginBtn as HTMLElement).click();
-      });
-
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
-    }
-
     // 6. Confirm Payment
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button, .btn-confirm'));
@@ -144,14 +162,14 @@ export async function executeAutomatedGarenaTopup(
       if (confirmBtn) (confirmBtn as HTMLElement).click();
     });
 
-    await delay(4000);
+    await delay(3000);
 
     await browser.close();
 
     return {
       success: true,
       transactionId: generatedTxId,
-      message: `Topup of ${packageName} (Option #${optionId}) successfully automated on shop.garena.my for Player ID ${cleanUid}!`,
+      message: `Topup of ${packageName} (Option #${optionId}) successfully dispatched on shop.garena.my for Player ID ${cleanUid}!`,
     };
   } catch (err: any) {
     console.error('Puppeteer Garena Topup Automation error:', err);
