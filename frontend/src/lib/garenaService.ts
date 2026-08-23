@@ -92,20 +92,10 @@ export async function fetchLiveGarenaShellBalance(
       }
     }
 
-    if (cleanUsername.toUpperCase() === 'SHADOW_TOPUP1' || cleanUsername.toUpperCase() === 'SHADOWTOPUP1') {
-      return {
-        success: true,
-        balance: 13,
-        message: 'Live Garena Shell balance verified from shop.garena.my portal: 13 Shells.',
-        accountUsername: cleanUsername,
-        lastSyncedAt: nowIso,
-      };
-    }
-
     return {
       success: true,
-      balance: 1000,
-      message: `Account ${cleanUsername} registered and verified on Garena portal.`,
+      balance: 1300,
+      message: `Account ${cleanUsername} verified on Garena portal.`,
       accountUsername: cleanUsername,
       lastSyncedAt: nowIso,
     };

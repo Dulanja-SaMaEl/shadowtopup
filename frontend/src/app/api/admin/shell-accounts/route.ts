@@ -116,6 +116,57 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json({ success: false, message: 'Missing server environment keys' }, { status: 500 });
+    }
+
+    const body = await request.json();
+    const { id, available_balance, account_username } = body;
+
+    const parsedBalance = parseFloat(available_balance);
+    if (isNaN(parsedBalance) || parsedBalance < 0) {
+      return NextResponse.json({ success: false, message: 'Invalid balance amount' }, { status: 400 });
+    }
+
+    const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
+    const nowIso = new Date().toISOString();
+
+    if (id) {
+      await adminSupabase
+        .from('shell_accounts')
+        .update({
+          available_balance: parsedBalance,
+          last_synced_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq('id', id);
+    } else if (account_username) {
+      await adminSupabase
+        .from('shell_accounts')
+        .update({
+          available_balance: parsedBalance,
+          last_synced_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq('account_username', account_username);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Shell account balance updated to ${parsedBalance.toLocaleString()} Shells`,
+      balance: parsedBalance,
+      lastSyncedAt: nowIso,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

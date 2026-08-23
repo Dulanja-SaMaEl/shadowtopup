@@ -280,13 +280,48 @@ export default function AdminShellAccountsPage() {
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
+                        onClick={async () => {
+                          const val = prompt('Enter new Garena Shell balance for ' + acc.account_username + ':', String(acc.available_balance));
+                          if (val !== null) {
+                            const newBal = parseFloat(val);
+                            if (!isNaN(newBal)) {
+                              setSyncingId(acc.id);
+                              try {
+                                const res = await fetch('/api/admin/shell-accounts', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ id: acc.id, available_balance: newBal }),
+                                });
+                                const json = await res.json();
+                                if (json.success) {
+                                  setAccounts((prev) =>
+                                    prev.map((a) => (a.id === acc.id ? { ...a, available_balance: newBal, last_synced_at: json.lastSyncedAt } : a))
+                                  );
+                                  showToast('success', `Updated balance for ${acc.account_username} to ${newBal.toLocaleString()} Shells!`);
+                                }
+                              } catch (e) {
+                                showToast('error', 'Failed to update balance');
+                              } finally {
+                                setSyncingId(null);
+                              }
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-950/80 border border-indigo-800/80 text-indigo-300 hover:text-white hover:bg-indigo-900 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-all"
+                        title="Edit Shell Balance"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
                         onClick={() => handleSyncAccount(acc)}
                         disabled={syncingId === acc.id}
                         className="px-3 py-1.5 rounded-xl bg-purple-950/80 border border-purple-800/80 text-purple-300 hover:text-white hover:bg-purple-900 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50"
                         title="Sync live balance from shop.garena.my"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${syncingId === acc.id ? 'animate-spin text-cyan-400' : ''}`} />
-                        <span>{syncingId === acc.id ? 'Syncing...' : 'Sync Balance'}</span>
+                        <span>{syncingId === acc.id ? 'Syncing...' : 'Sync'}</span>
                       </button>
 
                       <button
