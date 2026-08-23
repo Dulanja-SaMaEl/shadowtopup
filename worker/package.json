@@ -1,0 +1,20 @@
+{
+  "name": "shadowtopup-local-worker",
+  "version": "1.0.0",
+  "description": "ShadowTopUp Local Fulfillment Worker — Listens for Supabase orders and auto-fulfills via shop.garena.my",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4",
+    "dotenv": "^16.4.5",
+    "puppeteer": "^22.10.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
