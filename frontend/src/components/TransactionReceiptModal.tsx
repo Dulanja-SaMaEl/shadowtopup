@@ -49,78 +49,38 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
 
   return (
     <div className="receipt-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto print:p-0 print:bg-transparent print:static print:block">
-      {/* Dynamic Print CSS override to guarantee exact 1 page print */}
+      {/* Dynamic Print CSS override to guarantee exact 1 page print with zero blank extra pages */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* Hide main web page background navigation, headers and footers */
-          nav, header, footer, aside, [role="navigation"] {
-            display: none !important;
+          body * {
+            visibility: hidden !important;
           }
-
-          /* Reset page body & html */
-          html, body {
-            background-color: #0e0c1f !important;
-            color: #ffffff !important;
-            height: auto !important;
-            min-height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: visible !important;
+          #printable-receipt, #printable-receipt * {
+            visibility: visible !important;
           }
-
-          /* Reset modal backdrop & wrapper position */
-          .receipt-modal-backdrop {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            display: flex !important;
-            justify-content: center !important;
-            background: #0e0c1f !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            overflow: visible !important;
-            height: auto !important;
-            width: 100% !important;
-            z-index: 99999 !important;
-          }
-
-          .receipt-modal-card {
-            position: relative !important;
-            display: block !important;
-            background: #0e0c1f !important;
-            border: 2px solid #5b21b6 !important;
-            border-radius: 20px !important;
-            box-shadow: none !important;
-            margin: 10px auto !important;
-            padding: 0 !important;
-            max-width: 580px !important;
-            width: 100% !important;
-          }
-
-          /* Hide print-hidden action bars and buttons */
-          .print\\:hidden, button {
-            display: none !important;
-          }
-
-          /* Exact single-page receipt container */
           #printable-receipt {
-            display: block !important;
-            position: relative !important;
+            position: fixed !important;
+            left: 50% !important;
+            top: 20px !important;
+            transform: translateX(-50%) !important;
             width: 100% !important;
             max-width: 580px !important;
-            margin: 0 auto !important;
+            margin: 0 !important;
             padding: 24px !important;
             background-color: #0e0c1f !important;
             color: #ffffff !important;
+            border: 2px solid #5b21b6 !important;
+            border-radius: 20px !important;
+            page-break-after: avoid !important;
             page-break-inside: avoid !important;
+            break-after: avoid !important;
             break-inside: avoid !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-
           @page {
-            size: portrait;
-            margin: 10mm;
+            size: A4 portrait;
+            margin: 0;
           }
         }
       ` }} />
