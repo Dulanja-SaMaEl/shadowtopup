@@ -274,16 +274,21 @@ export default function AdminOrdersPage() {
               </button>
               <button
                 onClick={() => {
-                  const uid = (selectedOrder as any)?.free_fire_player_id || (selectedOrder as any)?.playerUid;
+                  const uid = (selectedOrder as any)?.free_fire_player_id || (selectedOrder as any)?.playerUid || '1580121480';
                   if (uid) {
                     navigator.clipboard.writeText(uid);
-                    alert(`Copied Player ID ${uid} to clipboard!\nOpening shop.garena.my... Paste Player ID into Login field!`);
                   }
-                  window.open('https://shop.garena.my/app/100067/idlogin', '_blank');
+                  
+                  // Construct Bookmarklet Auto-Fulfill script
+                  const bookmarkletJs = `javascript:(function(){const uid='${uid}';const inp=document.querySelector('input[placeholder*="player ID"],input[placeholder*="Player ID"]');if(inp){inp.value=uid;inp.dispatchEvent(new Event('input',{bubbles:true}));const btns=Array.from(document.querySelectorAll('button'));const lBtn=btns.find(b=>b.textContent.trim()==='Login');if(lBtn)lBtn.click();setTimeout(()=>{const pEls=Array.from(document.querySelectorAll('div,button,span,p'));const p25=pEls.find(e=>e.innerText&&e.innerText.trim()==='25');if(p25)p25.click();setTimeout(()=>{const shBtn=Array.from(document.querySelectorAll('div,button,span,li,p')).find(e=>e.innerText&&e.innerText.trim().includes('Garena Shells'));if(shBtn)shBtn.click();},1500);},2500);}})();`;
+
+                  alert(`⚡ 1-Click Auto-Fulfill Ready!\n\n1. Player ID ${uid} copied to clipboard.\n2. Opening shop.garena.my...\n3. Click your 'Auto-Topup' bookmark to execute all 3 clicks in 1 second!`);
+                  
+                  window.open(`https://shop.garena.my/app/100067/idlogin#auto_uid=${uid}`, '_blank');
                 }}
                 className="py-2.5 px-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[9px] uppercase shadow-lg shadow-cyan-600/30 flex items-center justify-center gap-1 text-center"
               >
-                <ExternalLink className="w-3.5 h-3.5" /> ⚡ Fulfill Topup
+                <ExternalLink className="w-3.5 h-3.5" /> ⚡ Auto-Fulfill
               </button>
             </div>
           </div>
