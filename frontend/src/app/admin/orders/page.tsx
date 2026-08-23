@@ -272,14 +272,19 @@ export default function AdminOrdersPage() {
               >
                 <CheckCircle2 className="w-3.5 h-3.5" /> Approve
               </button>
-              <a
-                href={`https://shop.garena.my/app/100067/idlogin`}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                onClick={() => {
+                  const uid = (selectedOrder as any)?.free_fire_player_id || (selectedOrder as any)?.playerUid;
+                  if (uid) {
+                    navigator.clipboard.writeText(uid);
+                    alert(`Copied Player ID ${uid} to clipboard!\nOpening shop.garena.my... Paste Player ID into Login field!`);
+                  }
+                  window.open('https://shop.garena.my/app/100067/idlogin', '_blank');
+                }}
                 className="py-2.5 px-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[9px] uppercase shadow-lg shadow-cyan-600/30 flex items-center justify-center gap-1 text-center"
               >
-                <ExternalLink className="w-3.5 h-3.5" /> Garena Shop
-              </a>
+                <ExternalLink className="w-3.5 h-3.5" /> ⚡ Fulfill Topup
+              </button>
             </div>
           </div>
         </div>
