@@ -1,6 +1,8 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const { fulfillOrder } = require('./garenaFulfill');
+const { orderProcessed, broadcast } = require('./dashboard');
+const log = require('./logger');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -11,7 +13,7 @@ let isProcessing = false;
 
 // ─── Update order status + deduct shell balance in Supabase ──────────────────
 async function markOrderCompleted(orderId, shellCost) {
-  console.log(`[DB] Marking order ${orderId} as completed...`);
+  log.db(`Marking order ${orderId} as completed...`);
 
   await supabase
     .from('orders')
@@ -34,13 +36,13 @@ async function markOrderCompleted(orderId, shellCost) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', acc.id);
-      console.log(`[DB] Shell balance updated: ${acc.available_balance} → ${newBalance}`);
+      log.db(`Shell balance updated: ${acc.available_balance} → ${newBalance}`);
     }
   }
 }
 
 async function markOrderFailed(orderId, reason) {
-  console.log(`[DB] Marking order ${orderId} as failed: ${reason}`);
+  log.error(`Order ${orderId} failed: ${reason}`);
   await supabase
     .from('orders')
     .update({
@@ -59,13 +61,14 @@ async function processOrder(order) {
   }
 
   isProcessing = true;
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`[Worker] 🔔 NEW ORDER RECEIVED`);
-  console.log(`         Order ID   : ${order.id}`);
-  console.log(`         Player UID : ${order.free_fire_player_id}`);
-  console.log(`         Package    : ${order.package_name}`);
-  console.log(`         Amount     : ${order.total_price}`);
-  console.log(`${'═'.repeat(60)}`);
+  log.order('═'.repeat(55));
+  log.order(`🔔 NEW ORDER RECEIVED`);
+  log.order(`Order ID   : ${order.id}`);
+  log.order(`Player UID : ${order.free_fire_player_id}`);
+  log.order(`Package    : ${order.package_name}`);
+  log.order(`Amount     : ${order.total_price}`);
+  log.order('═'.repeat(55));
+  broadcast(JSON.stringify({ type: 'divider' }));
 
   // Estimate shell cost from package name
   const shellCost = estimateShellCost(order.package_name);
@@ -75,12 +78,14 @@ async function processOrder(order) {
 
     if (result.success) {
       await markOrderCompleted(order.id, shellCost);
-      console.log(`[Worker] ✅ Order ${order.id} COMPLETE — ${shellCost} Shells deducted.`);
+      log.success(`Order ${order.id} COMPLETE — ${shellCost} Shells deducted.`);
+      orderProcessed(true);
     } else {
       await markOrderFailed(order.id, result.error || 'Unknown error');
+      orderProcessed(false);
     }
   } catch (err) {
-    console.error('[Worker] Unexpected error:', err.message);
+    log.error(`Unexpected error: ${err.message}`);
     await markOrderFailed(order.id, err.message);
   } finally {
     isProcessing = false;
@@ -102,7 +107,7 @@ function estimateShellCost(packageName) {
 
 // ─── Also poll for any missed orders on startup ───────────────────────────────
 async function processPendingOrders() {
-  console.log('[Worker] Checking for pending wallet orders...');
+  log.info('Checking for pending wallet orders...');
   const { data: pendingOrders, error } = await supabase
     .from('orders')
     .select('*')
@@ -111,16 +116,16 @@ async function processPendingOrders() {
     .order('created_at', { ascending: true });
 
   if (error) {
-    console.error('[Worker] Error fetching pending orders:', error.message);
+    log.error(`Error fetching pending orders: ${error.message}`);
     return;
   }
 
   if (!pendingOrders || pendingOrders.length === 0) {
-    console.log('[Worker] No pending orders found.');
+    log.info('No pending orders found — worker is ready.');
     return;
   }
 
-  console.log(`[Worker] Found ${pendingOrders.length} pending order(s) — processing sequentially...`);
+  log.info(`Found ${pendingOrders.length} pending order(s) — processing sequentially...`);
   for (const order of pendingOrders) {
     await processOrder(order);
     await new Promise(r => setTimeout(r, 3000)); // Pause between orders
@@ -129,8 +134,8 @@ async function processPendingOrders() {
 
 // ─── Start real-time Supabase listener ───────────────────────────────────────
 async function startListener() {
-  console.log('\n[Worker] 🚀 ShadowTopUp Local Fulfillment Worker STARTED');
-  console.log('[Worker] Listening for new wallet orders from Supabase...\n');
+  log.info('Real-time Supabase listener initializing...');
+  log.info('Waiting for new wallet orders...');
 
   // Process any missed pending orders first
   await processPendingOrders();
@@ -150,12 +155,13 @@ async function startListener() {
         console.log('[Worker] 🔔 Real-time INSERT detected on orders table!');
         const order = payload.new;
         if (order && (order.status === 'pending' || order.status === 'paid')) {
+          log.order(`Real-time INSERT detected — Order ${order.id}`);
           await processOrder(order);
         }
       }
     )
     .subscribe((status) => {
-      console.log(`[Worker] Supabase real-time subscription status: ${status}`);
+      log.info(`Supabase real-time subscription: ${status}`);
     });
 }
 

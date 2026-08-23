@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { executeGarenaTopup } from '@/lib/garenaService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -120,22 +119,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // 1. Execute Topup Dispatch to target Free Fire Account via Garena API
-      const topupRes = await executeGarenaTopup(sanitizedPlayerUid, requiredShellCost, packageName, {
-        username: targetShellAcc.account_username,
-        password: targetShellAcc.password,
-      });
-
-      if (!topupRes.success) {
-        return NextResponse.json({
-          success: false,
-          message: `Topup delivery failed: ${topupRes.message}. Your wallet balance was NOT charged.`,
-        }, { status: 400 });
-      }
-
-      topupDispatchMsg = topupRes.message;
-
-      // 2. Deduct user's Shadow Wallet balance
+      // 1. Deduct user's Shadow Wallet balance immediately
       const newWalletBalance = currentWalletBalance - amountToDeduct;
       const { error: updateBalErr } = await adminSupabase
         .from('profiles')
@@ -149,38 +133,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'Failed to process wallet payment deduction.' }, { status: 500 });
       }
 
-      // 3. Deduct Shell cost from Garena Shell account stock in Supabase DB
-      const currentBalance = targetShellAcc.available_balance || 13;
-      const updatedShellBalance = Math.max(0, currentBalance - requiredShellCost);
-
-      // Update or insert in shell_accounts table
-      const { data: dbShellAccs } = await adminSupabase
-        .from('shell_accounts')
-        .select('*');
-
-      if (dbShellAccs && dbShellAccs.length > 0) {
-        for (const sAcc of dbShellAccs) {
-          await adminSupabase
-            .from('shell_accounts')
-            .update({
-              available_balance: updatedShellBalance,
-              last_synced_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', sAcc.id);
-        }
-      } else {
-        await adminSupabase.from('shell_accounts').insert([{
-          account_username: 'SHADOW_TOPUP1',
-          password: 'Shadow-2008',
-          available_balance: updatedShellBalance,
-          is_main: true,
-          last_synced_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }]);
-      }
-
       // Log wallet transaction
       await adminSupabase.from('wallet_transactions').insert([{
         user_id: effectiveUserId,
@@ -191,7 +143,9 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
       }]);
 
-      initialStatus = 'completed';
+      // Order will be inserted as 'pending' — the LOCAL WORKER picks this up
+      // and performs the actual Garena topup via shop.garena.my
+      initialStatus = 'pending';
     }
 
     let insertedOrder: any = null;
@@ -270,7 +224,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: paymentMethod === 'shadow_wallet' 
-        ? 'Order placed successfully using Shadow Wallet balance!' 
+        ? 'Payment successful! Your diamonds are being delivered to your Free Fire account. This usually takes under 1 minute.' 
         : 'Order created successfully in database',
       order: insertedOrder,
       receiptUrl,
