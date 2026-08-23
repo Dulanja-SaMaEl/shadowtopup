@@ -31,7 +31,7 @@ export const GARENA_MY_OPTION_MAP: Record<string, string> = {
   '11111111-1111-1111-1111-111111111003': '8067',
   'Monthly Membership Pass': '8067',
 
-  // Level Up Passes (Mapped to nearest equivalent diamond option if unavailable)
+  // Level Up Passes
   'pkg-lvl-6': '93822',
   'pkg-lvl-10': '93822',
   'pkg-lvl-30': '93822',
@@ -183,11 +183,42 @@ export async function executeGarenaTopup(
   const cleanUid = String(playerUid || '').trim();
   const txId = `GAR_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
+  const accountUsername = garenaAccount?.username || 'SHADOW_TOPUP1';
+  const accountPassword = garenaAccount?.password || 'Shadow-2008';
+
   // Find exact Garena MY Option ID for this item package
-  const optionId = GARENA_MY_OPTION_MAP[packageName] || GARENA_MY_OPTION_MAP[packageName.toLowerCase()] || '93822';
+  const optionId = GARENA_MY_OPTION_MAP[packageName] || GARENA_MY_OPTION_MAP[packageName.toLowerCase()] || '93821';
 
   try {
-    // 1. Step 1: Login & Verify Free Fire Player ID on shop.garena.my
+    // 1. Authenticate with Garena SSO for Shell Account
+    let ssoKey = '';
+    const hashedPassword = hashGarenaPassword(accountPassword);
+    const ssoUrl = 'https://sso.garena.com/api/login';
+    const ssoParams = new URLSearchParams({
+      account: accountUsername,
+      password: hashedPassword,
+      account_type: '1',
+      format: 'json',
+      app_id: '100057',
+    });
+
+    const ssoRes = await fetch(ssoUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Origin': 'https://shop.garena.my',
+        'Referer': 'https://shop.garena.my/',
+      },
+      body: ssoParams.toString(),
+    });
+
+    if (ssoRes.ok) {
+      const ssoData = await ssoRes.json();
+      ssoKey = ssoData.sso_key || ssoData.access_token || '';
+    }
+
+    // 2. Login & Verify Free Fire Player ID on shop.garena.my
     const loginUrl = 'https://shop.garena.my/api/auth/player_id_login';
     const loginRes = await fetch(loginUrl, {
       method: 'POST',
@@ -213,38 +244,61 @@ export async function executeGarenaTopup(
       playerSessionToken = loginData.token || loginData.session_key || '';
     }
 
-    // 2. Step 2: Prepare & Submit Garena Shell Payment Request with exact Option ID
-    const payUrl = 'https://shop.garena.my/api/checkout';
-    const payPayload = {
-      app_id: 100067,
-      channel_id: 202070, // Garena Shells payment channel
-      item_id: Number(optionId),
-      option_id: Number(optionId),
-      player_id: cleanUid,
-      player_nickname: nickname,
-      session_key: playerSessionToken,
-      account_username: garenaAccount?.username || 'SHADOW_TOPUP1',
-      shell_cost: shellCost,
-      item_name: packageName,
-    };
+    // 3. Prepay / Checkout Step on Garena Topup Center
+    const prepayUrl = 'https://shop.garena.my/api/prepay';
+    const prepayRes = await fetch(prepayUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Origin': 'https://shop.garena.my',
+        'Referer': `https://shop.garena.my/buy?app=100067&channel=202070&item=${optionId}`,
+        'Cookie': ssoKey ? `sso_key=${ssoKey}; session_key=${playerSessionToken}` : '',
+      },
+      body: JSON.stringify({
+        app_id: 100067,
+        channel_id: 202070, // Garena Shells channel
+        item_id: Number(optionId),
+        player_id: cleanUid,
+        sso_key: ssoKey,
+      }),
+    });
 
+    let prepayTxId = txId;
+    if (prepayRes.ok) {
+      const prepayData = await prepayRes.json();
+      if (prepayData.tx_id || prepayData.order_id) {
+        prepayTxId = prepayData.tx_id || prepayData.order_id;
+      }
+    }
+
+    // 4. Submit Payment to Garena Topup API
+    const payUrl = 'https://shop.garena.my/api/pay';
     const payRes = await fetch(payUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Origin': 'https://shop.garena.my',
-        'Referer': 'https://shop.garena.my/app/100067/idlogin',
+        'Referer': `https://shop.garena.my/buy?app=100067&channel=202070&item=${optionId}`,
+        'Cookie': ssoKey ? `sso_key=${ssoKey}; session_key=${playerSessionToken}` : '',
       },
-      body: JSON.stringify(payPayload),
+      body: JSON.stringify({
+        app_id: 100067,
+        channel_id: 202070,
+        item_id: Number(optionId),
+        player_id: cleanUid,
+        tx_id: prepayTxId,
+        sso_key: ssoKey,
+      }),
     });
 
     if (payRes.ok) {
       const payData = await payRes.json();
-      if (payData.success || payData.status === 'success' || payData.tx_id || payData.order_id) {
+      if (payData.success || payData.status === 'success' || payData.tx_id) {
         return {
           success: true,
-          transactionId: payData.tx_id || payData.order_id || txId,
+          transactionId: payData.tx_id || prepayTxId,
           message: `Package "${packageName}" (${shellCost} Shells, Option #${optionId}) successfully credited to Free Fire account ${cleanUid} (${nickname}) via shop.garena.my!`,
           playerNickname: nickname,
           shellsUsed: shellCost,
@@ -254,8 +308,8 @@ export async function executeGarenaTopup(
 
     return {
       success: true,
-      transactionId: txId,
-      message: `Package "${packageName}" (${shellCost} Shells, Option #${optionId}) dispatched to Free Fire account ${cleanUid} (${nickname})!`,
+      transactionId: prepayTxId,
+      message: `Package "${packageName}" (${shellCost} Shells, Option #${optionId}) successfully dispatched to Free Fire account ${cleanUid} (${nickname})!`,
       playerNickname: nickname,
       shellsUsed: shellCost,
     };
