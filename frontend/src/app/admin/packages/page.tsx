@@ -186,6 +186,29 @@ export default function AdminPackagesPage() {
     setIsActive(true);
   };
 
+  const [syncingOfficial, setSyncingOfficial] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  const handleSyncOfficial = async () => {
+    setSyncingOfficial(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch('/api/admin/packages/sync-official', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSyncMsg(data.message);
+        await loadPackages();
+      } else {
+        setSyncMsg(data.message || 'Error syncing packages');
+      }
+    } catch (err) {
+      console.error('Error syncing official packages:', err);
+      setSyncMsg('Network error syncing packages');
+    } finally {
+      setSyncingOfficial(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -193,17 +216,37 @@ export default function AdminPackagesPage() {
         <div>
           <h1 className="text-2xl font-black text-white uppercase tracking-wider">Free Fire Packages</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Manage DB package entries, Garena Shell cost structures, and profit margins.
+            Manage DB package entries, official Garena Shell cost structures, and profit margins.
           </p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all"
-        >
-          <Plus className="w-4 h-4" /> Add New Package
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleSyncOfficial}
+            disabled={syncingOfficial}
+            className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all"
+          >
+            <Sparkles className="w-4 h-4" />
+            {syncingOfficial ? 'Syncing Official Garena Shells...' : 'Sync Official Garena Shell Costs'}
+          </button>
+
+          <button
+            onClick={openAddModal}
+            className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all"
+          >
+            <Plus className="w-4 h-4" /> Add New Package
+          </button>
+        </div>
       </div>
+
+      {syncMsg && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-bold flex items-center justify-between">
+          <span>{syncMsg}</span>
+          <button onClick={() => setSyncMsg(null)} className="text-emerald-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Packages Table */}
       <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6 shadow-2xl">
