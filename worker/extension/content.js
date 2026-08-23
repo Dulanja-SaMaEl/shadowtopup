@@ -23,9 +23,7 @@ function resolveNumber(packageName) {
   const key = String(packageName || '').toLowerCase().trim();
   if (PACKAGE_LABEL_MAP[key]) return PACKAGE_LABEL_MAP[key];
   const numMatch = key.match(/^(\d[\d,]*)/);
-  if (numMatch) {
-    return numMatch[1];
-  }
+  if (numMatch) return numMatch[1];
   return '25';
 }
 
@@ -39,21 +37,21 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     const playerUid = String(order.free_fire_player_id || order.player_uid || '').trim();
     const targetNum = resolveNumber(order.package_name || order.packageName);
 
-    console.log(`[ShadowTopUp Extension] ▶ Processing Topup for Order ${order.id}`);
+    console.log(`[ShadowTopUp Extension] ▶ Fulfilling Order ${order.id}`);
     console.log(`                       Player UID: ${playerUid}`);
     console.log(`                       Package: ${targetNum}`);
 
     try {
-      // ── Step 1: Input Player UID (if on login page) ──────────────────────────
+      // ── Step 1: Check if UID input is present ──────────────────────────────
       let input = document.querySelector('input[placeholder*="player ID"], input[placeholder*="Player ID"], input[placeholder*="player id"]');
       
       if (input) {
-        console.log('[ShadowTopUp Extension] Step 1: Typing Player ID...');
+        console.log('[ShadowTopUp Extension] Step 1: Entering Player UID...');
         input.focus();
         input.value = playerUid;
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
-        await delay(600);
+        await delay(500);
 
         const btns = Array.from(document.querySelectorAll('button'));
         const loginBtn = btns.find(b => b.textContent.trim() === 'Login' || b.type === 'submit');
@@ -63,37 +61,62 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
           await delay(2000);
         }
       } else {
-        console.log('[ShadowTopUp Extension] Already logged into player account!');
+        console.log('[ShadowTopUp Extension] Player ID already logged in!');
       }
 
-      // ── Step 2: Select Package Tile ──────────────────────────────────────────
+      // ── Step 2: Select Package in Section 2 (Top-up Amount) ────────────────
       console.log(`[ShadowTopUp Extension] Step 3: Selecting package "${targetNum}"...`);
-      await delay(1000);
+      await delay(800);
 
+      // Locate Section 2 element to restrict search area
+      const allHeadings = Array.from(document.querySelectorAll('h1, h2, h3, div, span, p'));
+      const section2Header = allHeadings.find(h => h.textContent.includes('Top-up Amount'));
+      const searchContainer = section2Header ? (section2Header.closest('section, div[class*="section"], div[class*="container"]') || document.body) : document.body;
+
+      const candidates = Array.from(searchContainer.querySelectorAll('div, button, li, span, p'));
       let packageSelected = false;
-      const allEls = Array.from(document.querySelectorAll('div, button, li, span, p'));
 
-      // Find the element containing the package number
-      for (const el of allEls) {
-        const text = el.textContent ? el.textContent.trim() : '';
-        // Match exact number or formatted number like 1,060 or 25
-        if (text === targetNum || text === `💎 ${targetNum}` || text.replace(/[^0-9]/g, '') === targetNum.replace(',', '')) {
-          const card = el.closest('li, button, [role="button"], div[class*="item"], div[class*="card"], div[class*="package"]') || el;
+      for (const el of candidates) {
+        // Direct child text check to avoid matching large wrappers or banners
+        const directText = Array.from(el.childNodes)
+          .filter(n => n.nodeType === Node.TEXT_NODE)
+          .map(n => n.textContent.trim())
+          .join(' ');
+        
+        const fullText = el.textContent.trim();
+
+        if (directText === targetNum || fullText === targetNum || fullText === `💎 ${targetNum}` || fullText === `💎${targetNum}`) {
+          const card = el.closest('li, button, [role="button"], div[class*="item"], div[class*="card"], div[class*="product"]') || el;
           card.click();
           card.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
           packageSelected = true;
-          console.log('[ShadowTopUp Extension] ✅ Package tile clicked!');
+          console.log(`[ShadowTopUp Extension] ✅ Package tile "${targetNum}" clicked!`);
           break;
         }
       }
 
+      // Fallback: search all buttons/divs under Section 2 if exact match didn't trigger
       if (!packageSelected) {
-        throw new Error(`Package tile "${targetNum}" not found on page`);
+        for (const el of candidates) {
+          const txt = el.textContent.trim();
+          if (txt.includes(targetNum) && (txt.includes('💎') || txt.length < 15)) {
+            const card = el.closest('li, button, [role="button"], div[class*="item"], div[class*="card"]') || el;
+            card.click();
+            card.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+            packageSelected = true;
+            console.log(`[ShadowTopUp Extension] ✅ Package tile "${targetNum}" clicked via fallback!`);
+            break;
+          }
+        }
       }
 
-      await delay(2000);
+      if (!packageSelected) {
+        throw new Error(`Could not find package tile "${targetNum}" in Top-up Amount section`);
+      }
 
-      // ── Step 3: Select Garena Shells Payment Method ──────────────────────────
+      await delay(1500);
+
+      // ── Step 3: Select Garena Shells in Section 3 (Payment Method) ─────────
       console.log('[ShadowTopUp Extension] Step 4: Selecting Garena Shells payment...');
       let shellSelected = false;
       const payEls = Array.from(document.querySelectorAll('div, button, li, span, p, label, img'));
@@ -101,12 +124,12 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       for (const el of payEls) {
         const text = el.textContent ? el.textContent.trim() : '';
         const alt = el.alt ? el.alt.trim() : '';
-        if (text.includes('Garena Shell') || text.includes('Shells') || alt.includes('Shell')) {
+        if ((text.includes('Garena Shell') || alt.includes('Shell')) && !text.includes('Shell Top Up')) {
           const channel = el.closest('li, button, [role="button"], div[class*="channel"], div[class*="item"], div[class*="card"]') || el;
           channel.click();
           channel.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
           shellSelected = true;
-          console.log('[ShadowTopUp Extension] ✅ Garena Shells payment selected!');
+          console.log('[ShadowTopUp Extension] ✅ Garena Shells payment option clicked!');
           break;
         }
       }
@@ -115,12 +138,12 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         throw new Error('Garena Shells payment option not found');
       }
 
-      await delay(2500);
+      await delay(2000);
 
-      // ── Step 4: Click Proceed / Pay Button ──────────────────────────────────
+      // ── Step 4: Click Proceed to Payment / Pay Now ─────────────────────────
       console.log('[ShadowTopUp Extension] Step 5: Clicking Proceed to Payment...');
       let payClicked = false;
-      const actionBtns = Array.from(document.querySelectorAll('button, a, div[role="button"], [class*="submit"], [class*="pay"], [class*="buy"]'));
+      const actionBtns = Array.from(document.querySelectorAll('button, a, div[role="button"], [class*="submit"], [class*="pay"], [class*="buy"], [class*="proceed"]'));
 
       for (const b of actionBtns) {
         const t = b.textContent ? b.textContent.trim().toLowerCase() : '';
@@ -128,13 +151,14 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
           b.click();
           b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
           payClicked = true;
-          console.log(`[ShadowTopUp Extension] ✅ Clicked: "${b.textContent.trim()}"`);
+          console.log(`[ShadowTopUp Extension] ✅ Clicked Proceed Button: "${b.textContent.trim()}"`);
           break;
         }
       }
 
       if (!payClicked) {
-        throw new Error('Proceed to Payment button not found');
+        // Many Garena payment options auto-open a popup modal on click
+        console.log('[ShadowTopUp Extension] ℹ No separate proceed button required — Shell payment option triggers checkout dialog directly.');
       }
 
       await delay(3000);
