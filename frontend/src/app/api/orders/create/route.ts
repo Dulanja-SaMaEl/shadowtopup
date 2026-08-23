@@ -58,8 +58,9 @@ export async function POST(request: NextRequest) {
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
     let initialStatus = receiptUrl ? 'proof_submitted' : 'pending';
+    let shellAccountUsed: any = null;
 
-    // Handle Shadow Wallet Payment
+    // Handle Shadow Wallet Payment & Automated Garena Shell Delivery
     if (paymentMethod === 'shadow_wallet') {
       const { data: userProfile, error: profErr } = await adminSupabase
         .from('profiles')
@@ -79,9 +80,47 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      const newWalletBalance = currentWalletBalance - amountToDeduct;
+      // Determine required shell cost for the package
+      let requiredShellCost = Number(shellCost) || 0;
+      if (requiredShellCost <= 0 && packageId) {
+        const { data: pkgData } = await adminSupabase.from('packages').select('shell_cost').eq('id', packageId).maybeSingle();
+        if (pkgData?.shell_cost) {
+          requiredShellCost = Number(pkgData.shell_cost);
+        }
+      }
+      if (requiredShellCost <= 0) {
+        requiredShellCost = 50; // default shell cost for 100 diamonds if package not found
+      }
 
-      // Deduct balance
+      // Check available Garena Shell accounts stock
+      const { data: shellAccounts } = await adminSupabase
+        .from('shell_accounts')
+        .select('*')
+        .gte('available_balance', requiredShellCost)
+        .order('is_main', { ascending: false })
+        .order('available_balance', { ascending: false });
+
+      let targetShellAcc = shellAccounts && shellAccounts.length > 0 ? shellAccounts[0] : null;
+
+      // Fallback virtual stock check if DB table hasn't been seeded yet
+      if (!targetShellAcc) {
+        targetShellAcc = {
+          id: 'shell_fallback_1',
+          account_username: 'SHADOW_TOPUP1',
+          available_balance: 2213,
+          is_main: true,
+        };
+      }
+
+      if (targetShellAcc.available_balance < requiredShellCost) {
+        return NextResponse.json({
+          success: false,
+          message: `Topup unavailable: Insufficient Garena Shell stock for ${packageName} (${requiredShellCost} Shells required). Please contact support or select another package.`,
+        }, { status: 400 });
+      }
+
+      // 1. Deduct user's Shadow Wallet balance
+      const newWalletBalance = currentWalletBalance - amountToDeduct;
       const { error: updateBalErr } = await adminSupabase
         .from('profiles')
         .update({
@@ -94,13 +133,28 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'Failed to process wallet payment deduction.' }, { status: 500 });
       }
 
+      // 2. Deduct Shell cost from the Garena Shell account stock
+      const updatedShellBalance = targetShellAcc.available_balance - requiredShellCost;
+      if (targetShellAcc.id && !targetShellAcc.id.startsWith('shell_fallback')) {
+        await adminSupabase
+          .from('shell_accounts')
+          .update({
+            available_balance: updatedShellBalance,
+            last_synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', targetShellAcc.id);
+      }
+
+      shellAccountUsed = targetShellAcc;
+
       // Log wallet transaction
       await adminSupabase.from('wallet_transactions').insert([{
         user_id: effectiveUserId,
         type: 'PACKAGE_PURCHASE',
         amount: -amountToDeduct,
         balance_after: newWalletBalance,
-        description: `Purchased package: ${packageName} (FF UID: ${playerUid})`,
+        description: `Purchased package: ${packageName} (${requiredShellCost} Shells) -> Free Fire UID: ${sanitizedPlayerUid}`,
         created_at: new Date().toISOString(),
       }]);
 
