@@ -49,28 +49,52 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
 
   return (
     <div className="receipt-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto print:p-0 print:bg-transparent print:static print:block">
-      {/* Dynamic Print CSS override to guarantee exact 1 page print with zero blank extra pages */}
+      {/* Dynamic Print CSS override to guarantee exact 1 page print with rich colors */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          body * {
-            visibility: hidden !important;
+          /* Hide web page headers, footers and navbars */
+          nav, header, footer, aside, [role="navigation"], .print\\:hidden {
+            display: none !important;
           }
-          #printable-receipt, #printable-receipt * {
-            visibility: visible !important;
-          }
-          #printable-receipt {
-            position: fixed !important;
-            left: 50% !important;
-            top: 20px !important;
-            transform: translateX(-50%) !important;
-            width: 100% !important;
-            max-width: 580px !important;
-            margin: 0 !important;
-            padding: 24px !important;
-            background-color: #0e0c1f !important;
+
+          /* Reset html and body layout */
+          html, body {
+            background: #0e0c1f !important;
             color: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            width: 100% !important;
+          }
+
+          /* Reset backdrop to block container */
+          .receipt-modal-backdrop {
+            position: relative !important;
+            inset: auto !important;
+            background: #0e0c1f !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: block !important;
+            z-index: 1 !important;
+          }
+
+          .receipt-modal-card {
             border: 2px solid #5b21b6 !important;
             border-radius: 20px !important;
+            margin: 0 auto !important;
+            max-width: 580px !important;
+            background-color: #0e0c1f !important;
+            box-shadow: none !important;
+          }
+
+          #printable-receipt {
+            display: block !important;
+            background-color: #0e0c1f !important;
+            color: #ffffff !important;
+            padding: 24px !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 580px !important;
             page-break-after: avoid !important;
             page-break-inside: avoid !important;
             break-after: avoid !important;
@@ -78,9 +102,10 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
+
           @page {
             size: A4 portrait;
-            margin: 0;
+            margin: 10mm;
           }
         }
       ` }} />

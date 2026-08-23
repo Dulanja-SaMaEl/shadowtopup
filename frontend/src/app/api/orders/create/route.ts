@@ -150,28 +150,28 @@ export async function POST(request: NextRequest) {
       }
 
       // 3. Deduct Shell cost from Garena Shell account stock in Supabase DB
-      const updatedShellBalance = Math.max(0, targetShellAcc.available_balance - requiredShellCost);
-      targetShellAcc.available_balance = updatedShellBalance;
+      const currentBalance = targetShellAcc.available_balance || 13;
+      const updatedShellBalance = Math.max(0, currentBalance - requiredShellCost);
 
-      // Upsert into shell_accounts table to ensure DB reflects real-time shell deduction
-      const { data: existingShellAcc } = await adminSupabase
+      // Update or insert in shell_accounts table
+      const { data: dbShellAccs } = await adminSupabase
         .from('shell_accounts')
-        .select('*')
-        .eq('account_username', targetShellAcc.account_username || 'SHADOW_TOPUP1')
-        .maybeSingle();
+        .select('*');
 
-      if (existingShellAcc) {
-        await adminSupabase
-          .from('shell_accounts')
-          .update({
-            available_balance: updatedShellBalance,
-            last_synced_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingShellAcc.id);
+      if (dbShellAccs && dbShellAccs.length > 0) {
+        for (const sAcc of dbShellAccs) {
+          await adminSupabase
+            .from('shell_accounts')
+            .update({
+              available_balance: updatedShellBalance,
+              last_synced_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', sAcc.id);
+        }
       } else {
         await adminSupabase.from('shell_accounts').insert([{
-          account_username: targetShellAcc.account_username || 'SHADOW_TOPUP1',
+          account_username: 'SHADOW_TOPUP1',
           password: 'Shadow-2008',
           available_balance: updatedShellBalance,
           is_main: true,
