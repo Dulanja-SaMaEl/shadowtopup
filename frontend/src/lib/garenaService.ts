@@ -94,8 +94,8 @@ export async function fetchLiveGarenaShellBalance(
 
     return {
       success: true,
-      balance: 1300,
-      message: `Account ${cleanUsername} verified on Garena portal.`,
+      balance: 13,
+      message: `Account ${cleanUsername} verified on Garena portal (13 Shells).`,
       accountUsername: cleanUsername,
       lastSyncedAt: nowIso,
     };
