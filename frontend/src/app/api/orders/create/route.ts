@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         targetShellAcc = {
           id: 'shell_fallback_1',
           account_username: 'SHADOW_TOPUP1',
-          available_balance: 2213,
+          available_balance: 13,
           is_main: true,
         };
       }

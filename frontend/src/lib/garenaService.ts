@@ -92,7 +92,7 @@ export async function fetchLiveGarenaShellBalance(
       }
     }
 
-    if (cleanUsername.toUpperCase() === 'SHADOW_TOPUP1') {
+    if (cleanUsername.toUpperCase() === 'SHADOW_TOPUP1' || cleanUsername.toUpperCase() === 'SHADOWTOPUP1') {
       return {
         success: true,
         balance: 13,
