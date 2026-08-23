@@ -253,25 +253,33 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-3 gap-2 pt-2">
+            <div className="grid grid-cols-4 gap-2 pt-2">
               <button
                 onClick={() => handleUpdateStatus('REJECTED')}
-                className="py-2.5 px-2 rounded-xl bg-red-950/80 border border-red-800 text-red-400 font-bold text-[10px] uppercase hover:bg-red-900/80 flex items-center justify-center gap-1"
+                className="py-2.5 px-2 rounded-xl bg-red-950/80 border border-red-800 text-red-400 font-bold text-[9px] uppercase hover:bg-red-900/80 flex items-center justify-center gap-1"
               >
                 <XCircle className="w-3.5 h-3.5" /> Reject
               </button>
               <button
                 onClick={() => handleUpdateStatus('REFUNDED')}
-                className="py-2.5 px-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-200 border border-purple-600 font-bold text-[10px] uppercase shadow-lg shadow-purple-900/30 flex items-center justify-center gap-1"
+                className="py-2.5 px-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-200 border border-purple-600 font-bold text-[9px] uppercase shadow-lg shadow-purple-900/30 flex items-center justify-center gap-1"
               >
-                <RotateCcw className="w-3.5 h-3.5 text-cyan-400" /> Refund Wallet
+                <RotateCcw className="w-3.5 h-3.5 text-cyan-400" /> Refund
               </button>
               <button
                 onClick={() => handleUpdateStatus('COMPLETED')}
-                className="py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] uppercase shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1"
+                className="py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[9px] uppercase shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" /> Approve
               </button>
+              <a
+                href={`https://shop.garena.my/app/100067/idlogin`}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2.5 px-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[9px] uppercase shadow-lg shadow-cyan-600/30 flex items-center justify-center gap-1 text-center"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Garena Shop
+              </a>
             </div>
           </div>
         </div>
