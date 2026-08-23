@@ -1,22 +1,48 @@
 'use client';
 
-import { useState } from 'react';
-import { Sliders, AlertTriangle, Info, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sliders, AlertTriangle, Info, Sparkles, CheckCircle2, RefreshCw, Loader2, Database } from 'lucide-react';
 
 export default function AdminPricingRulesPage() {
-  const [basePrice, setBasePrice] = useState('3380.00'); // 1300 Shells = 3380 LKR (2.60 LKR / shell)
+  const [basePrice, setBasePrice] = useState('3380.00');
   const [markupType, setMarkupType] = useState('Percentage (%)');
   const [normalMarkup, setNormalMarkup] = useState('35.00');
   const [silverMarkup, setSilverMarkup] = useState('23.00');
   const [goldMarkup, setGoldMarkup] = useState('15.00');
+
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Load saved pricing rules from DB on page load
+  useEffect(() => {
+    async function loadPricingRules() {
+      setLoadingSettings(true);
+      try {
+        const res = await fetch('/api/admin/pricing-rules');
+        const data = await res.json();
+        if (data.success && data.pricingRules) {
+          const rules = data.pricingRules;
+          if (rules.basePrice1300 !== undefined) setBasePrice(rules.basePrice1300.toString());
+          if (rules.markupType) setMarkupType(rules.markupType);
+          if (rules.normalMarkup !== undefined) setNormalMarkup(rules.normalMarkup.toString());
+          if (rules.silverMarkup !== undefined) setSilverMarkup(rules.silverMarkup.toString());
+          if (rules.goldMarkup !== undefined) setGoldMarkup(rules.goldMarkup.toString());
+        }
+      } catch (err) {
+        console.error('Error fetching pricing rules from DB:', err);
+      } finally {
+        setLoadingSettings(false);
+      }
+    }
+    loadPricingRules();
+  }, []);
 
   // Live simulation calculations
   const basePriceNum = parseFloat(basePrice) || 3380;
   const unitShellCost = basePriceNum / 1300;
-  
-  const sample100ShellCost = 100 * unitShellCost; // 260 LKR
+
+  const sample100ShellCost = 100 * unitShellCost;
   const sample100Normal = sample100ShellCost * (1 + (parseFloat(normalMarkup) || 35) / 100);
   const sample100Silver = sample100ShellCost * (1 + (parseFloat(silverMarkup) || 23) / 100);
   const sample100Gold = sample100ShellCost * (1 + (parseFloat(goldMarkup) || 15) / 100);
@@ -31,6 +57,7 @@ export default function AdminPricingRulesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           basePrice1300: basePriceNum,
+          markupType: markupType,
           normalMarkup: parseFloat(normalMarkup) || 35,
           silverMarkup: parseFloat(silverMarkup) || 23,
           goldMarkup: parseFloat(goldMarkup) || 15,
@@ -40,25 +67,45 @@ export default function AdminPricingRulesPage() {
       const data = await res.json();
       if (data.success) {
         setMsg({ type: 'success', text: data.message });
+        if (data.pricingRules) {
+          setBasePrice(data.pricingRules.basePrice1300.toString());
+          setNormalMarkup(data.pricingRules.normalMarkup.toString());
+          setSilverMarkup(data.pricingRules.silverMarkup.toString());
+          setGoldMarkup(data.pricingRules.goldMarkup.toString());
+        }
       } else {
         setMsg({ type: 'error', text: data.message || 'Failed to update catalog prices' });
       }
     } catch (err: any) {
       console.error('Error updating pricing rules:', err);
       setMsg({ type: 'error', text: 'Network error updating pricing rules' });
+    } finally {
+      setUpdating(false);
     }
-
-    setUpdating(false);
   };
 
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-black text-white uppercase tracking-wider">Pricing Settings</h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Configure automated local pricing formula and reseller tier markup percentages.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white uppercase tracking-wider flex items-center gap-2">
+            <Sliders className="w-7 h-7 text-purple-400" /> Pricing Settings
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Configure automated local pricing formula and reseller tier markup percentages stored in Supabase.
+          </p>
+        </div>
+
+        {loadingSettings ? (
+          <div className="px-4 py-2 rounded-xl bg-purple-950/40 border border-purple-800/40 text-purple-300 text-xs font-mono font-bold flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-purple-400" /> Loading saved settings...
+          </div>
+        ) : (
+          <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold flex items-center gap-2">
+            <Database className="w-4 h-4 text-emerald-400" /> Synced with Database
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -74,9 +121,10 @@ export default function AdminPricingRulesPage() {
               </span>
               <input
                 type="text"
+                disabled={loadingSettings}
                 value={basePrice}
                 onChange={(e) => setBasePrice(e.target.value)}
-                className="w-full px-4 py-3 bg-transparent text-white font-mono text-sm font-bold focus:outline-none"
+                className="w-full px-4 py-3 bg-transparent text-white font-mono text-sm font-bold focus:outline-none disabled:opacity-50"
               />
             </div>
             <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
@@ -90,9 +138,10 @@ export default function AdminPricingRulesPage() {
               Markup Engine Type
             </label>
             <select
+              disabled={loadingSettings}
               value={markupType}
               onChange={(e) => setMarkupType(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono text-xs focus:outline-none"
+              className="w-full px-4 py-3 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono text-xs focus:outline-none disabled:opacity-50"
             >
               <option>Percentage (%)</option>
               <option>Fixed Amount (LKR)</option>
@@ -107,9 +156,10 @@ export default function AdminPricingRulesPage() {
               </label>
               <input
                 type="text"
+                disabled={loadingSettings}
                 value={normalMarkup}
                 onChange={(e) => setNormalMarkup(e.target.value)}
-                className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-emerald-400 font-mono text-xs font-bold text-center focus:outline-none"
+                className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-emerald-400 font-mono text-xs font-bold text-center focus:outline-none disabled:opacity-50"
               />
             </div>
 
@@ -119,9 +169,10 @@ export default function AdminPricingRulesPage() {
               </label>
               <input
                 type="text"
+                disabled={loadingSettings}
                 value={silverMarkup}
                 onChange={(e) => setSilverMarkup(e.target.value)}
-                className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-cyan-300 font-mono text-xs font-bold text-center focus:outline-none"
+                className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-cyan-300 font-mono text-xs font-bold text-center focus:outline-none disabled:opacity-50"
               />
             </div>
 
@@ -131,9 +182,10 @@ export default function AdminPricingRulesPage() {
               </label>
               <input
                 type="text"
+                disabled={loadingSettings}
                 value={goldMarkup}
                 onChange={(e) => setGoldMarkup(e.target.value)}
-                className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-amber-300 font-mono text-xs font-bold text-center focus:outline-none"
+                className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-amber-300 font-mono text-xs font-bold text-center focus:outline-none disabled:opacity-50"
               />
             </div>
           </div>
@@ -144,16 +196,16 @@ export default function AdminPricingRulesPage() {
 
           <button
             onClick={handleUpdate}
-            disabled={updating}
-            className="w-full py-3.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2"
+            disabled={updating || loadingSettings}
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {updating ? (
               <>
-                <RefreshCw className="w-4 h-4 animate-spin" /> Recalculating Database Packages...
+                <RefreshCw className="w-4 h-4 animate-spin" /> Saving & Recalculating Database Packages...
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4" /> Update Engine & Recalculate Catalog
+                <Sparkles className="w-4 h-4" /> Save Settings & Recalculate Catalog
               </>
             )}
           </button>
@@ -163,9 +215,13 @@ export default function AdminPricingRulesPage() {
           </div>
 
           {msg && (
-            <div className={`p-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 ${
-              msg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'
-            }`}>
+            <div
+              className={`p-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 ${
+                msg.type === 'success'
+                  ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                  : 'bg-red-500/10 border border-red-500/30 text-red-400'
+              }`}
+            >
               {msg.type === 'success' && <CheckCircle2 className="w-4 h-4" />}
               {msg.text}
             </div>
