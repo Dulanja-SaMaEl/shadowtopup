@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "ShadowTopUp Local Fulfillment Engine",
+  "version": "1.0.0",
+  "description": "Native Chrome Automation for ShadowTopUp Garena Fulfillment Engine",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage",
+    "activeTab",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://shop.garena.my/*",
+    "ws://localhost/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://shop.garena.my/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

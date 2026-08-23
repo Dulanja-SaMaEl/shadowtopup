@@ -1,5 +1,6 @@
 const http = require('http');
 const { WebSocketServer } = require('ws');
+const log = require('./logger');
 
 const PORT = 3456;
 const clients = new Set();
@@ -312,9 +313,30 @@ function startDashboard() {
 
   const wss = new WebSocketServer({ server });
 
+  // Attach extension message handler
+  const { registerExtensionResponseHandler } = require('./garenaFulfill');
+  registerExtensionResponseHandler(wss);
+
   wss.on('connection', (ws) => {
     clients.add(ws);
-    ws.on('close', () => clients.delete(ws));
+
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message);
+        if (data.type === 'REGISTER_CLIENT' && data.client === 'CHROME_EXTENSION') {
+          ws.isExtension = true;
+          log.success('🔌 Chrome Extension connected to local worker!');
+        }
+      } catch (_) {}
+    });
+
+    ws.on('close', () => {
+      clients.delete(ws);
+      if (ws.isExtension) {
+        log.warn('🔌 Chrome Extension disconnected from local worker.');
+      }
+    });
+
     ws.on('error', () => clients.delete(ws));
     // Send current stats on connect
     ws.send(JSON.stringify({ type: 'stats', ordersProcessed, ordersFailed, lastOrderTime }));

@@ -111,7 +111,7 @@ async function processPendingOrders() {
   const { data: pendingOrders, error } = await supabase
     .from('orders')
     .select('*')
-    .eq('payment_method', 'wallet')
+    .eq('payment_method', 'shadow_wallet')
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
 
@@ -149,13 +149,13 @@ async function startListener() {
         event: 'INSERT',
         schema: 'public',
         table: 'orders',
-        filter: "payment_method=eq.wallet",
+        filter: "payment_method=eq.shadow_wallet",
       },
       async (payload) => {
-        console.log('[Worker] 🔔 Real-time INSERT detected on orders table!');
         const order = payload.new;
-        if (order && (order.status === 'pending' || order.status === 'paid')) {
-          log.order(`Real-time INSERT detected — Order ${order.id}`);
+        if (order) {
+          log.order(`Real-time INSERT detected — Order ${order.id} | Status: ${order.status}`);
+          // Process any new wallet order regardless of initial status
           await processOrder(order);
         }
       }

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 280px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0d0b1d;
+      color: #fff;
+      margin: 0;
+      padding: 16px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .icon {
+      font-size: 24px;
+    }
+    .title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #22d3ee;
+    }
+    .sub {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .status-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+    .status-badge.connected {
+      background: rgba(52, 211, 153, 0.15);
+      color: #34d399;
+      border: 1px solid #34d399;
+    }
+    .status-badge.disconnected {
+      background: rgba(248, 113, 113, 0.15);
+      color: #f87171;
+      border: 1px solid #f87171;
+    }
+    .footer {
+      margin-top: 14px;
+      font-size: 10px;
+      color: #64748b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="icon">⚡</div>
+    <div>
+      <div class="title">ShadowTopUp Engine</div>
+      <div class="sub">Native Chrome Worker</div>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <span style="font-size: 12px; font-weight: 600;">Worker Link</span>
+    <span id="badge" class="status-badge disconnected">CONNECTING...</span>
+  </div>
+
+  <div class="footer">
+    Active on shop.garena.my • Undetectable
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
