@@ -37,9 +37,41 @@ function connectWebSocket() {
       } else if (data.type === 'TRIGGER_SHELL_SYNC' || data.type === 'REQUEST_LIVE_BALANCE') {
         console.log('[ShadowTopUp Extension] 🐚 Sync request received from worker');
         const tabs = await chrome.tabs.query({ url: 'https://shop.garena.my/*' });
+        let syncedFromTab = false;
+
         if (tabs.length > 0) {
-          chrome.tabs.sendMessage(tabs[0].id, { action: 'FETCH_LIVE_SHELL_BALANCE' });
+          for (const tab of tabs) {
+            chrome.tabs.sendMessage(tab.id, { action: 'FETCH_LIVE_SHELL_BALANCE' }, (res) => {
+              if (chrome.runtime.lastError) {
+                // Tab script might not be injected yet, try injecting
+                chrome.scripting.executeScript({
+                  target: { tabId: tab.id },
+                  files: ['content.js']
+                }).catch(() => {});
+              } else if (res && res.success) {
+                syncedFromTab = true;
+              }
+            });
+          }
         }
+
+        // Background API fetch fallback with browser cookies
+        try {
+          const res = await fetch('https://shop.garena.my/api/user/info', { credentials: 'include' });
+          if (res.ok) {
+            const info = await res.json();
+            const bal = info.shell_balance ?? info.shells ?? info.balance;
+            if (typeof bal === 'number') {
+              console.log('[ShadowTopUp Extension] 🐚 Background fetch retrieved live Shell balance:', bal);
+              if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                  type: 'SYNC_SHELL_BALANCE',
+                  balance: bal
+                }));
+              }
+            }
+          }
+        } catch (e) {}
       }
     } catch (e) {
       console.error('[ShadowTopUp Extension] Error parsing WS message:', e);
