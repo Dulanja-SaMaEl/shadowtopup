@@ -82,6 +82,7 @@ export async function fetchLiveGarenaShellBalance(
             const liveBalance = balanceData.shell_balance ?? balanceData.shells;
             return {
               success: true,
+              isLive: true,
               balance: liveBalance,
               message: `Live balance fetched successfully from Garena Shop (${liveBalance} Shells)`,
               accountUsername: cleanUsername,
@@ -93,9 +94,10 @@ export async function fetchLiveGarenaShellBalance(
     }
 
     return {
-      success: true,
-      balance: 13,
-      message: `Account ${cleanUsername} verified on Garena portal (13 Shells).`,
+      success: false,
+      isLive: false,
+      balance: 0,
+      message: `Could not fetch live Garena API balance for ${cleanUsername}. Preserving stored balance.`,
       accountUsername: cleanUsername,
       lastSyncedAt: nowIso,
     };

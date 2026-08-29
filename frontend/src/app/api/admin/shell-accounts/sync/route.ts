@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     // Call live Garena Topup Center authentication & balance service
     const syncRes = await fetchLiveGarenaShellBalance(usernameStr, passwordStr);
-    const finalBalance = syncRes.success && syncRes.balance > 0 ? syncRes.balance : currentBalance;
+    const finalBalance = (syncRes.success && (syncRes as any).isLive) ? syncRes.balance : currentBalance;
     const nowIso = new Date().toISOString();
 
     // Update in Supabase shell_accounts if id exists

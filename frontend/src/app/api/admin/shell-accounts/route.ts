@@ -22,13 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (accounts && accounts.length > 0) {
-      const sanitizedAccounts = accounts.map((acc: any) => {
-        if (acc.account_username === 'SHADOW_TOPUP1' && acc.available_balance === 1300) {
-          return { ...acc, available_balance: 13 };
-        }
-        return acc;
-      });
-      return NextResponse.json({ success: true, accounts: sanitizedAccounts });
+      return NextResponse.json({ success: true, accounts });
     }
 
     // Default seeded shell accounts if database table is fresh

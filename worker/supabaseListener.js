@@ -23,21 +23,20 @@ async function markOrderCompleted(orderId, shellCost) {
     })
     .eq('id', orderId);
 
-  // Deduct shell balance from all registered shell accounts
-  const { data: accounts } = await supabase.from('shell_accounts').select('*');
+  // Deduct shell balance from main active shell account
+  const { data: accounts } = await supabase.from('shell_accounts').select('*').order('is_main', { ascending: false });
   if (accounts && accounts.length > 0) {
-    for (const acc of accounts) {
-      const newBalance = Math.max(0, (acc.available_balance || 0) - shellCost);
-      await supabase
-        .from('shell_accounts')
-        .update({
-          available_balance: newBalance,
-          last_synced_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', acc.id);
-      log.db(`Shell balance updated: ${acc.available_balance} → ${newBalance}`);
-    }
+    const mainAcc = accounts.find(a => a.is_main) || accounts[0];
+    const newBalance = Math.max(0, (mainAcc.available_balance || 0) - shellCost);
+    await supabase
+      .from('shell_accounts')
+      .update({
+        available_balance: newBalance,
+        last_synced_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', mainAcc.id);
+    log.db(`Shell balance for ${mainAcc.account_username} updated: ${mainAcc.available_balance} → ${newBalance}`);
   }
 }
 
