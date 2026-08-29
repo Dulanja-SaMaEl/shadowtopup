@@ -34,6 +34,12 @@ function connectWebSocket() {
       if (data.type === 'START_FULFILLMENT') {
         console.log('[ShadowTopUp Extension] 🔔 FULFILLMENT TASK RECEIVED:', data.order);
         await executeFulfillment(data.order);
+      } else if (data.type === 'TRIGGER_SHELL_SYNC' || data.type === 'REQUEST_LIVE_BALANCE') {
+        console.log('[ShadowTopUp Extension] 🐚 Sync request received from worker');
+        const tabs = await chrome.tabs.query({ url: 'https://shop.garena.my/*' });
+        if (tabs.length > 0) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'FETCH_LIVE_SHELL_BALANCE' });
+        }
       }
     } catch (e) {
       console.error('[ShadowTopUp Extension] Error parsing WS message:', e);

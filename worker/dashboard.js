@@ -320,7 +320,16 @@ function startDashboard() {
       return;
     }
 
+    if (req.url === '/api/shell-balance/trigger-sync') {
+      broadcast(JSON.stringify({ type: 'TRIGGER_SHELL_SYNC' }));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, message: 'Sync request sent to Chrome Extension tab' }));
+      return;
+    }
+
     if (req.url === '/api/shell-balance') {
+      // Also request fresh balance on query
+      broadcast(JSON.stringify({ type: 'TRIGGER_SHELL_SYNC' }));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,

@@ -50,7 +50,13 @@ export default function AdminShellAccountsPage() {
   const handleSyncAccount = async (acc: ShellAccount) => {
     setSyncingId(acc.id);
     try {
-      // 1. Try local worker endpoint first (which reads directly from native Chrome extension tab)
+      // 1. Trigger live balance detection on active Chrome tab
+      try {
+        await fetch('http://localhost:3456/api/shell-balance/trigger-sync');
+        await new Promise((r) => setTimeout(r, 1200));
+      } catch (e) {}
+
+      // 2. Fetch detected balance from local worker
       let liveBalFromWorker: number | null = null;
       try {
         const workerRes = await fetch('http://localhost:3456/api/shell-balance');
@@ -77,7 +83,7 @@ export default function AdminShellAccountsPage() {
               : a
           )
         );
-        showToast('success', `Live Chrome Extension sync: Fetched ${liveBalFromWorker.toLocaleString()} Shells for ${acc.account_username}!`);
+        showToast('success', `Live Garena Chrome tab sync: Fetched ${liveBalFromWorker.toLocaleString()} Shells for ${acc.account_username}!`);
         return;
       }
 
