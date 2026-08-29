@@ -41,24 +41,23 @@ export async function fetchLiveGarenaShellBalance(
   try {
     const hashedPassword = hashGarenaPassword(cleanPassword);
 
-    const ssoUrl = 'https://sso.garena.com/api/login';
     const ssoParams = new URLSearchParams({
       account: cleanUsername,
       password: hashedPassword,
       account_type: '1',
       format: 'json',
-      app_id: '100057',
+      app_id: '100067',
     });
+    const ssoUrl = `https://sso.garena.com/api/login?${ssoParams.toString()}`;
 
     const ssoResponse = await fetch(ssoUrl, {
-      method: 'POST',
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Origin': 'https://shop.garena.my',
         'Referer': 'https://shop.garena.my/',
+        'Accept': 'application/json',
       },
-      body: ssoParams.toString(),
       cache: 'no-store',
     });
 
