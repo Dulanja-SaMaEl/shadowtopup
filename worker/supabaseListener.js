@@ -164,4 +164,24 @@ async function startListener() {
     });
 }
 
-module.exports = { startListener };
+async function updateLiveShellBalance(liveBalance) {
+  try {
+    const { data: accounts } = await supabase.from('shell_accounts').select('*').order('is_main', { ascending: false });
+    if (accounts && accounts.length > 0) {
+      const mainAcc = accounts.find(a => a.is_main) || accounts[0];
+      await supabase
+        .from('shell_accounts')
+        .update({
+          available_balance: liveBalance,
+          last_synced_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', mainAcc.id);
+      log.db(`Shell balance in Supabase updated to ${liveBalance} Shells for ${mainAcc.account_username}`);
+    }
+  } catch (err) {
+    log.error(`Error updating live shell balance: ${err.message}`);
+  }
+}
+
+module.exports = { startListener, updateLiveShellBalance };

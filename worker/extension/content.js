@@ -31,6 +31,51 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// ── Auto-Detect Real Shell Balance directly from active Garena browser session ──
+async function autoSyncLiveShellBalance() {
+  try {
+    const res = await fetch('https://shop.garena.my/api/user/info', { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      const balance = data.shell_balance ?? data.shells ?? data.balance;
+      if (typeof balance === 'number') {
+        console.log(`[ShadowTopUp Extension] 🐚 Live Shell Balance auto-detected: ${balance}`);
+        chrome.runtime.sendMessage({
+          type: 'SYNC_SHELL_BALANCE',
+          balance: balance
+        });
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // DOM Scrape Fallback: Look for Shell balance text inside page DOM
+  try {
+    const els = Array.from(document.querySelectorAll('*'));
+    for (const el of els) {
+      const t = el.textContent ? el.textContent.trim() : '';
+      if ((t.includes('Shell') || t.includes('Shells')) && /\b\d+\b/.test(t) && t.length < 30) {
+        const match = t.match(/(\d[\d,]*)\s*(?:Shell|Shells)/i) || t.match(/(?:Shell|Shells)\s*:?\s*(\d[\d,]*)/i);
+        if (match) {
+          const bal = parseInt(match[1].replace(/,/g, ''), 10);
+          if (!isNaN(bal) && bal > 0) {
+            console.log(`[ShadowTopUp Extension] 🐚 DOM Shell Balance auto-detected: ${bal}`);
+            chrome.runtime.sendMessage({
+              type: 'SYNC_SHELL_BALANCE',
+              balance: bal
+            });
+            break;
+          }
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+// Trigger auto sync on load and after 2s
+autoSyncLiveShellBalance();
+setTimeout(autoSyncLiveShellBalance, 2500);
+
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request.action === 'EXECUTE_TOPUP') {
     const { order } = request;
@@ -42,6 +87,9 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     console.log(`                       Package: ${targetNum}`);
 
     try {
+      // Refresh balance detection before topup
+      autoSyncLiveShellBalance();
+
       // ── Step 1: Check if UID input is present ──────────────────────────────
       let input = document.querySelector('input[placeholder*="player ID"], input[placeholder*="Player ID"], input[placeholder*="player id"]');
       
@@ -68,7 +116,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       console.log(`[ShadowTopUp Extension] Step 3: Selecting package "${targetNum}"...`);
       await delay(800);
 
-      // Locate Section 2 element to restrict search area
       const allHeadings = Array.from(document.querySelectorAll('h1, h2, h3, div, span, p'));
       const section2Header = allHeadings.find(h => h.textContent.includes('Top-up Amount'));
       const searchContainer = section2Header ? (section2Header.closest('section, div[class*="section"], div[class*="container"]') || document.body) : document.body;
@@ -77,7 +124,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       let packageSelected = false;
 
       for (const el of candidates) {
-        // Direct child text check to avoid matching large wrappers or banners
         const directText = Array.from(el.childNodes)
           .filter(n => n.nodeType === Node.TEXT_NODE)
           .map(n => n.textContent.trim())
@@ -95,7 +141,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         }
       }
 
-      // Fallback: search all buttons/divs under Section 2 if exact match didn't trigger
       if (!packageSelected) {
         for (const el of candidates) {
           const txt = el.textContent.trim();
@@ -157,11 +202,13 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       }
 
       if (!payClicked) {
-        // Many Garena payment options auto-open a popup modal on click
-        console.log('[ShadowTopUp Extension] ℹ No separate proceed button required — Shell payment option triggers checkout dialog directly.');
+        console.log('[ShadowTopUp Extension] ℹ Payment selection triggered checkout modal.');
       }
 
       await delay(3000);
+
+      // Refresh balance post-topup
+      autoSyncLiveShellBalance();
 
       chrome.runtime.sendMessage({
         type: 'FULFILLMENT_RESULT',

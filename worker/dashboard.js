@@ -326,6 +326,12 @@ function startDashboard() {
         if (data.type === 'REGISTER_CLIENT' && data.client === 'CHROME_EXTENSION') {
           ws.isExtension = true;
           log.success('🔌 Chrome Extension connected to local worker!');
+        } else if (data.type === 'SYNC_SHELL_BALANCE' && typeof data.balance === 'number') {
+          log.db(`🐚 Live Garena Shell balance auto-detected from browser: ${data.balance} Shells!`);
+          const { updateLiveShellBalance } = require('./supabaseListener');
+          if (typeof updateLiveShellBalance === 'function') {
+            updateLiveShellBalance(data.balance);
+          }
         }
       } catch (_) {}
     });

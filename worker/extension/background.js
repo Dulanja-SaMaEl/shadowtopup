@@ -93,11 +93,20 @@ function reportResult(orderId, success, error = null) {
   }
 }
 
-// Handle completion reports from content.js
+// Handle completion reports & balance sync from content.js
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'FULFILLMENT_RESULT') {
     console.log('[ShadowTopUp Extension] Task result:', message);
     reportResult(message.orderId, message.success, message.error);
+    sendResponse({ ack: true });
+  } else if (message.type === 'SYNC_SHELL_BALANCE') {
+    console.log('[ShadowTopUp Extension] 🐚 Forwarding live Shell balance sync:', message.balance);
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'SYNC_SHELL_BALANCE',
+        balance: message.balance
+      }));
+    }
     sendResponse({ ack: true });
   }
   return true;
