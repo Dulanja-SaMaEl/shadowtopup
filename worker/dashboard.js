@@ -305,8 +305,31 @@ const HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
+let currentLiveShellBalance = null;
+
 function startDashboard() {
   const server = http.createServer((req, res) => {
+    // Enable CORS for admin panel
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (req.url === '/api/shell-balance') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        balance: currentLiveShellBalance,
+        status: workerStatus
+      }));
+      return;
+    }
+
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(HTML);
   });
@@ -327,6 +350,7 @@ function startDashboard() {
           ws.isExtension = true;
           log.success('🔌 Chrome Extension connected to local worker!');
         } else if (data.type === 'SYNC_SHELL_BALANCE' && typeof data.balance === 'number') {
+          currentLiveShellBalance = data.balance;
           log.db(`🐚 Live Garena Shell balance auto-detected from browser: ${data.balance} Shells!`);
           const { updateLiveShellBalance } = require('./supabaseListener');
           if (typeof updateLiveShellBalance === 'function') {
