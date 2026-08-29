@@ -7,6 +7,7 @@ export interface GarenaSyncResult {
   message: string;
   accountUsername: string;
   lastSyncedAt: string;
+  isLive?: boolean;
 }
 
 export interface GarenaTopupResult {
