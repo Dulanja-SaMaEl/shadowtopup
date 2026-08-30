@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const { id, username, password, explicitBalance } = body;
 
     const usernameStr = String(username || '').trim();
-    const passwordStr = String(password || 'Shadow-2008').trim();
+    const passwordStr = String(password || 'Shadow123@').trim();
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 

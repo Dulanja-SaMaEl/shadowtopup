@@ -17,7 +17,7 @@ export default function AdminShellAccountsPage() {
 
   // Form states for Add
   const [username, setUsername] = useState('SHADOW_TOPUP1');
-  const [password, setPassword] = useState('Shadow-2008');
+  const [password, setPassword] = useState('Shadow123@');
   const [isMain, setIsMain] = useState(true);
   const [saving, setSaving] = useState(false);
 
