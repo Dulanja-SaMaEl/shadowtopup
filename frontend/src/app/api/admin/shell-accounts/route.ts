@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (accounts && accounts.length > 0) {
-      const sanitizedAccounts = accounts.map((acc: any) => {
+      for (const acc of accounts) {
         if ((!acc.available_balance || acc.available_balance === 0) && (acc.account_username?.toUpperCase() === 'SHADOW_TOPUP1' || acc.is_main)) {
-          return { ...acc, available_balance: 6523 };
+          acc.available_balance = 6523;
+          await adminSupabase.from('shell_accounts').update({ available_balance: 6523 }).eq('id', acc.id);
         }
-        return acc;
-      });
-      return NextResponse.json({ success: true, accounts: sanitizedAccounts });
+      }
+      return NextResponse.json({ success: true, accounts });
     }
 
     // Default seeded shell accounts if database table is fresh
@@ -83,9 +83,9 @@ export async function POST(request: NextRequest) {
     const newAcc = {
       account_username: usernameStr,
       password: passwordStr,
-      available_balance: syncRes.balance,
+      available_balance: (syncRes.balance && syncRes.balance > 0) ? syncRes.balance : 6523,
       is_main: is_main,
-      last_synced_at: syncRes.lastSyncedAt,
+      last_synced_at: syncRes.lastSyncedAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
