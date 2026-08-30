@@ -408,8 +408,35 @@ export default function AdminShellAccountsPage() {
                 />
               </div>
 
+              {/* Quick Add Presets */}
+              <div className="space-y-1">
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Quick Add Shells:</span>
+                <div className="flex flex-wrap gap-2">
+                  {[100, 500, 1000, 2500, 5000].map((addVal) => (
+                    <button
+                      key={addVal}
+                      type="button"
+                      onClick={() => {
+                        const cur = parseFloat(editBalance) || 0;
+                        setEditBalance(String(cur + addVal));
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 text-[10px] font-bold transition-all"
+                    >
+                      +{addVal}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setEditBalance('0')}
+                    className="px-2.5 py-1 rounded-lg bg-red-950/40 border border-red-800/40 text-red-400 hover:bg-red-900/40 text-[10px] font-bold transition-all"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
               <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[10px] text-slate-400 font-sans">
-                💡 Enter the exact Shell count shown on your Garena account on <strong>shop.garena.my</strong> (e.g. 1,300 Shells).
+                💡 Enter or adjust the exact Shell count shown on your Garena account (e.g. 1,300 Shells). No Chrome extension required!
               </div>
 
               <button
