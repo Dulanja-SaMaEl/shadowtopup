@@ -50,55 +50,18 @@ export default function AdminShellAccountsPage() {
   const handleSyncAccount = async (acc: ShellAccount) => {
     setSyncingId(acc.id);
     try {
-      // 1. Trigger live balance detection on active Chrome tab
-      try {
-        await fetch('http://localhost:3456/api/shell-balance/trigger-sync');
-        await new Promise((r) => setTimeout(r, 1200));
-      } catch (e) {}
-
-      // 2. Fetch detected balance from local worker
-      let liveBalFromWorker: number | null = null;
-      try {
-        const workerRes = await fetch('http://localhost:3456/api/shell-balance');
-        if (workerRes.ok) {
-          const wData = await workerRes.json();
-          if (wData.success && typeof wData.balance === 'number') {
-            liveBalFromWorker = wData.balance;
-          }
-        }
-      } catch (e) {}
-
-      if (liveBalFromWorker !== null) {
-        // Save worker balance to Supabase
-        const updateRes = await fetch('/api/admin/shell-accounts', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: acc.id, available_balance: liveBalFromWorker }),
-        });
-        const uData = await updateRes.json();
-        setAccounts((prev) =>
-          prev.map((a) =>
-            a.id === acc.id
-              ? { ...a, available_balance: liveBalFromWorker, last_synced_at: new Date().toISOString() }
-              : a
-          )
-        );
-        showToast('success', `Live Garena Chrome tab sync: Fetched ${liveBalFromWorker.toLocaleString()} Shells for ${acc.account_username}!`);
-        return;
-      }
-
-      // 2. Otherwise query backend sync API
+      // Query direct backend sync API
       const res = await fetch('/api/admin/shell-accounts/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: acc.id,
           username: acc.account_username,
-          password: acc.password || 'Shadow-2008',
+          password: acc.password || 'Shadow123@',
         }),
       });
       const data = await res.json();
-      if (data.success && typeof data.liveBalance === 'number' && data.liveBalance > 0) {
+      if (data.success && typeof data.liveBalance === 'number') {
         setAccounts((prev) =>
           prev.map((a) =>
             a.id === acc.id
@@ -108,7 +71,7 @@ export default function AdminShellAccountsPage() {
         );
         showToast('success', `Synced balance for ${acc.account_username}: ${data.liveBalance.toLocaleString()} Shells`);
       } else {
-        showToast('error', 'Open shop.garena.my in Chrome with local worker active to auto-sync, or click Edit to update manually!');
+        showToast('error', data.message || 'Could not sync live balance');
       }
     } catch (err: any) {
       showToast('error', err.message || 'Error connecting to sync service');
@@ -284,7 +247,7 @@ export default function AdminShellAccountsPage() {
 
         <div className="text-right font-mono text-xs text-slate-400 space-y-1">
           <div>Accounts Registered: <span className="text-white font-bold">{accounts.length}</span></div>
-          <div>Sync Method: <span className="text-emerald-400 font-bold">Chrome Extension / Native Bridge</span></div>
+          <div>Sync Method: <span className="text-emerald-400 font-bold">Direct Backend Sync Engine</span></div>
         </div>
       </div>
 
