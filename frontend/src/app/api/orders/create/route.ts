@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
         console.error('[Order Flow] UC Bot Topup Error:', e);
       }
 
-      initialStatus = 'fulfilled';
+      initialStatus = 'completed';
     }
 
     let insertedOrder: any = null;
