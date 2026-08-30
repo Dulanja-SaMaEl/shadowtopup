@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { executeUCBotTopup } from '@/lib/ucbotService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -143,8 +144,15 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
       }]);
 
-      // Order will be inserted as 'pending' — the LOCAL WORKER picks this up
-      // and performs the actual Garena topup via shop.garena.my
+      // Trigger UCBot Topup API delivery with new token
+      try {
+        const ucBotRes = await executeUCBotTopup(sanitizedPlayerUid, packageName || '25 Diamonds');
+        console.log('[Order Flow] UC Bot Topup Result:', ucBotRes);
+        topupDispatchMsg = ucBotRes.message;
+      } catch (e: any) {
+        console.error('[Order Flow] UC Bot Topup Error:', e);
+      }
+
       initialStatus = 'pending';
     }
 
