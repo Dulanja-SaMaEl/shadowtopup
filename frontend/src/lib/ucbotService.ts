@@ -18,16 +18,16 @@ export async function executeUCBotTopup(
   region: string = 'sg'
 ): Promise<UCBotTopupResult> {
   const cleanUid = String(playerUid || '').trim();
-  const useruid = process.env.HL_GAMING_USERUID || 'adminshadowtopup.com@gmail.com';
-  const apiKey = process.env.HL_GAMING_API_KEY || 'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
+  const ucBotEmail = process.env.UC_BOT_EMAIL || 'adminshadowtopup.com@gmail.com';
+  const ucBotApiKey = process.env.UC_BOT_API_KEY || 'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
   const generatedTxId = `UCB_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
   console.log(`[UC Bot Engine] Initiating automated topup via API...`);
   console.log(`[UC Bot Engine] Target Player UID: ${cleanUid} | Package: ${packageName}`);
 
   try {
-    // 1. Send topup request to UC Bot / HL Gaming API Endpoint
-    const url = `https://proapis.hlgamingofficial.com/main/games/freefire/account/api?sectionName=AllData&PlayerUid=${cleanUid}&region=${region}&useruid=${encodeURIComponent(useruid)}&api=${apiKey}`;
+    // Send request to UC Bot API Endpoint
+    const url = `https://proapis.hlgamingofficial.com/main/games/freefire/account/api?sectionName=AllData&PlayerUid=${cleanUid}&region=${region}&useruid=${encodeURIComponent(ucBotEmail)}&api=${ucBotApiKey}`;
 
     const response = await fetch(url, {
       method: 'GET',
