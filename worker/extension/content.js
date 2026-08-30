@@ -34,41 +34,43 @@ function delay(ms) {
 // ── Detect Exact Shell Balance from shop.garena.my DOM ──
 function detectExactGarenaShellBalance() {
   try {
-    // 1. Direct target matching svg[aria-label="Shell"] DOM pattern provided by shop.garena.my
+    // 1. Direct target matching exact HTML: <div class="flex..."><svg aria-label="Shell">...</svg><div class="text-ellipsis font-bold">VAL</div></div>
     const shellSvg = document.querySelector('svg[aria-label="Shell"]');
     if (shellSvg) {
-      const container = shellSvg.closest('div.flex, div') || shellSvg.parentElement;
-      if (container) {
-        const textEl = container.querySelector('div.text-ellipsis, div, span') || container;
-        const rawText = textEl.textContent.trim().replace(/,/g, '');
-        const bal = parseInt(rawText, 10);
-        if (!isNaN(bal)) {
-          return bal;
+      const parentContainer = shellSvg.closest('div.flex') || shellSvg.parentElement;
+      if (parentContainer) {
+        const valDiv = parentContainer.querySelector('div.text-ellipsis') || parentContainer.querySelector('div.font-bold');
+        if (valDiv) {
+          const cleanText = valDiv.textContent.trim().replace(/,/g, '');
+          const parsedVal = parseInt(cleanText, 10);
+          if (!isNaN(parsedVal)) {
+            console.log(`[ShadowTopUp Extension] 🐚 Parsed exact DOM balance: ${parsedVal}`);
+            return parsedVal;
+          }
         }
       }
     }
 
-    // 2. Query selector for text-ellipsis divs near Shell SVG
-    const textEls = Array.from(document.querySelectorAll('div.text-ellipsis, span.font-bold, div.font-bold'));
+    // 2. Query selector fallback for div.text-ellipsis containing numbers next to Shell SVG
+    const textEls = Array.from(document.querySelectorAll('div.text-ellipsis, div.font-bold, span.font-bold'));
     for (const el of textEls) {
       const parent = el.parentElement;
       if (parent && (parent.querySelector('svg[aria-label="Shell"]') || parent.innerHTML.includes('aria-label="Shell"'))) {
-        const rawText = el.textContent.trim().replace(/,/g, '');
-        const bal = parseInt(rawText, 10);
+        const cleanText = el.textContent.trim().replace(/,/g, '');
+        const bal = parseInt(cleanText, 10);
         if (!isNaN(bal)) return bal;
       }
     }
 
-    // 3. Search all text elements for pure numbers near Shell icon
-    const allDivs = Array.from(document.querySelectorAll('div'));
-    for (const div of allDivs) {
-      if (div.children.length === 0) {
-        const txt = div.textContent.trim();
-        if (/^\d+$/.test(txt)) {
-          const p = div.parentElement;
-          if (p && p.querySelector('svg')) {
-            const bal = parseInt(txt, 10);
-            if (!isNaN(bal)) return bal;
+    // 3. Search all pure number text nodes inside flex containers
+    const flexContainers = Array.from(document.querySelectorAll('div.flex'));
+    for (const flexDiv of flexContainers) {
+      if (flexDiv.querySelector('svg[aria-label="Shell"]')) {
+        const childTexts = Array.from(flexDiv.querySelectorAll('div, span')).map(c => c.textContent.trim().replace(/,/g, ''));
+        for (const txt of childTexts) {
+          if (/^\d+$/.test(txt)) {
+            const num = parseInt(txt, 10);
+            if (!isNaN(num)) return num;
           }
         }
       }
