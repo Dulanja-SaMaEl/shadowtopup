@@ -149,11 +149,25 @@ export async function POST(request: NextRequest) {
         const ucBotRes = await executeUCBotTopup(sanitizedPlayerUid, packageName || '25 Diamonds');
         console.log('[Order Flow] UC Bot Topup Result:', ucBotRes);
         topupDispatchMsg = ucBotRes.message;
+
+        // Deduct Shell stock from target shell account inventory in Supabase
+        if (targetShellAcc && targetShellAcc.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
+          const currentBal = typeof targetShellAcc.available_balance === 'number' ? targetShellAcc.available_balance : 6523;
+          const newShellBal = Math.max(0, currentBal - requiredShellCost);
+          await adminSupabase
+            .from('shell_accounts')
+            .update({
+              available_balance: newShellBal,
+              last_synced_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', targetShellAcc.id);
+        }
       } catch (e: any) {
         console.error('[Order Flow] UC Bot Topup Error:', e);
       }
 
-      initialStatus = 'pending';
+      initialStatus = 'fulfilled';
     }
 
     let insertedOrder: any = null;
