@@ -146,9 +146,20 @@ export async function POST(request: NextRequest) {
 
       // Trigger UCBot Topup API delivery with new token
       try {
-        const ucBotRes = await executeUCBotTopup(sanitizedPlayerUid, packageName || '25 Diamonds');
+        const ucBotRes = await executeUCBotTopup(
+          sanitizedPlayerUid,
+          packageName || '25 Diamonds',
+          'sg',
+          targetShellAcc?.account_username,
+          targetShellAcc?.password,
+          '' // autocode
+        );
         console.log('[Order Flow] UC Bot Topup Result:', ucBotRes);
         topupDispatchMsg = ucBotRes.message;
+        
+        if (!ucBotRes.success) {
+          throw new Error(ucBotRes.message);
+        }
 
         // Deduct Shell stock from target shell account inventory in Supabase
         if (targetShellAcc && targetShellAcc.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {

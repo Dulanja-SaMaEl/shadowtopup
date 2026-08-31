@@ -7,6 +7,30 @@ export interface UCBotTopupResult {
 }
 
 /**
+ * Resolves standard package names (e.g. "100 Diamonds", "Weekly Membership") to UC Bot pack_id
+ */
+export function resolveUCBotPackId(packageName: string): string {
+  const nameLower = (packageName || '').toLowerCase();
+
+  if (nameLower.includes('weekly')) return 'weekly';
+  if (nameLower.includes('monthly')) return 'monthly';
+
+  const digitsMatch = nameLower.match(/\d+/);
+  if (digitsMatch) {
+    const num = parseInt(digitsMatch[0], 10);
+    if (num <= 30) return '25';
+    if (num <= 70) return '50';
+    if (num <= 150) return '100';
+    if (num <= 400) return '310';
+    if (num <= 800) return '520';
+    if (num <= 1500) return '1060';
+    return '2180';
+  }
+
+  return '100';
+}
+
+/**
  * Verifies Free Fire Player ID & retrieves player details via HL Gaming API
  * Email: adminshadowtopup.com@gmail.com
  * Key: a29b37d3-dc90-4c79-9a7d-59b977b6e597
@@ -45,35 +69,80 @@ export async function verifyUCBotPlayer(playerUid: string, region: string = 'sg'
 export async function executeUCBotTopup(
   playerUid: string,
   packageName: string,
-  region: string = 'sg'
+  region: string = 'sg',
+  shellUsername?: string,
+  shellPassword?: string,
+  shellAutocode?: string
 ): Promise<UCBotTopupResult> {
   const cleanUid = String(playerUid || '').trim();
-  const ucBotEmail = process.env.UC_BOT_EMAIL || 'adminshadowtopup.com@gmail.com';
-  const ucBotApiKey = process.env.UC_BOT_API_KEY || 'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
+  const ucBotToken = process.env.UC_BOT_API_KEY || 'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
+  const packId = resolveUCBotPackId(packageName);
   const generatedTxId = `UCB_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
-  console.log(`[UC Bot Topup Engine] Initiating automated topup execution...`);
-  console.log(`[UC Bot Topup Engine] Target Player UID: ${cleanUid} | Package: ${packageName}`);
+  console.log(`[UC Bot Topup Engine] Initiating automated topup execution for ${packageName} (Pack ID: ${packId})...`);
+  console.log(`[UC Bot Topup Engine] Target Player UID: ${cleanUid}`);
 
   try {
     // 1. Retrieve player details using HL Gaming verification API
     const playerCheck = await verifyUCBotPlayer(cleanUid, region);
     const nickname = playerCheck.nickname || `Player_${cleanUid.slice(-4)}`;
 
-    return {
-      success: true,
-      transactionId: generatedTxId,
-      playerNickname: nickname,
-      message: `UC Bot topup executed for ${nickname} (UID: ${cleanUid}).`,
-      rawResponse: playerCheck.data || null,
+    // 2. Execute Topup via new ffapi.ucbot.net/topup-sync endpoint
+    const topupUrl = 'https://ffapi.ucbot.net/topup-sync';
+    const payload = {
+      orderid: generatedTxId,
+      playerid: cleanUid,
+      code: 'lkshell',
+      package: packId,
+      username: shellUsername || 'SHADOW_TOPUP1',
+      password: shellPassword || 'Shadow123@',
+      autocode: shellAutocode || ''
     };
+
+    const response = await fetch(topupUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': ucBotToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const responseText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.log('[UC Bot Topup Engine] Raw Response:', responseText);
+      data = { error: responseText };
+    }
+
+    if (response.ok && !data.error && data.status !== 'error' && (!data.detail || data.detail.status !== 'error')) {
+      console.log('[UC Bot Topup Engine] Topup API Success:', data);
+      return {
+        success: true,
+        transactionId: data.orderid || data.txid || generatedTxId,
+        playerNickname: nickname,
+        message: `UC Bot topup executed successfully for ${nickname} (UID: ${cleanUid}).`,
+        rawResponse: data,
+      };
+    } else {
+      console.error('[UC Bot Topup Engine] Topup API Error Response:', data);
+      return {
+        success: false,
+        transactionId: generatedTxId,
+        playerNickname: nickname,
+        message: `Topup failed: ${data.error || (data.detail && data.detail.error) || 'Unknown API Error'}`,
+        rawResponse: data,
+      };
+    }
   } catch (err: any) {
     console.error('[UC Bot Topup Engine] Execution Error:', err);
     return {
-      success: true,
+      success: false,
       transactionId: generatedTxId,
       playerNickname: `Player_${cleanUid.slice(-4)}`,
-      message: `UC Bot topup registered for Player ID ${cleanUid}`,
+      message: `Topup execution error for Player ID ${cleanUid}: ${err.message}`,
     };
   }
 }
