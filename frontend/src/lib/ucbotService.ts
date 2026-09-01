@@ -96,7 +96,7 @@ export async function executeUCBotTopup(
       package: packId,
       username: shellUsername || 'SHADOW_TOPUP1',
       password: shellPassword || 'Shadow123@',
-      autocode: shellAutocode || ''
+      autocode: shellAutocode || ucBotToken
     };
 
     const response = await fetch(topupUrl, {
