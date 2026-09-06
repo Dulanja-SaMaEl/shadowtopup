@@ -13,13 +13,22 @@ export default function AdminShellAccountsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editAcc, setEditAcc] = useState<ShellAccount | null>(null);
   const [editBalance, setEditBalance] = useState('');
+  const [editAutocode, setEditAutocode] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Form states for Add
   const [username, setUsername] = useState('SHADOW_TOPUP1');
   const [password, setPassword] = useState('Shadow123@');
+  const [autocode, setAutocode] = useState('5ZEEJ3VDKEXSSD6J');
   const [isMain, setIsMain] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Test UC Bot modal states
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+  const [testPlayerId, setTestPlayerId] = useState('8718615060');
+  const [testPackage, setTestPackage] = useState('25 Diamonds');
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
 
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -105,23 +114,28 @@ export default function AdminShellAccountsPage() {
 
     setSavingEdit(true);
     try {
+      const cleanAuto = editAutocode.replace(/[\s-]+/g, '').trim();
       const res = await fetch('/api/admin/shell-accounts', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editAcc.id, available_balance: newBal }),
+        body: JSON.stringify({
+          id: editAcc.id,
+          available_balance: newBal,
+          autocode: cleanAuto,
+        }),
       });
       const json = await res.json();
       if (json.success) {
         setAccounts((prev) =>
-          prev.map((a) => (a.id === editAcc.id ? { ...a, available_balance: newBal, last_synced_at: json.lastSyncedAt } : a))
+          prev.map((a) => (a.id === editAcc.id ? { ...a, available_balance: newBal, autocode: cleanAuto, last_synced_at: json.lastSyncedAt } : a))
         );
-        showToast('success', `Successfully set Shell balance for ${editAcc.account_username} to ${newBal.toLocaleString()} Shells!`);
+        showToast('success', `Successfully updated ${editAcc.account_username}! Balance: ${newBal.toLocaleString()} Shells.`);
         setEditAcc(null);
       } else {
-        showToast('error', json.message || 'Failed to update balance');
+        showToast('error', json.message || 'Failed to update account');
       }
     } catch (e) {
-      showToast('error', 'Failed to save updated balance');
+      showToast('error', 'Failed to save updated account details');
     } finally {
       setSavingEdit(false);
     }
@@ -131,12 +145,14 @@ export default function AdminShellAccountsPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      const cleanAuto = autocode.replace(/[\s-]+/g, '').trim();
       const res = await fetch('/api/admin/shell-accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           account_username: username,
           password: password,
+          autocode: cleanAuto,
           is_main: isMain,
         }),
       });
@@ -148,6 +164,7 @@ export default function AdminShellAccountsPage() {
         setIsAddModalOpen(false);
         setUsername('SHADOW_TOPUP1');
         setPassword('Shadow-2008');
+        setAutocode('5ZEEJ3VDKEXSSD6J');
       } else {
         showToast('error', data.message || 'Failed to add shell account');
       }
@@ -155,6 +172,34 @@ export default function AdminShellAccountsPage() {
       showToast('error', err.message || 'Failed to connect to API');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestUCBot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/admin/ucbot/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerId: testPlayerId,
+          packageName: testPackage,
+        }),
+      });
+      const data = await res.json();
+      setTestResult(data);
+      if (data.success) {
+        showToast('success', data.message || 'UC Bot topup executed successfully!');
+      } else {
+        showToast('error', data.message || 'UC Bot topup failed');
+      }
+    } catch (err: any) {
+      setTestResult({ success: false, message: err.message });
+      showToast('error', 'Error calling UC Bot test endpoint');
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -214,6 +259,19 @@ export default function AdminShellAccountsPage() {
 
         <div className="flex items-center gap-3">
           <button
+            onClick={() => {
+              setTestPlayerId('8718615060');
+              setTestPackage('25 Diamonds');
+              setTestResult(null);
+              setIsTestModalOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-cyan-950/80 border border-cyan-800/80 text-cyan-300 hover:text-white hover:border-cyan-500 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all"
+          >
+            <Zap className="w-4 h-4 text-cyan-400" />
+            <span>Test UC Bot Dispatch</span>
+          </button>
+
+          <button
             onClick={handleSyncAll}
             disabled={syncingAll}
             className="px-4 py-2.5 rounded-xl bg-slate-900 border border-purple-900/60 text-purple-300 hover:text-white hover:border-purple-600 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all disabled:opacity-50"
@@ -226,6 +284,7 @@ export default function AdminShellAccountsPage() {
             onClick={() => {
               setUsername('SHADOW_TOPUP1');
               setPassword('Shadow-2008');
+              setAutocode('5ZEEJ3VDKEXSSD6J');
               setIsMain(true);
               setIsAddModalOpen(true);
             }}
@@ -259,6 +318,7 @@ export default function AdminShellAccountsPage() {
               <tr>
                 <th className="p-4">Account ID</th>
                 <th className="p-4">Garena Username</th>
+                <th className="p-4">2FA Autocode (Setup Key)</th>
                 <th className="p-4">Available Shell Stock</th>
                 <th className="p-4">Last Synced</th>
                 <th className="p-4">Account Role</th>
@@ -268,11 +328,11 @@ export default function AdminShellAccountsPage() {
             <tbody className="divide-y divide-slate-800/60 font-mono">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-500">Loading shell accounts...</td>
+                  <td colSpan={7} className="p-6 text-center text-slate-500">Loading shell accounts...</td>
                 </tr>
               ) : accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-500">No Garena shell accounts configured. Click "Add Shell Account" above!</td>
+                  <td colSpan={7} className="p-6 text-center text-slate-500">No Garena shell accounts configured. Click "Add Shell Account" above!</td>
                 </tr>
               ) : (
                 accounts.map((acc) => (
@@ -281,6 +341,19 @@ export default function AdminShellAccountsPage() {
                     <td className="p-4 font-extrabold text-white uppercase flex items-center gap-2">
                       <Zap className="w-3.5 h-3.5 text-cyan-400" />
                       <span>{acc.account_username}</span>
+                    </td>
+                    <td className="p-4">
+                      {acc.autocode ? (
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1.5 w-fit">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{acc.autocode.slice(0, 4)}••••{acc.autocode.slice(-4)}</span>
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-mono font-bold flex items-center gap-1.5 w-fit">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Default Key Active</span>
+                        </span>
+                      )}
                     </td>
                     <td className="p-4">
                       <span className="text-base font-black text-purple-400 font-mono">
@@ -307,9 +380,10 @@ export default function AdminShellAccountsPage() {
                           onClick={() => {
                             setEditAcc(acc);
                             setEditBalance(String(acc.available_balance || 0));
+                            setEditAutocode(acc.autocode || '5ZEEJ3VDKEXSSD6J');
                           }}
                           className="px-3 py-1.5 rounded-xl bg-indigo-950/80 border border-indigo-800/80 text-indigo-300 hover:text-white hover:bg-indigo-900 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-all"
-                          title="Edit Shell Balance"
+                          title="Edit Shell Account & Autocode"
                         >
                           <Edit2 className="w-3.5 h-3.5 text-indigo-400" />
                           <span>Edit</span>
@@ -371,6 +445,22 @@ export default function AdminShellAccountsPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                  Google Authenticator 2FA Setup Key (Autocode)
+                </label>
+                <input
+                  type="text"
+                  value={editAutocode}
+                  onChange={(e) => setEditAutocode(e.target.value)}
+                  placeholder="e.g. 5ZEEJ3VDKEXSSD6J"
+                  className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-cyan-300 font-bold focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
+                />
+                <span className="text-[9px] text-slate-500 mt-1 block">
+                  Found in shop.garena.my Security Settings &rarr; Google Authenticator setup key
+                </span>
+              </div>
+
               {/* Quick Add Presets */}
               <div className="space-y-1">
                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Quick Add Shells:</span>
@@ -399,7 +489,7 @@ export default function AdminShellAccountsPage() {
               </div>
 
               <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[10px] text-slate-400 font-sans">
-                💡 Enter or adjust the exact Shell count shown on your Garena account (e.g. 1,300 Shells). No Chrome extension required!
+                💡 Enter or adjust the exact Shell count and 2FA Autocode shown on your Garena account.
               </div>
 
               <button
@@ -407,7 +497,7 @@ export default function AdminShellAccountsPage() {
                 disabled={savingEdit}
                 className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-black uppercase tracking-wider shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 font-sans text-xs disabled:opacity-50"
               >
-                {savingEdit ? 'Saving...' : <><Save className="w-4 h-4" /> Save Shell Balance</>}
+                {savingEdit ? 'Saving...' : <><Save className="w-4 h-4" /> Save Account & Autocode</>}
               </button>
             </form>
           </div>
@@ -421,7 +511,7 @@ export default function AdminShellAccountsPage() {
             <div className="flex justify-between items-center border-b border-slate-800 pb-4">
               <div>
                 <h3 className="text-sm font-black text-white uppercase tracking-wider">Add Garena Shell Account</h3>
-                <p className="text-[10px] text-slate-400 font-mono">Connect official shop.garena.my credentials</p>
+                <p className="text-[10px] text-slate-400 font-mono">Connect official shop.garena.my credentials & 2FA key</p>
               </div>
               <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -453,6 +543,23 @@ export default function AdminShellAccountsPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                  Google Authenticator 2FA Setup Key (Autocode)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={autocode}
+                  onChange={(e) => setAutocode(e.target.value)}
+                  placeholder="e.g. 5ZEEJ3VDKEXSSD6J"
+                  className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-cyan-300 font-bold focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
+                />
+                <span className="text-[9px] text-slate-500 mt-1 block">
+                  Setup key from Google Authenticator setup on Garena
+                </span>
+              </div>
+
               <div className="flex items-center gap-2 pt-2">
                 <input
                   type="checkbox"
@@ -471,7 +578,121 @@ export default function AdminShellAccountsPage() {
                 disabled={saving}
                 className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-black uppercase tracking-wider shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 font-sans text-xs disabled:opacity-50"
               >
-                {saving ? 'Adding...' : 'Save Account'}
+                {saving ? 'Adding...' : 'Save Account & Autocode'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Test UC Bot Topup Modal */}
+      {isTestModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-[#141229] border border-cyan-900/60 rounded-3xl p-6 space-y-5 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-cyan-400" /> UC Bot API Live Dispatch Test
+                </h3>
+                <p className="text-[10px] text-slate-400 font-mono">Test direct connection to ffapi.ucbot.net/topup-sync</p>
+              </div>
+              <button onClick={() => setIsTestModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleTestUCBot} className="space-y-4 text-xs font-mono">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Target Player UID</label>
+                <input
+                  type="text"
+                  required
+                  value={testPlayerId}
+                  onChange={(e) => setTestPlayerId(e.target.value)}
+                  placeholder="e.g. 8718615060"
+                  className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-cyan-300 font-bold focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Package Name / Pack ID</label>
+                <input
+                  type="text"
+                  required
+                  value={testPackage}
+                  onChange={(e) => setTestPackage(e.target.value)}
+                  placeholder="e.g. 25 Diamonds or 25"
+                  className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-bold focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#0e0c1f] border border-slate-800 text-[11px] text-slate-300 space-y-1">
+                <div className="text-[10px] font-bold uppercase text-slate-500">Active Test Configuration:</div>
+                <div className="flex justify-between">
+                  <span>Shell Account:</span>
+                  <span className="text-white font-bold">{accounts[0]?.account_username || 'SHADOW_TOPUP1'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>2FA Autocode:</span>
+                  <span className="text-emerald-400 font-bold">5ZEEJ3VDKEXSSD6J</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Target Endpoint:</span>
+                  <span className="text-cyan-400 font-bold">https://ffapi.ucbot.net/topup-sync</span>
+                </div>
+              </div>
+
+              {testResult && (
+                <div className={`p-4 rounded-xl border space-y-2 text-xs font-mono ${
+                  testResult.success
+                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                    : 'bg-red-950/40 border-red-500/40 text-red-300'
+                }`}>
+                  <div className="flex items-center gap-2 font-bold">
+                    {testResult.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    )}
+                    <span>{testResult.message}</span>
+                  </div>
+                  {testResult.playerNickname && (
+                    <div className="text-[11px] text-slate-300">
+                      Player Nickname: <strong className="text-white">{testResult.playerNickname}</strong>
+                    </div>
+                  )}
+                  {testResult.transactionId && (
+                    <div className="text-[10px] text-slate-400">
+                      Tx ID: {testResult.transactionId}
+                    </div>
+                  )}
+                  {testResult.rawResponse && (
+                    <details className="mt-2 text-[10px]">
+                      <summary className="cursor-pointer text-slate-400 hover:text-white">View Raw Response JSON</summary>
+                      <pre className="mt-1 p-2 bg-black/60 rounded border border-slate-800 overflow-x-auto text-[9px] text-slate-300">
+                        {JSON.stringify(testResult.rawResponse, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={testing}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-black uppercase tracking-wider shadow-lg shadow-cyan-600/30 flex items-center justify-center gap-2 font-sans text-xs disabled:opacity-50"
+              >
+                {testing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Executing UC Bot Topup...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4" />
+                    <span>Send Test Topup Request</span>
+                  </>
+                )}
               </button>
             </form>
           </div>

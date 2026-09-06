@@ -108,7 +108,9 @@ export async function POST(request: NextRequest) {
         targetShellAcc = {
           id: 'shell_fallback_1',
           account_username: 'SHADOW_TOPUP1',
-          available_balance: 13,
+          password: 'Shadow123@',
+          autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
+          available_balance: 6523,
           is_main: true,
         };
       }
@@ -144,15 +146,16 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
       }]);
 
-      // Trigger UCBot Topup API delivery with new token
+      // Trigger UCBot Topup API delivery with target shell account credentials & 2FA autocode
       try {
+        const shellAutocode = targetShellAcc?.autocode || process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J';
         const ucBotRes = await executeUCBotTopup(
           sanitizedPlayerUid,
           packageName || '25 Diamonds',
           'sg',
-          targetShellAcc?.account_username,
-          targetShellAcc?.password,
-          '' // autocode
+          targetShellAcc?.account_username || 'SHADOW_TOPUP1',
+          targetShellAcc?.password || 'Shadow123@',
+          shellAutocode
         );
         console.log('[Order Flow] UC Bot Topup Result:', ucBotRes);
         topupDispatchMsg = ucBotRes.message;

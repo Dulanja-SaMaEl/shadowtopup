@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
         id: 'shell_1',
         account_username: 'SHADOW_TOPUP1',
         password: 'Shadow123@',
+        autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
         available_balance: 6523,
         is_main: true,
         last_synced_at: new Date().toISOString(),
@@ -61,10 +62,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { account_username, password, is_main = false } = body;
+    const { account_username, password, autocode, is_main = false } = body;
 
     const usernameStr = String(account_username || '').trim();
     const passwordStr = String(password || '').trim();
+    const autocodeStr = String(autocode || process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J').replace(/[\s-]+/g, '').trim();
 
     if (!usernameStr || !passwordStr) {
       return NextResponse.json({ success: false, message: 'Username and password are required' }, { status: 400 });
@@ -80,9 +82,10 @@ export async function POST(request: NextRequest) {
       await adminSupabase.from('shell_accounts').update({ is_main: false }).neq('id', '0');
     }
 
-    const newAcc = {
+    const newAcc: any = {
       account_username: usernameStr,
       password: passwordStr,
+      autocode: autocodeStr,
       available_balance: (syncRes.balance && syncRes.balance > 0) ? syncRes.balance : 6523,
       is_main: is_main,
       last_synced_at: syncRes.lastSyncedAt || new Date().toISOString(),
@@ -132,40 +135,48 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, available_balance, account_username } = body;
-
-    const parsedBalance = parseFloat(available_balance);
-    if (isNaN(parsedBalance) || parsedBalance < 0) {
-      return NextResponse.json({ success: false, message: 'Invalid balance amount' }, { status: 400 });
-    }
+    const { id, available_balance, account_username, autocode, password } = body;
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
     const nowIso = new Date().toISOString();
 
+    const updateFields: any = {
+      updated_at: nowIso,
+    };
+
+    if (available_balance !== undefined && available_balance !== null && available_balance !== '') {
+      const parsedBalance = parseFloat(available_balance);
+      if (isNaN(parsedBalance) || parsedBalance < 0) {
+        return NextResponse.json({ success: false, message: 'Invalid balance amount' }, { status: 400 });
+      }
+      updateFields.available_balance = parsedBalance;
+      updateFields.last_synced_at = nowIso;
+    }
+
+    if (autocode !== undefined) {
+      updateFields.autocode = String(autocode).replace(/[\s-]+/g, '').trim();
+    }
+
+    if (password) {
+      updateFields.password = String(password).trim();
+    }
+
     if (id) {
       await adminSupabase
         .from('shell_accounts')
-        .update({
-          available_balance: parsedBalance,
-          last_synced_at: nowIso,
-          updated_at: nowIso,
-        })
+        .update(updateFields)
         .eq('id', id);
     } else if (account_username) {
       await adminSupabase
         .from('shell_accounts')
-        .update({
-          available_balance: parsedBalance,
-          last_synced_at: nowIso,
-          updated_at: nowIso,
-        })
+        .update(updateFields)
         .eq('account_username', account_username);
     }
 
     return NextResponse.json({
       success: true,
-      message: `Shell account balance updated to ${parsedBalance.toLocaleString()} Shells`,
-      balance: parsedBalance,
+      message: `Shell account updated successfully`,
+      updatedFields: updateFields,
       lastSyncedAt: nowIso,
     });
   } catch (err: any) {

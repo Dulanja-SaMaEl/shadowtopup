@@ -7,14 +7,39 @@ export interface UCBotTopupResult {
 }
 
 /**
- * Resolves standard package names (e.g. "100 Diamonds", "Weekly Membership") to UC Bot pack_id
+ * Resolves standard package names (e.g. "100 Diamonds", "Weekly Membership", "Level Up Pass - LV6") to UC Bot pack_id
  */
 export function resolveUCBotPackId(packageName: string): string {
-  const nameLower = (packageName || '').toLowerCase();
+  const nameLower = (packageName || '').trim().toLowerCase();
 
-  if (nameLower.includes('weekly')) return 'weekly';
-  if (nameLower.includes('monthly')) return 'monthly';
+  // If already a valid pack code from UC Bot API specification (e.g. "25", "100", "lvl6", "weekly", etc.)
+  if (/^(25|50|100|310|520|1060|2180|5600|lvl6|lvl10|lvl30|weekly|weekly_lite|monthly)$/i.test(nameLower)) {
+    return nameLower;
+  }
 
+  // Level Up Passes (Handle before digit match so LV6 doesn't match '25')
+  if (nameLower.includes('lv6') || nameLower.includes('lvl6') || (nameLower.includes('level up') && nameLower.includes('6'))) {
+    return 'lvl6';
+  }
+  if (nameLower.includes('lv10') || nameLower.includes('lvl10') || (nameLower.includes('level up') && nameLower.includes('10'))) {
+    return 'lvl10';
+  }
+  if (nameLower.includes('lv30') || nameLower.includes('lvl30') || (nameLower.includes('level up') && (nameLower.includes('30') || nameLower.includes('max')))) {
+    return 'lvl30';
+  }
+
+  // Memberships
+  if (nameLower.includes('weekly lite') || nameLower.includes('lite pass')) {
+    return 'weekly_lite';
+  }
+  if (nameLower.includes('weekly')) {
+    return 'weekly';
+  }
+  if (nameLower.includes('monthly')) {
+    return 'monthly';
+  }
+
+  // Standard Diamond Packages
   const digitsMatch = nameLower.match(/\d+/);
   if (digitsMatch) {
     const num = parseInt(digitsMatch[0], 10);
@@ -24,7 +49,8 @@ export function resolveUCBotPackId(packageName: string): string {
     if (num <= 400) return '310';
     if (num <= 800) return '520';
     if (num <= 1500) return '1060';
-    return '2180';
+    if (num <= 3000) return '2180';
+    return '5600';
   }
 
   return '100';
@@ -64,7 +90,8 @@ export async function verifyUCBotPlayer(playerUid: string, region: string = 'sg'
 
 /**
  * Topup Execution Handler
- * Uses UC Bot credentials (adminshadowtopup.com@gmail.com / a29b37d3-dc90-4c79-9a7d-59b977b6e597)
+ * Dispatches automated Free Fire topup via UC Bot API (ffapi.ucbot.net/topup-sync)
+ * Uses Garena Authenticator setup key (autocode) for automated 2FA authentication
  */
 export async function executeUCBotTopup(
   playerUid: string,
@@ -79,15 +106,21 @@ export async function executeUCBotTopup(
   const packId = resolveUCBotPackId(packageName);
   const generatedTxId = `UCB_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
+  // Clean setup key / autocode (strip spaces, tabs, dashes often copied from Google Authenticator setup screen)
+  const defaultAutocode = process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J';
+  const rawAutocode = (shellAutocode && shellAutocode.trim() !== '') ? shellAutocode : defaultAutocode;
+  const cleanAutocode = String(rawAutocode).replace(/[\s-]+/g, '').trim();
+
   console.log(`[UC Bot Topup Engine] Initiating automated topup execution for ${packageName} (Pack ID: ${packId})...`);
   console.log(`[UC Bot Topup Engine] Target Player UID: ${cleanUid}`);
+  console.log(`[UC Bot Topup Engine] Using Garena Account: ${shellUsername || 'SHADOW_TOPUP1'} with 2FA Autocode configured`);
 
   try {
     // 1. Retrieve player details using HL Gaming verification API
     const playerCheck = await verifyUCBotPlayer(cleanUid, region);
     const nickname = playerCheck.nickname || `Player_${cleanUid.slice(-4)}`;
 
-    // 2. Execute Topup via new ffapi.ucbot.net/topup-sync endpoint
+    // 2. Execute Topup via ffapi.ucbot.net/topup-sync endpoint
     const topupUrl = 'https://ffapi.ucbot.net/topup-sync';
     const payload = {
       orderid: generatedTxId,
@@ -96,7 +129,7 @@ export async function executeUCBotTopup(
       package: packId,
       username: shellUsername || 'SHADOW_TOPUP1',
       password: shellPassword || 'Shadow123@',
-      autocode: shellAutocode || ucBotToken
+      autocode: cleanAutocode
     };
 
     const response = await fetch(topupUrl, {
