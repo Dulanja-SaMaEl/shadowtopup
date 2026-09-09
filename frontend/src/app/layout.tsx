@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google';
 import { Suspense } from 'react';
 import './globals.css';
 import AppLayout from '@/components/AppLayout';
-import CustomCursor from '@/components/CustomCursor';
 import PagePreloader from '@/components/PagePreloader';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -26,7 +25,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
-        <CustomCursor />
         <Suspense fallback={null}>
           <PagePreloader />
         </Suspense>
