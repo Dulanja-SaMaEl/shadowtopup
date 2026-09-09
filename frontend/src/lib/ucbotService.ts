@@ -3,6 +3,9 @@ export interface UCBotTopupResult {
   message: string;
   transactionId?: string;
   playerNickname?: string;
+  items?: string;
+  balanceUsed?: number;
+  postBalance?: number;
   rawResponse?: any;
 }
 
@@ -150,22 +153,29 @@ export async function executeUCBotTopup(
       data = { error: responseText };
     }
 
-    if (response.ok && !data.error && data.status !== 'error' && (!data.detail || data.detail.status !== 'error')) {
+    const isSuccess = response.ok && (data.status === 'success' || (!data.error && !data.detail && Boolean(data.trx_id)));
+    if (isSuccess) {
+      const liveNickname = data.nickname || nickname;
+      const liveTxId = data.trx_id || data.orderid || data.txid || generatedTxId;
       console.log('[UC Bot Topup Engine] Topup API Success:', data);
       return {
         success: true,
-        transactionId: data.orderid || data.txid || generatedTxId,
-        playerNickname: nickname,
-        message: `UC Bot topup executed successfully for ${nickname} (UID: ${cleanUid}).`,
+        transactionId: liveTxId,
+        playerNickname: liveNickname,
+        items: data.items || packageName,
+        balanceUsed: data.balance_used,
+        postBalance: data.post_balance,
+        message: `UC Bot topup executed successfully! ${data.items || packageName} delivered to ${liveNickname} (UID: ${cleanUid}).`,
         rawResponse: data,
       };
     } else {
+      const errMsg = data.error || (data.detail && data.detail.error) || (data.detail && data.detail.message) || data.message || 'Garena topup delivery failed.';
       console.error('[UC Bot Topup Engine] Topup API Error Response:', data);
       return {
         success: false,
         transactionId: generatedTxId,
-        playerNickname: nickname,
-        message: `Topup failed: ${data.error || (data.detail && data.detail.error) || 'Unknown API Error'}`,
+        playerNickname: data.nickname || nickname,
+        message: errMsg,
         rawResponse: data,
       };
     }

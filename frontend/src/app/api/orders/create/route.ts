@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
 
     let initialStatus = receiptUrl ? 'proof_submitted' : 'pending';
     let topupDispatchMsg = '';
+    let ucBotSuccessData: any = null;
 
     // Handle Shadow Wallet Payment & Automated Garena Shell Delivery
     if (paymentMethod === 'shadow_wallet') {
@@ -147,9 +148,10 @@ export async function POST(request: NextRequest) {
       }]);
 
       // Trigger UCBot Topup API delivery with target shell account credentials & 2FA autocode
+      let ucBotRes: any = null;
       try {
         const shellAutocode = targetShellAcc?.autocode || process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J';
-        const ucBotRes = await executeUCBotTopup(
+        ucBotRes = await executeUCBotTopup(
           sanitizedPlayerUid,
           packageName || '25 Diamonds',
           'sg',
@@ -159,29 +161,76 @@ export async function POST(request: NextRequest) {
         );
         console.log('[Order Flow] UC Bot Topup Result:', ucBotRes);
         topupDispatchMsg = ucBotRes.message;
-        
-        if (!ucBotRes.success) {
-          throw new Error(ucBotRes.message);
-        }
-
-        // Deduct Shell stock from target shell account inventory in Supabase
-        if (targetShellAcc && targetShellAcc.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
-          const currentBal = typeof targetShellAcc.available_balance === 'number' ? targetShellAcc.available_balance : 6523;
-          const newShellBal = Math.max(0, currentBal - requiredShellCost);
-          await adminSupabase
-            .from('shell_accounts')
-            .update({
-              available_balance: newShellBal,
-              last_synced_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', targetShellAcc.id);
-        }
       } catch (e: any) {
-        console.error('[Order Flow] UC Bot Topup Error:', e);
+        console.error('[Order Flow] UC Bot Topup Exception:', e);
+        ucBotRes = {
+          success: false,
+          message: `UC Bot network error: ${e.message}`,
+        };
       }
 
+      // Check if Topup Delivery Failed
+      if (!ucBotRes || !ucBotRes.success) {
+        console.error('[Order Flow] Topup delivery failed! Reverting wallet deduction...');
+
+        // 1. REVERT WALLET DEDUCTION IMMEDIATELY (Safety Rollback)
+        await adminSupabase
+          .from('profiles')
+          .update({
+            wallet_balance: currentWalletBalance,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', effectiveUserId);
+
+        // 2. Record the failed purchase attempt in wallet_transactions for audit
+        await adminSupabase.from('wallet_transactions').insert([{
+          user_id: effectiveUserId,
+          type: 'PACKAGE_PURCHASE',
+          amount: 0,
+          balance_after: currentWalletBalance,
+          description: `Topup delivery failed for ${packageName} (UID: ${sanitizedPlayerUid}). Reason: ${ucBotRes?.message || 'Delivery error'}. Your wallet was NOT charged.`,
+          created_at: new Date().toISOString(),
+        }]);
+
+        // 3. Insert into orders table as 'failed' so user & admin have record of the attempt
+        await adminSupabase.from('orders').insert([{
+          user_id: effectiveUserId,
+          total_amount: amountToDeduct,
+          status: 'failed',
+          admin_note: `Topup delivery failed via UC Bot: ${ucBotRes?.message || 'Unknown error'}`,
+          free_fire_player_id: sanitizedPlayerUid,
+          package_name: packageName,
+          payment_method: 'shadow_wallet',
+        }]);
+
+        // 4. Return clear error response (DO NOT generate completed receipt!)
+        return NextResponse.json({
+          success: false,
+          message: ucBotRes?.message || 'Topup delivery failed on Garena. Your Shadow Wallet was NOT charged.',
+          error: ucBotRes?.message || 'Topup delivery failed',
+          details: ucBotRes?.rawResponse || null,
+        }, { status: 400 });
+      }
+
+      // Topup SUCCEEDED!
       initialStatus = 'completed';
+      ucBotSuccessData = ucBotRes;
+
+      // Deduct Shell stock from target shell account inventory in Supabase
+      if (targetShellAcc && targetShellAcc.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
+        const newShellBal = typeof ucBotRes.postBalance === 'number'
+          ? ucBotRes.postBalance
+          : Math.max(0, (targetShellAcc.available_balance || 6523) - (ucBotRes.balanceUsed || requiredShellCost));
+
+        await adminSupabase
+          .from('shell_accounts')
+          .update({
+            available_balance: newShellBal,
+            last_synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', targetShellAcc.id);
+      }
     }
 
     let insertedOrder: any = null;
@@ -260,9 +309,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: paymentMethod === 'shadow_wallet' 
-        ? 'Payment successful! Your diamonds are being delivered to your Free Fire account. This usually takes under 1 minute.' 
+        ? `⚡ Topup Delivered Instantly! ${ucBotSuccessData?.items || packageName} successfully credited to ${ucBotSuccessData?.playerNickname || sanitizedPlayerUid}.` 
         : 'Order created successfully in database',
       order: insertedOrder,
+      transactionId: ucBotSuccessData?.transactionId,
+      playerNickname: ucBotSuccessData?.playerNickname,
+      items: ucBotSuccessData?.items,
       receiptUrl,
       status: initialStatus,
     });

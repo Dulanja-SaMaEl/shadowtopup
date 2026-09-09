@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Package, UserRole } from '@/types/database';
 import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
-import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart } from 'lucide-react';
+import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap } from 'lucide-react';
 import TransactionReceiptModal from './TransactionReceiptModal';
 import { useCart } from '@/context/CartContext';
 
@@ -118,21 +118,28 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
         const data = await res.json();
         if (data.success) {
+          const deliveredNickname = data.playerNickname || verifiedPlayerUid;
+          const txId = data.transactionId || (data.order?.id ? String(data.order.id).slice(0, 8).toUpperCase() : '');
+
           setMessage({
             type: 'success',
-            text: `Order placed successfully! LKR ${price.toLocaleString()} deducted from your Shadow Wallet.`,
+            text: `⚡ Recharge Successful! ${data.items || selectedPkg.package_name} delivered instantly to ${deliveredNickname} (UID: ${verifiedPlayerUid}). Garena Trx: ${txId || 'Confirmed'}`,
           });
+
           if (walletBalance !== null) {
             setWalletBalance(walletBalance - price);
           }
 
           setGeneratedReceipt({
-            orderId: data.order?.id ? String(data.order.id).slice(0, 8).toUpperCase() : Math.random().toString(36).slice(2, 10).toUpperCase(),
-            packageName: selectedPkg.package_name,
+            orderId: data.order?.id ? String(data.order.id).slice(0, 8).toUpperCase() : (txId ? txId.slice(-8) : Math.random().toString(36).slice(2, 10).toUpperCase()),
+            packageName: data.items || selectedPkg.package_name,
             playerUid: verifiedPlayerUid,
+            playerNickname: data.playerNickname,
+            transactionId: data.transactionId,
+            itemsDelivered: data.items,
             amount: price,
             paymentMethod: 'Shadow Wallet',
-            status: 'COMPLETED',
+            status: 'COMPLETED & DELIVERED',
             date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
             customerName: authData.user.email?.split('@')[0].toUpperCase(),
@@ -143,10 +150,16 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
           if (onCheckoutComplete) onCheckoutComplete();
         } else {
-          setMessage({ type: 'error', text: data.message || 'Shadow Wallet checkout failed.' });
+          // FAILURE: Clear any receipt, do not deduct balance, and display prominent error!
+          setGeneratedReceipt(null);
+          setMessage({
+            type: 'error',
+            text: data.message || data.error || 'Topup delivery failed on Garena. Your Shadow Wallet balance was NOT charged.',
+          });
         }
       } catch (err: any) {
-        setMessage({ type: 'error', text: 'Failed to complete wallet checkout.' });
+        setGeneratedReceipt(null);
+        setMessage({ type: 'error', text: err.message || 'Failed to complete wallet checkout.' });
       }
       setLoading(false);
       return;
@@ -400,14 +413,33 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
           {message && (
             <div
-              className={`p-4 rounded-xl text-xs flex items-center gap-2 ${
+              className={`p-4 rounded-2xl border flex flex-col gap-2 transition-all shadow-xl ${
                 message.type === 'success'
-                  ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300'
-                  : 'bg-red-500/10 border border-red-500/20 text-red-300'
+                  ? 'bg-gradient-to-r from-emerald-950/80 to-slate-900 border-emerald-500/50 text-emerald-200'
+                  : 'bg-gradient-to-r from-red-950/80 to-slate-900 border-red-500/50 text-red-200'
               }`}
             >
-              <ShieldAlert className="w-4 h-4 shrink-0" />
-              <span>{message.text}</span>
+              <div className="flex items-center gap-2 font-bold text-sm">
+                {message.type === 'success' ? (
+                  <>
+                    <Zap className="w-5 h-5 text-emerald-400 shrink-0 fill-emerald-400/20" />
+                    <span className="uppercase tracking-wider text-emerald-300">Top-Up Delivered Instantly!</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-5 h-5 text-red-400 shrink-0" />
+                    <span className="uppercase tracking-wider text-red-300">Top-Up Delivery Failed</span>
+                  </>
+                )}
+              </div>
+              <p className="text-xs font-mono leading-relaxed pl-7">
+                {message.text}
+              </p>
+              {message.type === 'error' && (
+                <div className="mt-1 ml-7 px-3 py-1.5 rounded-lg bg-red-900/30 border border-red-700/40 text-[11px] font-sans text-red-300 font-medium">
+                  🛡️ <strong>Wallet Protection:</strong> Your Shadow Wallet balance was <u>NOT</u> charged. You can retry or contact support.
+                </div>
+              )}
             </div>
           )}
 

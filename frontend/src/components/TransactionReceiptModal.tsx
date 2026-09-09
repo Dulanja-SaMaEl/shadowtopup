@@ -8,6 +8,9 @@ export interface ReceiptData {
   orderId: string;
   packageName: string;
   playerUid: string;
+  playerNickname?: string;
+  transactionId?: string;
+  itemsDelivered?: string;
   amount: number;
   paymentMethod: string;
   status: string;
@@ -217,6 +220,23 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
               <span className="text-slate-400">FREE FIRE PLAYER UID</span>
               <span className="font-bold text-amber-400">{receipt.playerUid}</span>
             </div>
+
+            {receipt.playerNickname && (
+              <div className="flex justify-between border-b border-slate-800/80 pb-2">
+                <span className="text-slate-400">PLAYER NICKNAME</span>
+                <span className="font-bold text-emerald-400 font-mono flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  {receipt.playerNickname}
+                </span>
+              </div>
+            )}
+
+            {receipt.transactionId && (
+              <div className="flex justify-between border-b border-slate-800/80 pb-2">
+                <span className="text-slate-400">GARENA TRX ID</span>
+                <span className="font-bold text-cyan-300 font-mono tracking-wider">{receipt.transactionId}</span>
+              </div>
+            )}
 
             <div className="flex justify-between border-b border-slate-800/80 pb-2">
               <span className="text-slate-400">PAYMENT METHOD</span>

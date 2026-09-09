@@ -80,6 +80,8 @@ export default function CartPage() {
         // Process all items in batch
         let createdOrdersCount = 0;
         let lastCreatedOrder: any = null;
+        let lastTxId: string | undefined = undefined;
+        let lastPlayerNickname: string | undefined = undefined;
 
         for (const item of cartItems) {
           for (let q = 0; q < item.quantity; q++) {
@@ -101,6 +103,8 @@ export default function CartPage() {
             if (data.success) {
               createdOrdersCount++;
               lastCreatedOrder = data.order;
+              if (data.transactionId) lastTxId = data.transactionId;
+              if (data.playerNickname) lastPlayerNickname = data.playerNickname;
             } else {
               throw new Error(data.message || `Failed to process ${item.packageName}`);
             }
@@ -112,16 +116,18 @@ export default function CartPage() {
           setWalletBalance(walletBalance - cartTotal);
         }
 
-        setSuccessMsg(`Successfully placed ${createdOrdersCount} order(s) using Shadow Wallet balance!`);
+        setSuccessMsg(`⚡ Successfully placed and delivered ${createdOrdersCount} order(s) using Shadow Wallet balance!`);
 
         // Generate combined receipt
         setGeneratedReceipt({
-          orderId: lastCreatedOrder?.id ? String(lastCreatedOrder.id).slice(0, 8).toUpperCase() : Math.random().toString(36).slice(2, 10).toUpperCase(),
+          orderId: lastCreatedOrder?.id ? String(lastCreatedOrder.id).slice(0, 8).toUpperCase() : (lastTxId ? lastTxId.slice(-8) : Math.random().toString(36).slice(2, 10).toUpperCase()),
           packageName: cartItems.length === 1 ? cartItems[0].packageName : `Batch Top-Up (${totalCount} Items)`,
           playerUid: cartItems[0].playerUid,
+          playerNickname: lastPlayerNickname,
+          transactionId: lastTxId,
           amount: cartTotal,
           paymentMethod: 'Shadow Wallet',
-          status: 'COMPLETED',
+          status: 'COMPLETED & DELIVERED',
           date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
           customerName: authData.user.email?.split('@')[0].toUpperCase(),
