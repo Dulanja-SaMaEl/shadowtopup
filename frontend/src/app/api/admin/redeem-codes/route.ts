@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { requireAdmin } from '@/lib/authGuard';
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -28,6 +29,11 @@ function generateSecureCode(): string {
 
 export async function GET() {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const adminSupabase = getAdminClient();
 
     // 1. Fetch raw redeem codes
@@ -82,12 +88,17 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { amount, count = 1 } = body;
 
     const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      return NextResponse.json({ success: false, message: 'Invalid voucher code amount' }, { status: 400 });
+    if (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > 50000) {
+      return NextResponse.json({ success: false, message: 'Invalid voucher code amount. Must be between 1 and 50,000 LKR.' }, { status: 400 });
     }
 
     const qty = Math.min(50, Math.max(1, parseInt(count) || 1));

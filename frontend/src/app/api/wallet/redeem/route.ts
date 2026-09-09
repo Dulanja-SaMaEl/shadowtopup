@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { getAuthenticatedUser } from '@/lib/authGuard';
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -12,75 +13,87 @@ function getAdminClient() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { code, user_id } = body;
+    // 1. Require authenticated session
+    const authUser = await getAuthenticatedUser();
+    if (!authUser) {
+      return NextResponse.json({ success: false, message: 'Authentication required to redeem vouchers.' }, { status: 401 });
+    }
 
-    if (!code || !user_id) {
-      return NextResponse.json({ success: false, message: 'Code and User ID are required' }, { status: 400 });
+    const body = await request.json();
+    const { code } = body;
+
+    if (!code || typeof code !== 'string') {
+      return NextResponse.json({ success: false, message: 'A valid redeem code is required.' }, { status: 400 });
     }
 
     const cleanCode = code.trim().toUpperCase();
     const adminSupabase = getAdminClient();
 
-    // 1. Fetch code record from DB
+    // 2. Fetch code record from DB
     const { data: codeRecord, error: codeErr } = await adminSupabase
       .from('redeem_codes')
       .select('*')
       .eq('code', cleanCode)
-      .single();
+      .maybeSingle();
 
     if (codeErr || !codeRecord) {
       return NextResponse.json({ success: false, message: 'Invalid or non-existent redeem code.' }, { status: 404 });
     }
 
     if (codeRecord.is_redeemed) {
-      return NextResponse.json({ success: false, message: 'This redeem code has already been used!' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'This redeem code has already been used.' }, { status: 400 });
     }
 
-    // 2. Fetch user profile
+    // 3. ATOMIC CONCURRENCY LOCK
+    // Attempt atomic update: ONLY updates if is_redeemed is still false
+    const { data: updatedCodes, error: updateCodeErr } = await adminSupabase
+      .from('redeem_codes')
+      .update({
+        is_redeemed: true,
+        redeemed_by: authUser.id,
+        redeemed_at: new Date().toISOString(),
+      })
+      .eq('id', codeRecord.id)
+      .eq('is_redeemed', false)
+      .select();
+
+    // If 0 rows were updated or an error occurred, another concurrent request claimed it first!
+    if (updateCodeErr || !updatedCodes || updatedCodes.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'This redeem code was just redeemed in another request or is no longer valid.',
+      }, { status: 400 });
+    }
+
+    // 4. Fetch user profile to calculate new balance
     const { data: userProfile, error: profileErr } = await adminSupabase
       .from('profiles')
-      .select('*')
-      .eq('id', user_id)
+      .select('wallet_balance')
+      .eq('id', authUser.id)
       .single();
 
     if (profileErr || !userProfile) {
-      return NextResponse.json({ success: false, message: 'User account not found.' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'User account profile not found.' }, { status: 404 });
     }
 
     const currentBalance = parseFloat(userProfile.wallet_balance || 0);
     const addedAmount = parseFloat(codeRecord.amount || 0);
     const newBalance = currentBalance + addedAmount;
 
-    // 3. Update redeem code status
-    const { error: updateCodeErr } = await adminSupabase
-      .from('redeem_codes')
-      .update({
-        is_redeemed: true,
-        redeemed_by: user_id,
-        redeemed_at: new Date().toISOString(),
-      })
-      .eq('id', codeRecord.id)
-      .eq('is_redeemed', false); // Atomic concurrency lock!
-
-    if (updateCodeErr) {
-      return NextResponse.json({ success: false, message: 'Failed to redeem code. It may have been used.' }, { status: 400 });
-    }
-
-    // 4. Update user wallet balance
+    // 5. Update user wallet balance
     const { error: updateProfileErr } = await adminSupabase
       .from('profiles')
       .update({
         wallet_balance: newBalance,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', user_id);
+      .eq('id', authUser.id);
 
     if (updateProfileErr) throw updateProfileErr;
 
-    // 5. Insert transaction log
+    // 6. Insert transaction audit log
     await adminSupabase.from('wallet_transactions').insert([{
-      user_id: user_id,
+      user_id: authUser.id,
       type: 'REDEEM_CODE',
       amount: addedAmount,
       balance_after: newBalance,

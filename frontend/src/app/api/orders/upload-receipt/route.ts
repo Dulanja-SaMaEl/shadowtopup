@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { getAuthenticatedUser } from '@/lib/authGuard';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,83 +11,84 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Missing server environment keys' }, { status: 500 });
     }
 
-    const { orderId, shortId, receiptUrl } = await request.json();
+    // 1. Require authenticated user
+    const authUser = await getAuthenticatedUser();
+    if (!authUser) {
+      return NextResponse.json({ success: false, message: 'Authentication required' }, { status: 401 });
+    }
 
+    const { orderId, shortId, receiptUrl } = await request.json();
     const targetId = (orderId || shortId || '').replace('#', '').trim();
 
-    if (!targetId || !receiptUrl) {
-      return NextResponse.json({ success: false, message: 'orderId and receiptUrl are required' }, { status: 400 });
+    if (!targetId || !receiptUrl || typeof receiptUrl !== 'string') {
+      return NextResponse.json({ success: false, message: 'orderId and valid receiptUrl are required' }, { status: 400 });
+    }
+
+    // 2. Validate receiptUrl format (Prevent SSRF / XSS payloads like javascript: or data:text/html)
+    const sanitizedUrl = receiptUrl.trim();
+    const isSafeUrl =
+      sanitizedUrl.startsWith('https://') ||
+      sanitizedUrl.startsWith('http://') ||
+      sanitizedUrl.startsWith('/uploads/');
+
+    if (!isSafeUrl || sanitizedUrl.toLowerCase().includes('javascript:') || sanitizedUrl.includes('<script>')) {
+      return NextResponse.json({ success: false, message: 'Invalid or unsafe receipt URL format' }, { status: 400 });
     }
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
-    let updatedOrdersCount = 0;
-    let updatedTxCount = 0;
-    let errors: string[] = [];
+    // 3. Find matching order in database and verify ownership (Prevent IDOR)
+    const { data: matchedOrders } = await adminSupabase
+      .from('orders')
+      .select('id, user_id, status')
+      .or(`id.eq.${targetId},id.ilike.${targetId}%`)
+      .limit(1);
 
-    const updateTableReceipt = async (tableName: string) => {
-      // First find matching row ID (handles full UUID or short prefix ID like 'D191')
-      let matchedId = targetId;
+    if (!matchedOrders || matchedOrders.length === 0) {
+      return NextResponse.json({ success: false, message: 'Order not found' }, { status: 404 });
+    }
 
-      const { data: searchRows } = await adminSupabase
-        .from(tableName)
-        .select('id')
-        .or(`id.eq.${targetId},id.ilike.${targetId}%`);
+    const order = matchedOrders[0];
 
-      if (searchRows && searchRows.length > 0) {
-        matchedId = searchRows[0].id;
-      }
+    // Authorization check: Only order owner or admin can update receipt
+    if (order.user_id !== authUser.id && authUser.role !== 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden: You are not authorized to update this order.' },
+        { status: 403 }
+      );
+    }
 
-      // 1. Try updating receipt_path first
-      let { data, error: err1 } = await adminSupabase
-        .from(tableName)
-        .update({ receipt_path: receiptUrl })
-        .eq('id', matchedId)
-        .select();
+    const matchedId = order.id;
 
-      if (err1 || !data || data.length === 0) {
-        // Try updating receipt_url if receipt_path failed or returned 0
-        const { data: data2, error: err2 } = await adminSupabase
-          .from(tableName)
-          .update({ receipt_url: receiptUrl })
-          .eq('id', matchedId)
-          .select();
-        
-        if (data2 && data2.length > 0) {
-          data = data2;
-        } else if (err2) {
-          errors.push(`Table ${tableName} receipt update error: ${err1?.message || ''} / ${err2.message}`);
-        }
-      }
+    // 4. Update order receipt and status to proof_submitted
+    const { error: ordErr } = await adminSupabase
+      .from('orders')
+      .update({
+        receipt_path: sanitizedUrl,
+        receipt_url: sanitizedUrl,
+        status: 'proof_submitted',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', matchedId);
 
-      // 2. Update status to proof_submitted
-      const { error: statusErr } = await adminSupabase
-        .from(tableName)
-        .update({ status: 'proof_submitted' })
-        .eq('id', matchedId);
+    if (ordErr) {
+      console.warn('Orders receipt update note:', ordErr.message);
+    }
 
-      if (statusErr) {
-        // Fallback to pending if proof_submitted is constrained by ENUM
-        await adminSupabase
-          .from(tableName)
-          .update({ status: 'pending' })
-          .eq('id', matchedId);
-        errors.push(`Table ${tableName} status update note: ${statusErr.message}`);
-      }
-
-      return data ? data.length : 0;
-    };
-
-    updatedOrdersCount = await updateTableReceipt('orders');
-    updatedTxCount = await updateTableReceipt('purchase_transactions');
+    // Also update purchase_transactions if matching row exists
+    await adminSupabase
+      .from('purchase_transactions')
+      .update({
+        receipt_path: sanitizedUrl,
+        status: 'proof_submitted',
+        updated_at: new Date().toISOString(),
+      })
+      .or(`id.eq.${matchedId},package_id.eq.${matchedId}`);
 
     return NextResponse.json({
       success: true,
-      message: 'Receipt update processed successfully',
-      receiptUrl,
-      updatedOrdersCount,
-      updatedTxCount,
-      errors: errors.length > 0 ? errors : undefined,
+      message: 'Payment proof submitted successfully for verification!',
+      receiptUrl: sanitizedUrl,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });

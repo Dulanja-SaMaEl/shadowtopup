@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { OFFICIAL_GARENA_PACKAGES } from '@/app/api/packages/route';
+import { requireAdmin } from '@/lib/authGuard';
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -13,6 +14,11 @@ function getAdminClient() {
 
 export async function POST() {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const adminSupabase = getAdminClient();
 
     // 1. Fetch active pricing rules to calculate accurate initial prices

@@ -1,9 +1,15 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { executeUCBotTopup, verifyUCBotPlayer, resolveUCBotPackId } from '@/lib/ucbotService';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/authGuard';
 
 export async function POST(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const body = await request.json();
     const {
       playerId = '8718615060',

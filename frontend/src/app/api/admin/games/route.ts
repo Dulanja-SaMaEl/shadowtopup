@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/authGuard';
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -27,6 +28,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { title, slug, category, image_path, description, developer, is_active = true } = body;
 
@@ -71,6 +77,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { id, title, slug, category, image_path, description, developer, is_active } = body;
 
@@ -112,6 +123,11 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

@@ -1,68 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { executeUCBotTopup } from '@/lib/ucbotService';
+import { getAuthenticatedUser } from '@/lib/authGuard';
 
 export async function POST(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json({ success: false, message: 'Missing server environment keys' }, { status: 500 });
     }
 
-    // Check user authentication
-    const cookieStore = await cookies();
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options });
-        },
-      },
-    });
-
-    const { data: authData } = await supabase.auth.getUser();
-    const authUser = authData?.user;
+    // 1. Enforce strict server-side session authentication
+    const authUser = await getAuthenticatedUser();
+    if (!authUser) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required. Please log in to complete your order.' },
+        { status: 401 }
+      );
+    }
 
     const body = await request.json();
     const {
       packageId,
       packageName,
       playerUid,
-      totalAmount,
       paymentMethod = 'bank_transfer',
       receiptUrl = null,
-      priceTier = 'normal',
-      shellCost = 0,
     } = body;
 
     const sanitizedPlayerUid = String(playerUid || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
-    const amountToDeduct = Number(totalAmount);
 
-    if (!sanitizedPlayerUid || !Number.isFinite(amountToDeduct) || amountToDeduct <= 0) {
-      return NextResponse.json({ success: false, message: 'Invalid request: valid playerUid and positive amount required' }, { status: 400 });
+    if (!sanitizedPlayerUid) {
+      return NextResponse.json({ success: false, message: 'Invalid request: valid Free Fire Player UID is required.' }, { status: 400 });
     }
 
-    const cookieEmail = cookieStore.get('active_session_email')?.value;
-    const effectiveEmail = (authUser?.email || cookieEmail || 'user@shadowtopup.com').toLowerCase().trim();
-    const effectiveUserId = authUser?.id || (effectiveEmail === 'user@shadowtopup.com' ? '133c72ad-250d-4395-9e9b-fe913552533f' : effectiveEmail);
-
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
+
+    // 2. Fetch official package from database (Server-Side Price Calculation)
+    let dbPackage: any = null;
+    if (packageId) {
+      const { data: pkgById } = await adminSupabase
+        .from('packages')
+        .select('*')
+        .eq('id', packageId)
+        .maybeSingle();
+      dbPackage = pkgById;
+    }
+
+    if (!dbPackage && packageName) {
+      const { data: pkgByName } = await adminSupabase
+        .from('packages')
+        .select('*')
+        .ilike('package_name', packageName.trim())
+        .maybeSingle();
+      dbPackage = pkgByName;
+    }
+
+    if (!dbPackage) {
+      return NextResponse.json(
+        { success: false, message: 'The selected top-up package was not found in the catalog.' },
+        { status: 400 }
+      );
+    }
+
+    if (dbPackage.is_active === false) {
+      return NextResponse.json(
+        { success: false, message: 'This top-up package is currently inactive or unavailable.' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Compute verified price strictly server-side based on the authenticated user's role
+    const userRole = authUser.role || 'normal';
+    let verifiedPrice: number;
+
+    if (userRole === 'gold') {
+      verifiedPrice = Number(dbPackage.gold_price || dbPackage.silver_price || dbPackage.normal_price || dbPackage.price);
+    } else if (userRole === 'silver') {
+      verifiedPrice = Number(dbPackage.silver_price || dbPackage.normal_price || dbPackage.price);
+    } else {
+      verifiedPrice = Number(dbPackage.normal_price || dbPackage.price);
+    }
+
+    if (!Number.isFinite(verifiedPrice) || verifiedPrice <= 0) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid package pricing configuration.' },
+        { status: 500 }
+      );
+    }
+
+    const requiredShellCost = Number(dbPackage.shell_cost) || 50;
+    const verifiedPackageName = dbPackage.package_name || packageName || 'Free Fire Diamonds';
+    const amountToDeduct = verifiedPrice;
+    const effectiveUserId = authUser.id;
 
     let initialStatus = receiptUrl ? 'proof_submitted' : 'pending';
     let topupDispatchMsg = '';
     let ucBotSuccessData: any = null;
 
-    // Handle Shadow Wallet Payment & Automated Garena Shell Delivery
+    // 4. Handle Shadow Wallet Payment with Concurrency & Race-Condition Lock
     if (paymentMethod === 'shadow_wallet') {
       const { data: userProfile, error: profErr } = await adminSupabase
         .from('profiles')
@@ -82,18 +120,6 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Determine required shell cost for the package
-      let requiredShellCost = Number(shellCost) || 0;
-      if (requiredShellCost <= 0 && packageId) {
-        const { data: pkgData } = await adminSupabase.from('packages').select('shell_cost').eq('id', packageId).maybeSingle();
-        if (pkgData?.shell_cost) {
-          requiredShellCost = Number(pkgData.shell_cost);
-        }
-      }
-      if (requiredShellCost <= 0) {
-        requiredShellCost = 50; // default shell cost for 100 diamonds if package not found
-      }
-
       // Check available Garena Shell accounts stock
       const { data: shellAccounts } = await adminSupabase
         .from('shell_accounts')
@@ -104,7 +130,6 @@ export async function POST(request: NextRequest) {
 
       let targetShellAcc = shellAccounts && shellAccounts.length > 0 ? shellAccounts[0] : null;
 
-      // If no account with gte requiredShellCost was found, attempt to fetch primary account from DB
       if (!targetShellAcc) {
         const { data: anyAccounts } = await adminSupabase
           .from('shell_accounts')
@@ -116,7 +141,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Fallback virtual stock check if DB table hasn't been seeded yet
       if (!targetShellAcc) {
         targetShellAcc = {
           id: 'shell_fallback_1',
@@ -131,22 +155,27 @@ export async function POST(request: NextRequest) {
       if ((targetShellAcc.available_balance ?? 0) < requiredShellCost) {
         return NextResponse.json({
           success: false,
-          message: `Topup unavailable: Insufficient Garena Shell stock for ${packageName} (${requiredShellCost} Shells required). Please contact support or select another package.`,
+          message: `Topup unavailable: Insufficient Garena Shell stock for ${verifiedPackageName} (${requiredShellCost} Shells required). Please contact support.`,
         }, { status: 400 });
       }
 
-      // 1. Deduct user's Shadow Wallet balance immediately
+      // ATOMIC WALLET DEDUCTION with row verification (Prevents double spending race conditions)
       const newWalletBalance = currentWalletBalance - amountToDeduct;
-      const { error: updateBalErr } = await adminSupabase
+      const { data: updatedProfileRows, error: updateBalErr } = await adminSupabase
         .from('profiles')
         .update({
           wallet_balance: newWalletBalance,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', effectiveUserId);
+        .eq('id', effectiveUserId)
+        .gte('wallet_balance', amountToDeduct)
+        .select();
 
-      if (updateBalErr) {
-        return NextResponse.json({ success: false, message: 'Failed to process wallet payment deduction.' }, { status: 500 });
+      if (updateBalErr || !updatedProfileRows || updatedProfileRows.length === 0) {
+        return NextResponse.json({
+          success: false,
+          message: 'Wallet payment failed: Insufficient balance or concurrent transaction in progress. Please refresh and try again.',
+        }, { status: 400 });
       }
 
       // Log wallet transaction
@@ -155,23 +184,22 @@ export async function POST(request: NextRequest) {
         type: 'PACKAGE_PURCHASE',
         amount: -amountToDeduct,
         balance_after: newWalletBalance,
-        description: `Purchased package: ${packageName} (${requiredShellCost} Shells) -> Free Fire UID: ${sanitizedPlayerUid}`,
+        description: `Purchased package: ${verifiedPackageName} (${requiredShellCost} Shells) -> Free Fire UID: ${sanitizedPlayerUid}`,
         created_at: new Date().toISOString(),
       }]);
 
-      // Trigger UCBot Topup API delivery with target shell account credentials & 2FA autocode
+      // Trigger UCBot Topup API delivery
       let ucBotRes: any = null;
       try {
         const shellAutocode = targetShellAcc?.autocode || process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J';
         ucBotRes = await executeUCBotTopup(
           sanitizedPlayerUid,
-          packageName || '25 Diamonds',
+          verifiedPackageName,
           'sg',
           targetShellAcc?.account_username || 'SHADOW_TOPUP1',
           targetShellAcc?.password || 'Shadow123@',
           shellAutocode
         );
-        console.log('[Order Flow] UC Bot Topup Result:', ucBotRes);
         topupDispatchMsg = ucBotRes.message;
       } catch (e: any) {
         console.error('[Order Flow] UC Bot Topup Exception:', e);
@@ -181,11 +209,11 @@ export async function POST(request: NextRequest) {
         };
       }
 
-      // Check if Topup Delivery Failed
+      // Check if Topup Delivery Failed -> Instant Rollback
       if (!ucBotRes || !ucBotRes.success) {
         console.error('[Order Flow] Topup delivery failed! Reverting wallet deduction...');
 
-        // 1. REVERT WALLET DEDUCTION IMMEDIATELY (Safety Rollback)
+        // 1. Rollback wallet deduction immediately
         await adminSupabase
           .from('profiles')
           .update({
@@ -194,28 +222,27 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', effectiveUserId);
 
-        // 2. Record the failed purchase attempt in wallet_transactions for audit
+        // 2. Audit record for failed attempt
         await adminSupabase.from('wallet_transactions').insert([{
           user_id: effectiveUserId,
           type: 'PACKAGE_PURCHASE',
           amount: 0,
           balance_after: currentWalletBalance,
-          description: `Topup delivery failed for ${packageName} (UID: ${sanitizedPlayerUid}). Reason: ${ucBotRes?.message || 'Delivery error'}. Your wallet was NOT charged.`,
+          description: `Topup delivery failed for ${verifiedPackageName} (UID: ${sanitizedPlayerUid}). Reason: ${ucBotRes?.message || 'Delivery error'}. Your wallet was NOT charged.`,
           created_at: new Date().toISOString(),
         }]);
 
-        // 3. Insert into orders table as 'failed' so user & admin have record of the attempt
+        // 3. Log failed order
         await adminSupabase.from('orders').insert([{
           user_id: effectiveUserId,
           total_amount: amountToDeduct,
           status: 'failed',
           admin_note: `Topup delivery failed via UC Bot: ${ucBotRes?.message || 'Unknown error'}`,
           free_fire_player_id: sanitizedPlayerUid,
-          package_name: packageName,
+          package_name: verifiedPackageName,
           payment_method: 'shadow_wallet',
         }]);
 
-        // 4. Return clear error response (DO NOT generate completed receipt!)
         return NextResponse.json({
           success: false,
           message: ucBotRes?.message || 'Topup delivery failed on Garena. Your Shadow Wallet was NOT charged.',
@@ -228,7 +255,7 @@ export async function POST(request: NextRequest) {
       initialStatus = 'completed';
       ucBotSuccessData = ucBotRes;
 
-      // Deduct Shell stock from target shell account inventory in Supabase
+      // Update Shell balance
       const newShellBal = typeof ucBotRes.postBalance === 'number'
         ? ucBotRes.postBalance
         : Math.max(0, ((targetShellAcc?.available_balance ?? 6508)) - (ucBotRes.balanceUsed || requiredShellCost));
@@ -254,10 +281,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 5. Insert Order into Database
     let insertedOrder: any = null;
     let orderErr: any = null;
 
-    // 1. First try full payload with rich fields
     const fullPayload: any = {
       user_id: effectiveUserId,
       total_amount: amountToDeduct,
@@ -265,7 +292,7 @@ export async function POST(request: NextRequest) {
       receipt_path: receiptUrl,
       receipt_url: receiptUrl,
       free_fire_player_id: sanitizedPlayerUid,
-      package_name: packageName,
+      package_name: verifiedPackageName,
       payment_method: paymentMethod,
     };
 
@@ -278,7 +305,6 @@ export async function POST(request: NextRequest) {
       insertedOrder = ordData1[0];
     } else {
       orderErr = err1;
-      // 2. Fall back to standard schema payload if extra columns don't exist yet in PostgreSQL schema
       const standardPayload: any = {
         user_id: effectiveUserId,
         total_amount: amountToDeduct,
@@ -303,15 +329,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Insert into purchase_transactions table as well
+    // 6. Insert into purchase_transactions
     const txPayload: any = {
       user_id: effectiveUserId,
-      package_id: packageId,
-      package_name: packageName,
+      package_id: dbPackage.id || packageId,
+      package_name: verifiedPackageName,
       free_fire_player_id: sanitizedPlayerUid,
-      shells_deducted: shellCost,
+      shells_deducted: requiredShellCost,
       price_paid: amountToDeduct,
-      price_tier: priceTier,
+      price_tier: userRole,
       status: initialStatus,
       payment_method: paymentMethod,
       receipt_path: receiptUrl,
@@ -330,7 +356,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: paymentMethod === 'shadow_wallet' 
-        ? `⚡ Topup Delivered Instantly! ${ucBotSuccessData?.items || packageName} successfully credited to ${ucBotSuccessData?.playerNickname || sanitizedPlayerUid}.` 
+        ? `⚡ Topup Delivered Instantly! ${ucBotSuccessData?.items || verifiedPackageName} successfully credited to ${ucBotSuccessData?.playerNickname || sanitizedPlayerUid}.` 
         : 'Order created successfully in database',
       order: insertedOrder,
       transactionId: ucBotSuccessData?.transactionId,

@@ -309,8 +309,11 @@ let currentLiveShellBalance = null;
 
 function startDashboard() {
   const server = http.createServer((req, res) => {
-    // Enable CORS for admin panel
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Restrict CORS to localhost web apps
+    const reqOrigin = req.headers.origin;
+    if (reqOrigin && (reqOrigin.includes('localhost') || reqOrigin.includes('127.0.0.1'))) {
+      res.setHeader('Access-Control-Allow-Origin', reqOrigin);
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 

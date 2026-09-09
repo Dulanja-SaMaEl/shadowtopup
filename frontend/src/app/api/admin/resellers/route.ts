@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/authGuard';
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -12,6 +13,11 @@ function getAdminClient() {
 
 export async function GET() {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const adminSupabase = getAdminClient();
     const { data: profiles, error } = await adminSupabase
       .from('profiles')
@@ -28,8 +34,16 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { user_id, action, target_role } = body;
+
+    const allowedRoles = ['normal', 'silver', 'gold', 'admin'];
+    const sanitizedTargetRole = target_role && allowedRoles.includes(target_role) ? target_role : 'silver';
 
     if (!user_id || !action) {
       return NextResponse.json({ success: false, message: 'Missing user_id or action' }, { status: 400 });
@@ -41,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'approve') {
       updatePayload = {
-        role: target_role || 'silver',
+        role: sanitizedTargetRole || 'silver',
         reseller_status: 'approved',
         reseller_expires_at: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
         updated_at: new Date().toISOString(),
@@ -53,9 +67,9 @@ export async function POST(request: NextRequest) {
       };
     } else if (action === 'promote' || action === 'update_role') {
       updatePayload = {
-        role: target_role || 'normal',
-        reseller_status: target_role === 'normal' ? 'none' : 'approved',
-        reseller_expires_at: target_role === 'normal' ? null : new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+        role: sanitizedTargetRole || 'normal',
+        reseller_status: sanitizedTargetRole === 'normal' ? 'none' : 'approved',
+        reseller_expires_at: sanitizedTargetRole === 'normal' ? null : new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       };
     }

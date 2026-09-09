@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
+import { requireAdmin } from '@/lib/authGuard';
 
 // File-backed persistence fallback
 const CACHE_FILE_PATH = path.join(process.cwd(), '.pricing_rules_cache.json');
@@ -127,6 +128,11 @@ export async function GET() {
 // POST: Save pricing settings to DB and persistent cache, recalculate package catalog prices
 export async function POST(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const body = await request.json();
     const {
       basePrice1300 = 3380,

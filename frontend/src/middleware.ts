@@ -45,8 +45,31 @@ export async function middleware(request: NextRequest) {
   const user = authData?.user;
   const path = request.nextUrl.pathname;
 
-  const sessionEmail = request.cookies.get('active_session_email')?.value;
-  const sessionRole = request.cookies.get('active_session_role')?.value;
+  // Protect /api/admin API routes
+  if (path.startsWith('/api/admin')) {
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized: Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const isUserAdmin =
+      profile?.role === 'admin' || user.email === 'admin@shadowtopup.com';
+
+    if (!isUserAdmin) {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden: Admin privileges required' },
+        { status: 403 }
+      );
+    }
+  }
 
   // Protect /dashboard
   if (path.startsWith('/dashboard')) {
@@ -61,9 +84,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
     const isUserAdmin =
-      user.email === 'admin@shadowtopup.com' ||
-      (user.email && user.email.includes('admin'));
+      profile?.role === 'admin' || user.email === 'admin@shadowtopup.com';
 
     if (!isUserAdmin) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -74,5 +102,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*'],
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/api/admin/:path*'],
 };

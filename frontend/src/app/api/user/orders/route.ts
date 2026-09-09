@@ -1,116 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { getAuthenticatedUser } from '@/lib/authGuard';
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-    // 1. Check Supabase Auth session
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options });
-        },
-      },
-    });
-
-    const { data: authData } = await supabase.auth.getUser();
-    const authUser = authData?.user;
-
+    // 1. Require authenticated session
+    const authUser = await getAuthenticatedUser();
     if (!authUser) {
       return NextResponse.json({ success: false, message: 'Unauthenticated', data: [] }, { status: 401 });
     }
 
-    const effectiveEmail = (authUser.email || '').toLowerCase().trim();
-    const effectiveUserId = (authUser.id || '').toLowerCase().trim();
-
-    // 2. Use admin client to query user orders reliably without RLS issues
+    const effectiveEmail = authUser.email;
+    const effectiveUserId = authUser.id;
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch all profiles to build lookup map
-    const { data: allProfiles } = await adminSupabase.from('profiles').select('*');
-    const profileMap = new Map((allProfiles || []).map((p: any) => [p.id, p]));
+    // 2. Fetch user profile
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('*')
+      .eq('id', effectiveUserId)
+      .maybeSingle();
 
-    // Find current user's profile
-    let profileUserId = '';
-    let userName = effectiveEmail ? effectiveEmail.split('@')[0].toUpperCase() : 'CUSTOMER ACCOUNT';
-    let userRole = 'normal';
-    let resellerStatus = 'none';
+    const userName = profile?.name || effectiveEmail.split('@')[0].toUpperCase();
+    const userRole = profile?.role || 'normal';
+    const resellerStatus = profile?.reseller_status || 'none';
 
-    const currentUserProfile = (allProfiles || []).find(
-      (p: any) =>
-        (p.id && p.id.toLowerCase() === effectiveUserId) ||
-        (p.email && p.email.toLowerCase() === effectiveEmail)
-    );
-
-    if (currentUserProfile) {
-      profileUserId = (currentUserProfile.id || '').toLowerCase();
-      if (currentUserProfile.name) userName = currentUserProfile.name.toUpperCase();
-      userRole = currentUserProfile.role || 'normal';
-      resellerStatus = currentUserProfile.reseller_status || 'none';
-    }
-
-    if (effectiveEmail.includes('user@shadow')) {
-      userName = 'STANDARD CUSTOMER ACCOUNT';
-    }
-
-    // Helper to check if a DB row belongs to the active user
-    const matchesUser = (row: any) => {
-      if (!row) return false;
-      const rId = (row.user_id || '').toLowerCase();
-      const effEmail = effectiveEmail.toLowerCase();
-      const effId = effectiveUserId.toLowerCase();
-      const profId = profileUserId.toLowerCase();
-
-      // Direct match on user_id against email or IDs
-      if (rId && (rId === effEmail || rId === effId || rId === profId)) return true;
-
-      // Check linked profile email
-      const linkedProf = profileMap.get(row.user_id);
-      if (linkedProf && linkedProf.email && linkedProf.email.toLowerCase() === effEmail) {
-        return true;
-      }
-
-      // Check legacy test account matching
-      if (
-        (effEmail === 'user@shadowtopup.com' || effEmail.includes('user@shadow')) &&
-        (rId === '133c72ad-250d-4395-9e9b-fe913552533f' || rId.includes('133c'))
-      ) {
-        return true;
-      }
-
-      return false;
-    };
-
-    // Query orders and purchase_transactions
-    const { data: allOrders } = await adminSupabase
+    // 3. Query ONLY this authenticated user's orders (Database-level scoping)
+    const { data: userOrders } = await adminSupabase
       .from('orders')
       .select('*')
+      .eq('user_id', effectiveUserId)
       .order('created_at', { ascending: false });
 
-    const { data: allTx } = await adminSupabase
-      .from('purchase_transactions')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let targetRows: any[] = userOrders || [];
 
-    // Filter rows for current user
-    let userOrders = (allOrders || []).filter(matchesUser);
-    let userTx = (allTx || []).filter(matchesUser);
-
-    let targetRows: any[] = userOrders;
+    // Fallback to purchase_transactions if orders table is empty for user
     if (targetRows.length === 0) {
-      targetRows = userTx;
+      const { data: userTx } = await adminSupabase
+        .from('purchase_transactions')
+        .select('*')
+        .eq('user_id', effectiveUserId)
+        .order('created_at', { ascending: false });
+
+      if (userTx && userTx.length > 0) {
+        targetRows = userTx;
+      }
     }
 
     const mappedOrders = targetRows.map((row: any) => {
@@ -132,7 +69,7 @@ export async function GET(request: NextRequest) {
       return {
         id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
         raw_id: row.id,
-        user_id: row.user_id || effectiveUserId,
+        user_id: effectiveUserId,
         customerName: userName,
         customerEmail: effectiveEmail,
         free_fire_player_id: row.free_fire_player_id || row.player_uid || row.player_id || '8777843685',
@@ -150,12 +87,12 @@ export async function GET(request: NextRequest) {
       success: true,
       data: mappedOrders,
       user: {
-        id: profileUserId || effectiveUserId || '',
+        id: effectiveUserId,
         email: effectiveEmail,
         name: userName,
         role: userRole,
         reseller_status: resellerStatus,
-        store_name: currentUserProfile?.store_name || null,
+        store_name: profile?.store_name || null,
       },
     });
   } catch (err: any) {

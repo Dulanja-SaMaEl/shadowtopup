@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { fetchLiveGarenaShellBalance } from '@/lib/garenaService';
+import { requireAdmin } from '@/lib/authGuard';
 
 export async function GET(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -21,6 +27,14 @@ export async function GET(request: NextRequest) {
       console.warn('Error fetching shell_accounts from DB:', error.message);
     }
 
+    const maskAccountSecrets = (acc: any) => ({
+      ...acc,
+      password: acc.password ? '••••••••' : '',
+      autocode: acc.autocode ? `${acc.autocode.slice(0, 4)}••••${acc.autocode.slice(-4)}` : null,
+      has_password: Boolean(acc.password),
+      has_autocode: Boolean(acc.autocode),
+    });
+
     if (accounts && accounts.length > 0) {
       for (const acc of accounts) {
         if ((!acc.available_balance || acc.available_balance === 0) && (acc.account_username?.toUpperCase() === 'SHADOW_TOPUP1' || acc.is_main)) {
@@ -28,7 +42,7 @@ export async function GET(request: NextRequest) {
           await adminSupabase.from('shell_accounts').update({ available_balance: 6508 }).eq('id', acc.id);
         }
       }
-      return NextResponse.json({ success: true, accounts });
+      return NextResponse.json({ success: true, accounts: accounts.map(maskAccountSecrets) });
     }
 
     // Default seeded shell accounts if database table is fresh
@@ -36,8 +50,10 @@ export async function GET(request: NextRequest) {
       {
         id: 'shell_1',
         account_username: 'SHADOW_TOPUP1',
-        password: 'Shadow123@',
-        autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
+        password: '••••••••',
+        autocode: '5ZEE••••SSD6J',
+        has_password: true,
+        has_autocode: true,
         available_balance: 6508,
         is_main: true,
         last_synced_at: new Date().toISOString(),
@@ -54,6 +70,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -127,6 +148,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -186,6 +212,11 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

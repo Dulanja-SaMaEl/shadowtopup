@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { getAuthenticatedUser } from '@/lib/authGuard';
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -12,29 +13,40 @@ function getAdminClient() {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const user_id = searchParams.get('user_id');
+    // 1. Require authenticated session
+    const authUser = await getAuthenticatedUser();
+    if (!authUser) {
+      return NextResponse.json({ success: false, message: 'Authentication required' }, { status: 401 });
+    }
 
-    if (!user_id) {
-      return NextResponse.json({ success: false, message: 'User ID is required' }, { status: 400 });
+    const { searchParams } = new URL(request.url);
+    const requestedUserId = searchParams.get('user_id');
+
+    // 2. Prevent IDOR: Callers can only view their own balance unless they are admin
+    const targetUserId = requestedUserId || authUser.id;
+    if (targetUserId !== authUser.id && authUser.role !== 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden: You cannot view another user\'s wallet.' },
+        { status: 403 }
+      );
     }
 
     const adminSupabase = getAdminClient();
 
-    // 1. Fetch user wallet balance
+    // 3. Fetch user wallet balance
     const { data: profile, error: profileErr } = await adminSupabase
       .from('profiles')
       .select('wallet_balance')
-      .eq('id', user_id)
+      .eq('id', targetUserId)
       .single();
 
     if (profileErr) throw profileErr;
 
-    // 2. Fetch wallet transactions
+    // 4. Fetch user wallet transactions
     const { data: txs } = await adminSupabase
       .from('wallet_transactions')
       .select('*')
-      .eq('user_id', user_id)
+      .eq('user_id', targetUserId)
       .order('created_at', { ascending: false });
 
     return NextResponse.json({

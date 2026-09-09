@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
+import { requireAdmin } from '@/lib/authGuard';
+import { validateImageUpload, sanitizeFileName } from '@/lib/fileSecurity';
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Require admin privileges
+    const adminUser = await requireAdmin();
+    if (!adminUser) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const formData = await request.formData();
     const file = (formData.get('image') || formData.get('file')) as File | null;
 
@@ -15,11 +23,15 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const ext = path.extname(file.name) || '.png';
-    const cleanBase = path.basename(file.name, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const safeFilename = `${Date.now()}_${cleanBase}${ext}`;
+    // 2. Validate file size, extension, and magic bytes
+    const validation = validateImageUpload(file.name, buffer);
+    if (!validation.valid) {
+      return NextResponse.json({ success: false, message: validation.error }, { status: 400 });
+    }
 
-    // 1. Save local backup to public/uploads/games/
+    const safeFilename = sanitizeFileName(file.name);
+
+    // 3. Save local backup to public/uploads/games/
     try {
       const publicUploadsDir = path.join(process.cwd(), 'public', 'uploads', 'games');
       if (!fs.existsSync(publicUploadsDir)) {
@@ -32,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     let publicUrl = `/uploads/games/${safeFilename}`;
 
-    // 2. Upload to Supabase Storage bucket 'game-images'
+    // 4. Upload to Supabase Storage bucket 'game-images'
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -46,10 +58,16 @@ export async function POST(request: NextRequest) {
           await adminSupabase.storage.createBucket('game-images', { public: true });
         }
 
+        const mimeType = validation.safeExtension === '.png'
+          ? 'image/png'
+          : validation.safeExtension === '.webp'
+          ? 'image/webp'
+          : 'image/jpeg';
+
         const { error: uploadErr } = await adminSupabase.storage
           .from('game-images')
           .upload(safeFilename, buffer, {
-            contentType: file.type || 'image/png',
+            contentType: mimeType,
             upsert: true,
           });
 

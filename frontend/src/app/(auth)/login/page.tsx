@@ -49,41 +49,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Fallback check for test accounts if Supabase Auth user wasn't initialized with password
-    const isTestAccount =
-      targetEmail.includes('admin@shadow') ||
-      targetEmail.includes('gold@shadow') ||
-      targetEmail.includes('silver@shadow') ||
-      targetEmail.includes('user@shadow');
-
-    if (isTestAccount && password === 'Password123!') {
-      let detectedRole = 'normal';
-      let detectedName = 'User Account';
-
-      if (targetEmail.includes('admin')) {
-        detectedRole = 'admin';
-        detectedName = 'System Administrator';
-      } else if (targetEmail.includes('gold')) {
-        detectedRole = 'gold';
-        detectedName = 'Gold Reseller Account';
-      } else if (targetEmail.includes('silver')) {
-        detectedRole = 'silver';
-        detectedName = 'Silver Reseller Account';
-      } else {
-        detectedRole = 'normal';
-        detectedName = 'Standard Customer Account';
-      }
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('active_session_email', targetEmail);
-        localStorage.setItem('active_session_role', detectedRole);
-        localStorage.setItem('active_session_name', detectedName);
-      }
-
-      window.location.href = detectedRole === 'admin' ? '/admin/dashboard' : '/dashboard';
-      return;
-    }
-
     setLoading(false);
     setError(authError?.message || 'Invalid login credentials. Please check your email and password.');
   };

@@ -6,6 +6,9 @@ const authMiddleware = require('../middleware/auth');
 puppeteer.use(StealthPlugin());
 const router = express.Router();
 
+// Enforce API key authentication on all Garena automation and fulfillment endpoints
+router.use(authMiddleware);
+
 router.post('/sync-balance', async (req, res) => {
   const { username, password } = req.body;
   const cleanUsername = String(username || 'SHADOW_TOPUP1').trim();
@@ -26,7 +29,7 @@ router.post('/sync-balance', async (req, res) => {
 router.post('/fulfill', async (req, res) => {
   const { playerUid, packageName, shellUsername, shellPassword, proxyUrl } = req.body;
 
-  const uidStr = String(playerUid || '').trim();
+  const uidStr = String(playerUid || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
   const pkgStr = String(packageName || '25 Diamonds').trim();
   const username = String(shellUsername || 'SHADOW_TOPUP1').trim();
   const password = String(shellPassword || 'Shadow-2008').trim();
