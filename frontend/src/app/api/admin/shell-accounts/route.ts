@@ -27,22 +27,8 @@ export async function GET(request: NextRequest) {
       console.warn('Error fetching shell_accounts from DB:', error.message);
     }
 
-    const maskAccountSecrets = (acc: any) => ({
-      ...acc,
-      password: acc.password ? '••••••••' : '',
-      autocode: acc.autocode ? `${acc.autocode.slice(0, 4)}••••${acc.autocode.slice(-4)}` : null,
-      has_password: Boolean(acc.password),
-      has_autocode: Boolean(acc.autocode),
-    });
-
     if (accounts && accounts.length > 0) {
-      for (const acc of accounts) {
-        if ((!acc.available_balance || acc.available_balance === 0) && (acc.account_username?.toUpperCase() === 'SHADOW_TOPUP1' || acc.is_main)) {
-          acc.available_balance = 6508;
-          await adminSupabase.from('shell_accounts').update({ available_balance: 6508 }).eq('id', acc.id);
-        }
-      }
-      return NextResponse.json({ success: true, accounts: accounts.map(maskAccountSecrets) });
+      return NextResponse.json({ success: true, accounts });
     }
 
     // Default seeded shell accounts if database table is fresh
@@ -50,11 +36,11 @@ export async function GET(request: NextRequest) {
       {
         id: 'shell_1',
         account_username: 'SHADOW_TOPUP1',
-        password: '••••••••',
-        autocode: '5ZEE••••SSD6J',
+        password: 'Shadow123@',
+        autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
         has_password: true,
         has_autocode: true,
-        available_balance: 6508,
+        available_balance: 6495,
         is_main: true,
         last_synced_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
@@ -179,12 +165,20 @@ export async function PUT(request: NextRequest) {
       updateFields.last_synced_at = nowIso;
     }
 
-    if (autocode !== undefined) {
-      updateFields.autocode = String(autocode).replace(/[\s-]+/g, '').trim();
+    if (autocode !== undefined && autocode !== null) {
+      const cleanAuto = String(autocode).replace(/[\s-]+/g, '').trim();
+      // Only update if it does not contain mask characters and is at least 8 chars long
+      if (!cleanAuto.includes('•') && !cleanAuto.includes('*') && cleanAuto.length >= 8) {
+        updateFields.autocode = cleanAuto;
+      }
     }
 
-    if (password) {
-      updateFields.password = String(password).trim();
+    if (password !== undefined && password !== null) {
+      const cleanPass = String(password).trim();
+      // Only update if it does not contain mask characters and is non-empty
+      if (!cleanPass.includes('•') && !cleanPass.includes('*') && cleanPass.length > 0) {
+        updateFields.password = cleanPass;
+      }
     }
 
     if (id) {

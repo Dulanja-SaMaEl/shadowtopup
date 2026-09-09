@@ -111,7 +111,8 @@ export async function executeUCBotTopup(
 
   // Clean setup key / autocode (strip spaces, tabs, dashes often copied from Google Authenticator setup screen)
   const defaultAutocode = process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J';
-  const rawAutocode = (shellAutocode && shellAutocode.trim() !== '') ? shellAutocode : defaultAutocode;
+  const isMasked = shellAutocode && (shellAutocode.includes('•') || shellAutocode.includes('*'));
+  const rawAutocode = (shellAutocode && shellAutocode.trim() !== '' && !isMasked) ? shellAutocode : defaultAutocode;
   const cleanAutocode = String(rawAutocode).replace(/[\s-]+/g, '').trim();
 
   console.log(`[UC Bot Topup Engine] Initiating automated topup execution for ${packageName} (Pack ID: ${packId})...`);

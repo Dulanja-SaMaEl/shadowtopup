@@ -191,7 +191,10 @@ export async function POST(request: NextRequest) {
       // Trigger UCBot Topup API delivery
       let ucBotRes: any = null;
       try {
-        const shellAutocode = targetShellAcc?.autocode || process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J';
+        const dbAutocode = targetShellAcc?.autocode ? String(targetShellAcc.autocode).trim() : '';
+        const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
+        const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
+
         ucBotRes = await executeUCBotTopup(
           sanitizedPlayerUid,
           verifiedPackageName,
