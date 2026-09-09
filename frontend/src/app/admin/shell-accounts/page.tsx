@@ -7,9 +7,6 @@ import { Plus, Edit2, Trash2, X, RefreshCw, CheckCircle2, AlertCircle, Zap, Shie
 export default function AdminShellAccountsPage() {
   const [accounts, setAccounts] = useState<ShellAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
-  const [syncingAll, setSyncingAll] = useState(false);
-
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editAcc, setEditAcc] = useState<ShellAccount | null>(null);
   const [editBalance, setEditBalance] = useState('');
@@ -55,53 +52,6 @@ export default function AdminShellAccountsPage() {
   useEffect(() => {
     loadAccounts();
   }, []);
-
-  const handleSyncAccount = async (acc: ShellAccount) => {
-    setSyncingId(acc.id);
-    try {
-      // Query direct backend sync API
-      const res = await fetch('/api/admin/shell-accounts/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: acc.id,
-          username: acc.account_username,
-          password: acc.password || 'Shadow123@',
-        }),
-      });
-      const data = await res.json();
-      if (data.success && typeof data.liveBalance === 'number') {
-        setAccounts((prev) =>
-          prev.map((a) =>
-            a.id === acc.id
-              ? { ...a, available_balance: data.liveBalance, last_synced_at: data.lastSyncedAt }
-              : a
-          )
-        );
-        showToast('success', `Synced balance for ${acc.account_username}: ${data.liveBalance.toLocaleString()} Shells`);
-      } else {
-        showToast('error', data.message || 'Could not sync live balance');
-      }
-    } catch (err: any) {
-      showToast('error', err.message || 'Error connecting to sync service');
-    } finally {
-      setSyncingId(null);
-    }
-  };
-
-  const handleSyncAll = async () => {
-    if (accounts.length === 0) return;
-    setSyncingAll(true);
-    try {
-      for (const acc of accounts) {
-        await handleSyncAccount(acc);
-      }
-    } catch (e) {
-      showToast('error', 'Error syncing shell accounts');
-    } finally {
-      setSyncingAll(false);
-    }
-  };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,15 +222,6 @@ export default function AdminShellAccountsPage() {
           </button>
 
           <button
-            onClick={handleSyncAll}
-            disabled={syncingAll}
-            className="px-4 py-2.5 rounded-xl bg-slate-900 border border-purple-900/60 text-purple-300 hover:text-white hover:border-purple-600 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${syncingAll ? 'animate-spin text-cyan-400' : ''}`} />
-            <span>Sync Live Balances</span>
-          </button>
-
-          <button
             onClick={() => {
               setUsername('SHADOW_TOPUP1');
               setPassword('Shadow-2008');
@@ -306,7 +247,7 @@ export default function AdminShellAccountsPage() {
 
         <div className="text-right font-mono text-xs text-slate-400 space-y-1">
           <div>Accounts Registered: <span className="text-white font-bold">{accounts.length}</span></div>
-          <div>Sync Method: <span className="text-emerald-400 font-bold">Direct Backend Sync Engine</span></div>
+          <div>Sync Method: <span className="text-emerald-400 font-bold">Auto-Sync On Order Top-Up</span></div>
         </div>
       </div>
 
@@ -387,16 +328,6 @@ export default function AdminShellAccountsPage() {
                         >
                           <Edit2 className="w-3.5 h-3.5 text-indigo-400" />
                           <span>Edit</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleSyncAccount(acc)}
-                          disabled={syncingId === acc.id}
-                          className="px-3 py-1.5 rounded-xl bg-purple-950/80 border border-purple-800/80 text-purple-300 hover:text-white hover:bg-purple-900 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50"
-                          title="Sync live balance from Chrome Extension"
-                        >
-                          <RefreshCw className={`w-3.5 h-3.5 ${syncingId === acc.id ? 'animate-spin text-cyan-400' : ''}`} />
-                          <span>{syncingId === acc.id ? 'Syncing...' : 'Sync'}</span>
                         </button>
 
                         <button
