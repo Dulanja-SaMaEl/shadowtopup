@@ -396,7 +396,7 @@ export default function AdminGamesPage() {
                     <Edit2 className="w-3.5 h-3.5" /> Edit
                   </button>
                   <Link
-                    href="/admin/products"
+                    href={`/admin/products?game=${g.id}`}
                     className="col-span-2 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold uppercase tracking-wider text-center shadow-md shadow-purple-600/30 flex items-center justify-center transition-all"
                   >
                     Products

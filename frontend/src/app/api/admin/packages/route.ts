@@ -36,17 +36,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const adminSupabase = getAdminClient();
 
+    const diamondAmount = parseInt(body.diamond_amount);
+    const shellCost = parseInt(body.shell_cost);
+    const normalPrice = parseFloat(body.normal_price);
+    const silverPrice = parseFloat(body.silver_price);
+    const goldPrice = parseFloat(body.gold_price);
+
     const newPackage = {
-      package_name: body.package_name,
+      package_name: body.package_name?.trim() || 'New Package',
       package_type: body.package_type || 'diamond',
-      diamond_amount: parseInt(body.diamond_amount) || 100,
-      shell_cost: parseInt(body.shell_cost) || 100,
-      normal_price: parseFloat(body.normal_price) || 350.00,
-      silver_price: parseFloat(body.silver_price) || 320.00,
-      gold_price: parseFloat(body.gold_price) || 300.00,
-      image_url: body.image_url || 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png',
-      badge: body.badge || null,
-      is_active: body.is_active !== undefined ? body.is_active : true,
+      diamond_amount: !isNaN(diamondAmount) ? diamondAmount : 100,
+      shell_cost: !isNaN(shellCost) ? shellCost : 100,
+      normal_price: !isNaN(normalPrice) ? normalPrice : 350.00,
+      silver_price: !isNaN(silverPrice) ? silverPrice : null,
+      gold_price: !isNaN(goldPrice) ? goldPrice : null,
+      image_url: body.image_url?.trim() || 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png',
+      badge: body.badge?.trim() || null,
+      is_active: body.is_active !== undefined ? Boolean(body.is_active) : true,
     };
 
     const { data, error } = await adminSupabase
@@ -77,17 +83,23 @@ export async function PUT(request: NextRequest) {
 
     const adminSupabase = getAdminClient();
 
+    const diamondAmount = parseInt(body.diamond_amount);
+    const shellCost = parseInt(body.shell_cost);
+    const normalPrice = parseFloat(body.normal_price);
+    const silverPrice = parseFloat(body.silver_price);
+    const goldPrice = parseFloat(body.gold_price);
+
     const updatedData: Record<string, any> = {
-      package_name: body.package_name,
-      package_type: body.package_type,
-      diamond_amount: parseInt(body.diamond_amount),
-      shell_cost: parseInt(body.shell_cost),
-      normal_price: parseFloat(body.normal_price),
-      silver_price: parseFloat(body.silver_price),
-      gold_price: parseFloat(body.gold_price),
-      image_url: body.image_url,
-      badge: body.badge || null,
-      is_active: body.is_active,
+      package_name: body.package_name?.trim() || 'Package',
+      package_type: body.package_type || 'diamond',
+      diamond_amount: !isNaN(diamondAmount) ? diamondAmount : 100,
+      shell_cost: !isNaN(shellCost) ? shellCost : 100,
+      normal_price: !isNaN(normalPrice) ? normalPrice : 350.00,
+      silver_price: !isNaN(silverPrice) ? silverPrice : null,
+      gold_price: !isNaN(goldPrice) ? goldPrice : null,
+      image_url: body.image_url?.trim() || 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png',
+      badge: body.badge?.trim() || null,
+      is_active: body.is_active !== undefined ? Boolean(body.is_active) : true,
       updated_at: new Date().toISOString(),
     };
 
@@ -99,7 +111,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ success: true, package: data });
+    return NextResponse.json({ success: true, package: data, message: 'Package updated successfully' });
   } catch (err: any) {
     console.error('Error updating package:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });

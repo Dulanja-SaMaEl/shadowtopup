@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Package } from '@/types/database';
-import { Plus, Edit2, Trash2, X, Sparkles, Check, Image as ImageIcon, Zap, DollarSign } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Sparkles, Check, Image as ImageIcon, Zap, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const DIAMOND_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png';
 const WEEKLY_PASS_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/rebate/0000/000/002/logo.png';
@@ -28,6 +28,12 @@ export default function AdminPackagesPage() {
   const [badge, setBadge] = useState('STARTER');
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setToastMsg({ type, text });
+    setTimeout(() => setToastMsg(null), 5000);
+  };
 
   const loadPackages = async () => {
     setLoading(true);
@@ -85,16 +91,19 @@ export default function AdminPackagesPage() {
       const data = await res.json();
       if (data.success && data.package) {
         setPackages([...packages, data.package]);
+        showToast('success', `Created package "${packageName}" successfully!`);
+        setIsAddModalOpen(false);
+        resetForm();
       } else {
+        showToast('error', data.message || 'Failed to add package');
         await loadPackages();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error adding package:', err);
+      showToast('error', 'Network error adding package');
+    } finally {
+      setSaving(false);
     }
-
-    setIsAddModalOpen(false);
-    resetForm();
-    setSaving(false);
   };
 
   const handleEditPackage = async (e: React.FormEvent) => {
@@ -125,17 +134,20 @@ export default function AdminPackagesPage() {
       const data = await res.json();
       if (data.success && data.package) {
         setPackages(packages.map((p) => (p.id === selectedPkg.id ? data.package : p)));
+        showToast('success', `Package "${packageName}" updated successfully!`);
+        setIsEditModalOpen(false);
+        setSelectedPkg(null);
+        resetForm();
       } else {
+        showToast('error', data.message || 'Failed to update package');
         await loadPackages();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating package:', err);
+      showToast('error', 'Network error updating package');
+    } finally {
+      setSaving(false);
     }
-
-    setIsEditModalOpen(false);
-    setSelectedPkg(null);
-    resetForm();
-    setSaving(false);
   };
 
   const handleDeletePackage = async (id: string) => {
@@ -147,9 +159,13 @@ export default function AdminPackagesPage() {
       const data = await res.json();
       if (data.success) {
         setPackages(packages.filter((p) => p.id !== id));
+        showToast('success', 'Package deleted successfully.');
+      } else {
+        showToast('error', data.message || 'Failed to delete package');
       }
     } catch (err) {
       console.error('Error deleting package:', err);
+      showToast('error', 'Network error deleting package');
     }
   };
 
@@ -243,6 +259,24 @@ export default function AdminPackagesPage() {
         <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-bold flex items-center justify-between">
           <span>{syncMsg}</span>
           <button onClick={() => setSyncMsg(null)} className="text-emerald-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {toastMsg && (
+        <div
+          className={`p-4 rounded-2xl border flex items-center justify-between font-mono text-xs font-bold animate-in fade-in slide-in-from-top-2 duration-200 ${
+            toastMsg.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+              : 'bg-red-500/10 border-red-500/30 text-red-400'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {toastMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            <span>{toastMsg.text}</span>
+          </div>
+          <button onClick={() => setToastMsg(null)} className="opacity-70 hover:opacity-100">
             <X className="w-4 h-4" />
           </button>
         </div>
