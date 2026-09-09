@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
     if (accounts && accounts.length > 0) {
       for (const acc of accounts) {
         if ((!acc.available_balance || acc.available_balance === 0) && (acc.account_username?.toUpperCase() === 'SHADOW_TOPUP1' || acc.is_main)) {
-          acc.available_balance = 6523;
-          await adminSupabase.from('shell_accounts').update({ available_balance: 6523 }).eq('id', acc.id);
+          acc.available_balance = 6508;
+          await adminSupabase.from('shell_accounts').update({ available_balance: 6508 }).eq('id', acc.id);
         }
       }
       return NextResponse.json({ success: true, accounts });
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         account_username: 'SHADOW_TOPUP1',
         password: 'Shadow123@',
         autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
-        available_balance: 6523,
+        available_balance: 6508,
         is_main: true,
         last_synced_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       account_username: usernameStr,
       password: passwordStr,
       autocode: autocodeStr,
-      available_balance: (syncRes.balance && syncRes.balance > 0) ? syncRes.balance : 6523,
+      available_balance: (syncRes.balance && syncRes.balance > 0) ? syncRes.balance : 6508,
       is_main: is_main,
       last_synced_at: syncRes.lastSyncedAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),

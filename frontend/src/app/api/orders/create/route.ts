@@ -104,6 +104,18 @@ export async function POST(request: NextRequest) {
 
       let targetShellAcc = shellAccounts && shellAccounts.length > 0 ? shellAccounts[0] : null;
 
+      // If no account with gte requiredShellCost was found, attempt to fetch primary account from DB
+      if (!targetShellAcc) {
+        const { data: anyAccounts } = await adminSupabase
+          .from('shell_accounts')
+          .select('*')
+          .order('is_main', { ascending: false })
+          .limit(1);
+        if (anyAccounts && anyAccounts.length > 0) {
+          targetShellAcc = anyAccounts[0];
+        }
+      }
+
       // Fallback virtual stock check if DB table hasn't been seeded yet
       if (!targetShellAcc) {
         targetShellAcc = {
@@ -111,12 +123,12 @@ export async function POST(request: NextRequest) {
           account_username: 'SHADOW_TOPUP1',
           password: 'Shadow123@',
           autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
-          available_balance: 6523,
+          available_balance: 6508,
           is_main: true,
         };
       }
 
-      if (targetShellAcc.available_balance < requiredShellCost) {
+      if ((targetShellAcc.available_balance ?? 0) < requiredShellCost) {
         return NextResponse.json({
           success: false,
           message: `Topup unavailable: Insufficient Garena Shell stock for ${packageName} (${requiredShellCost} Shells required). Please contact support or select another package.`,
@@ -217,11 +229,11 @@ export async function POST(request: NextRequest) {
       ucBotSuccessData = ucBotRes;
 
       // Deduct Shell stock from target shell account inventory in Supabase
-      if (targetShellAcc && targetShellAcc.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
-        const newShellBal = typeof ucBotRes.postBalance === 'number'
-          ? ucBotRes.postBalance
-          : Math.max(0, (targetShellAcc.available_balance || 6523) - (ucBotRes.balanceUsed || requiredShellCost));
+      const newShellBal = typeof ucBotRes.postBalance === 'number'
+        ? ucBotRes.postBalance
+        : Math.max(0, ((targetShellAcc?.available_balance ?? 6508)) - (ucBotRes.balanceUsed || requiredShellCost));
 
+      if (targetShellAcc && targetShellAcc.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
         await adminSupabase
           .from('shell_accounts')
           .update({
@@ -230,6 +242,15 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', targetShellAcc.id);
+      } else {
+        await adminSupabase
+          .from('shell_accounts')
+          .update({
+            available_balance: newShellBal,
+            last_synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('account_username', targetShellAcc?.account_username || 'SHADOW_TOPUP1');
       }
     }
 

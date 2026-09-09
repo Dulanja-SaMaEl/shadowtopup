@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Zap,
@@ -19,7 +22,17 @@ import {
 } from 'lucide-react';
 import CustomerReviewsSection from '@/components/CustomerReviewsSection';
 
-const featuredGames = [
+interface FeaturedGame {
+  title: string;
+  slug: string;
+  category: string;
+  image: string;
+  badge: string;
+  discount: string;
+  available: boolean;
+}
+
+const defaultFeaturedGames: FeaturedGame[] = [
   {
     title: 'GARENA FREE FIRE ( SG / MY )',
     slug: 'free-fire',
@@ -85,6 +98,32 @@ const platformFeatures = [
 ];
 
 export default function HomePage() {
+  const [games, setGames] = useState<FeaturedGame[]>(defaultFeaturedGames);
+
+  useEffect(() => {
+    async function loadGames() {
+      try {
+        const res = await fetch('/api/games');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.games) && data.games.length > 0) {
+          const mapped: FeaturedGame[] = data.games.map((g: any) => ({
+            title: g.title.toUpperCase(),
+            slug: g.slug,
+            category: (g.category || 'MOBILE').toUpperCase(),
+            image: g.image_path || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000',
+            badge: g.is_active || g.slug === 'free-fire' ? 'INSTANT TOPUP' : 'COMING SOON',
+            discount: g.is_active || g.slug === 'free-fire' ? 'UP TO 15% OFF FOR RESELLERS' : 'UNDER DEVELOPMENT',
+            available: Boolean(g.is_active || g.slug === 'free-fire'),
+          }));
+          setGames(mapped);
+        }
+      } catch (e) {
+        console.warn('Using default featured games');
+      }
+    }
+    loadGames();
+  }, []);
+
   return (
     <div className="space-y-20 pb-16">
       {/* Disclaimer Banner Top Header */}
@@ -121,7 +160,7 @@ export default function HomePage() {
             </Link>
 
             <Link
-              href="/admin/pricing-rules"
+              href="/dashboard"
               className="px-8 py-4 rounded-2xl bg-[#141229] border border-purple-900/60 hover:bg-purple-950/40 text-purple-300 font-extrabold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
             >
               <Award className="w-4 h-4 text-amber-400" /> RESELLER TIERS
@@ -152,10 +191,17 @@ export default function HomePage() {
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wide mt-1">SUPPORTED GAMES</h2>
           </div>
+
+          <Link
+            href="/games"
+            className="text-xs font-bold text-cyan-400 hover:text-cyan-300 font-mono uppercase tracking-wider flex items-center gap-1"
+          >
+            View All Games &rarr;
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {featuredGames.map((game, idx) => (
+          {games.map((game, idx) => (
             <div
               key={idx}
               className={`p-6 rounded-3xl bg-[#141229] border transition-all flex flex-col justify-between space-y-6 ${
@@ -237,7 +283,7 @@ export default function HomePage() {
       </section>
 
       {/* 4. Wholesale Reseller Tiers Showcase */}
-      <section className="max-w-6xl mx-auto px-4 space-y-8">
+      <section id="reseller-tiers" className="max-w-6xl mx-auto px-4 space-y-8">
         <div className="text-center space-y-2">
           <span className="text-[10px] font-mono font-black text-amber-400 uppercase tracking-widest">--- PARTNER PROGRAM ---</span>
           <h2 className="text-3xl font-black text-white uppercase tracking-wider">

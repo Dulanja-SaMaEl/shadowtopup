@@ -10,8 +10,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Missing server environment keys' }, { status: 500 });
     }
 
-    const { orderId, shortId, status } = await request.json();
-    const targetId = (orderId || shortId || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
+    const body = await request.json();
+    const { orderId, order_id, shortId, id, status } = body;
+    const targetId = (orderId || order_id || shortId || id || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
     const uppercaseStatus = (status || '').toUpperCase();
     const allowedStatuses = ['COMPLETED', 'PENDING', 'REJECTED', 'REFUNDED'];
 

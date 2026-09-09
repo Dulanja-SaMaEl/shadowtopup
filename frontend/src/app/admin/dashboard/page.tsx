@@ -142,19 +142,20 @@ export default function AdminDashboardPage() {
 
         // Calculate total shell costs for completed orders
         const estimatedShellCosts = completedOrders.reduce((acc, o) => {
-          // Estimate shell cost based on order total
           const cost = o.totalAmount * 0.74; // ~74% cost, 26% profit
           return acc + cost;
         }, 0);
 
-        const netProfit = completedSum > 0 ? completedSum - estimatedShellCosts : 14250.00;
-        const salesRevenue = completedSum > 0 ? completedSum : 56000.00;
-        const calculatedMargin = salesRevenue > 0 ? ((netProfit / salesRevenue) * 100) : 25.4;
+        const netProfit = completedSum - estimatedShellCosts;
+        const salesRevenue = completedSum;
+        const calculatedMargin = salesRevenue > 0 ? ((netProfit / salesRevenue) * 100) : 26.0;
 
         const pendingCount = dbOrders.filter((o) => o.fulfillmentStatus === 'PENDING').length;
+        
+        const todayDateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         const todaySum = dbOrders
-          .filter((o) => o.fulfillmentStatus === 'COMPLETED' && o.date.includes('Aug 18'))
-          .reduce((acc, o) => acc + o.totalAmount, 750.00);
+          .filter((o) => o.fulfillmentStatus === 'COMPLETED' && o.date === todayDateStr)
+          .reduce((acc, o) => acc + o.totalAmount, 0);
 
         setTotalSales(salesRevenue);
         setTotalProfit(netProfit);
