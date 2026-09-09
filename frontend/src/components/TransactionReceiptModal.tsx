@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { ShieldCheck, Download, Printer, X, Zap, Award, CheckCircle2, Clock, FileText, RotateCcw } from 'lucide-react';
 import { formatCurrency } from '@/lib/pricing';
 
@@ -134,16 +135,18 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
           {/* Brand Header & Reseller Store Name */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-500 p-[2px] shadow-lg shadow-cyan-500/20">
-                <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-cyan-400 fill-cyan-400/20" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-black tracking-tight text-white uppercase">
-                  SHADOW<span className="text-cyan-400">STORE</span>
-                </h3>
-                <p className="text-[9px] text-slate-400 font-mono">OFFICIAL RECHARGE INVOICE</p>
+              <Image
+                src="/logo.png"
+                alt="Shadow"
+                width={160}
+                height={48}
+                className="h-9 w-auto object-contain"
+              />
+              <div className="border-l border-slate-700 pl-3">
+                <p className="text-[10px] text-cyan-400 font-mono font-bold tracking-widest uppercase">
+                  OFFICIAL RECHARGE INVOICE
+                </p>
+                <p className="text-[9px] text-slate-400 font-mono">AUTOMATED VERIFIED TRANSACTION</p>
               </div>
             </div>
 

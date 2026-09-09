@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Zap, ShieldCheck, CreditCard, Headset, AlertTriangle } from 'lucide-react';
 
 export default function Footer() {
@@ -8,12 +9,15 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Col */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center text-white">
-                <Zap className="w-4 h-4 fill-white" />
-              </div>
-              <span className="font-extrabold text-lg text-white">SHADOW<span className="text-cyan-400">STORE</span></span>
-            </div>
+            <Link href="/" className="inline-block">
+              <Image
+                src="/logo.png"
+                alt="Shadow Top Up and Account Center"
+                width={180}
+                height={52}
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
             <p className="text-sm leading-relaxed">
               Independent third-party gaming recharge service and reseller platform for digital gaming credits.
             </p>

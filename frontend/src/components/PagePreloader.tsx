@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Zap } from 'lucide-react';
 
@@ -55,16 +56,28 @@ export default function PagePreloader() {
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 animate-spin p-[3px] shadow-[0_0_30px_rgba(0,240,255,0.4)]">
             <div className="w-full h-full bg-[#0a0814] rounded-[21px]" />
           </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Zap className="w-9 h-9 text-cyan-400 fill-cyan-400/20 animate-bounce" />
+          <div className="absolute inset-0 flex items-center justify-center p-3">
+            <Image
+              src="/logo-icon.png"
+              alt="Shadow"
+              width={48}
+              height={48}
+              className="w-10 h-10 object-contain drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]"
+              priority
+            />
           </div>
         </div>
 
         <div className="text-center space-y-2">
-          <h2 className="text-2xl font-black tracking-widest text-white uppercase font-mono">
-            SHADOW<span className="text-cyan-400">STORE</span>
-          </h2>
-          <div className="flex items-center justify-center gap-1">
+          <Image
+            src="/logo.png"
+            alt="Shadow Top Up and Account Center"
+            width={220}
+            height={60}
+            className="h-10 w-auto object-contain mx-auto"
+            priority
+          />
+          <div className="flex items-center justify-center gap-1.5 pt-1">
             <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">
               LOADING SECURE PORTAL...

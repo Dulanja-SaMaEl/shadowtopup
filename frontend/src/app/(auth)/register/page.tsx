@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { Zap, Mail, Lock, User, Eye, EyeOff, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 
@@ -41,9 +42,16 @@ export default function RegisterPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-md">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white mx-auto mb-4 shadow-lg shadow-cyan-500/20">
-            <Zap className="w-6 h-6 fill-white" />
-          </div>
+          <Link href="/" className="inline-block mb-3">
+            <Image
+              src="/logo.png"
+              alt="Shadow Top Up and Account Center"
+              width={200}
+              height={60}
+              className="h-12 w-auto object-contain mx-auto"
+              priority
+            />
+          </Link>
           <h1 className="text-2xl font-extrabold text-white">Create Account</h1>
           <p className="text-xs text-slate-400 mt-1">Get instant top-ups & reseller tier pricing</p>
         </div>

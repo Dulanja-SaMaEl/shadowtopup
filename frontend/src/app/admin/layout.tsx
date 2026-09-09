@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -121,15 +122,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div>
         {/* Logo Brand */}
         <div className="p-6 flex items-center justify-between border-b border-purple-950/30">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
-              <Zap className="w-5 h-5 fill-white" />
-            </div>
-            <div>
-              <h2 className="text-sm font-black tracking-wider text-white uppercase">Shadow<span className="text-cyan-400">Store</span></h2>
-              <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Admin Control Hub</p>
-            </div>
-          </div>
+          <Link href="/admin/dashboard" className="flex items-center gap-3">
+            <Image
+              src="/logo.png"
+              alt="Shadow Admin Control Hub"
+              width={160}
+              height={48}
+              className="h-9 w-auto object-contain"
+              priority
+            />
+          </Link>
           <button
             onClick={() => setMobileSidebarOpen(false)}
             className="md:hidden text-slate-400 hover:text-white p-1"

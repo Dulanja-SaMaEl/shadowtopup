@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   title: 'ShadowStore | Instant Gaming Top-Up & Reseller Portal',
   description: 'Fast, secure, automated Garena Free Fire diamond top-ups, Mobile Legends diamonds, and tiered pricing for resellers.',
   keywords: 'game topup, free fire diamonds, garena shell, reseller pricing, instant topup, shadowstore',
+  icons: {
+    icon: '/logo-icon.png',
+    apple: '/logo-icon.png',
+  },
 };
 
 export default function RootLayout({
