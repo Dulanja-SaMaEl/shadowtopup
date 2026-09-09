@@ -42,13 +42,65 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
     window.print();
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    const element = document.getElementById('printable-receipt');
+    if (!element) {
+      window.print();
+      return;
+    }
+
     setDownloading(true);
-    // Print window triggers PDF save in modern browsers
-    setTimeout(() => {
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#0e0c1f',
+        useCORS: true,
+        logging: false,
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          const link = document.createElement('a');
+          link.download = `ShadowTopUp_Receipt_${receipt.orderId || 'Order'}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          setDownloading(false);
+          return;
+        }
+
+        const fileName = `ShadowTopUp_Receipt_${receipt.orderId || 'Order'}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+
+        if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `ShadowTopUp Order Receipt #${receipt.orderId}`,
+              text: `Official Receipt for Order #${receipt.orderId}`,
+            });
+            setDownloading(false);
+            return;
+          } catch (shareErr) {
+            // User dismissed or share failed; proceed to download
+          }
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setDownloading(false);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Error generating receipt image:', err);
       window.print();
       setDownloading(false);
-    }, 300);
+    }
   };
 
   return (
@@ -140,6 +192,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
                 alt="Shadow"
                 width={160}
                 height={48}
+                unoptimized
                 className="h-9 w-auto object-contain"
               />
               <div className="border-l border-slate-700 pl-3">
@@ -273,28 +326,40 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
         </div>
 
         {/* Action Buttons Footer */}
-        <div className="p-6 bg-[#141229] border-t border-slate-800 flex flex-col sm:flex-row gap-3 print:hidden">
+        <div className="p-4 sm:p-6 bg-[#141229] border-t border-slate-800 flex flex-col sm:flex-row gap-2.5 sm:gap-3 print:hidden">
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
           >
-            <Download className="w-4 h-4" /> Download / Save Receipt PDF
+            {downloading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Generating Receipt...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                <span>Save Receipt (PNG/PDF)</span>
+              </>
+            )}
           </button>
 
-          <button
-            onClick={handlePrint}
-            className="py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider border border-slate-700 flex items-center justify-center gap-2 transition-all"
-          >
-            <Printer className="w-4 h-4" /> Print
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="flex-1 sm:flex-none py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider border border-slate-700 flex items-center justify-center gap-2 transition-all"
+            >
+              <Printer className="w-4 h-4" /> Print
+            </button>
 
-          <button
-            onClick={onClose}
-            className="py-3 px-5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-xs uppercase tracking-wider border border-red-500/30 flex items-center justify-center gap-2 transition-all"
-          >
-            <X className="w-4 h-4 text-red-400" /> Close
-          </button>
+            <button
+              onClick={onClose}
+              className="flex-1 sm:flex-none py-3 px-5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-xs uppercase tracking-wider border border-red-500/30 flex items-center justify-center gap-2 transition-all"
+            >
+              <X className="w-4 h-4 text-red-400" /> Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

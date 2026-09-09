@@ -177,11 +177,24 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Cart & Menu Button */}
           <div className="md:hidden flex items-center gap-2">
+            <Link
+              href="/cart"
+              className="relative p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white flex items-center justify-center"
+              title="Shopping Cart"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              {totalCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-mono font-bold text-[10px] flex items-center justify-center border-2 border-[#0a0814] animate-pulse">
+                  {totalCount}
+                </span>
+              )}
+            </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300"
+              aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>

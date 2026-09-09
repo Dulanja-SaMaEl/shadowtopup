@@ -125,12 +125,13 @@ export default function CartPage() {
           playerUid: cartItems[0].playerUid,
           playerNickname: lastPlayerNickname,
           transactionId: lastTxId,
+          itemsDelivered: cartItems.map(i => `${i.quantity}x ${i.packageName}`).join(', '),
           amount: cartTotal,
           paymentMethod: 'Shadow Wallet',
           status: 'COMPLETED & DELIVERED',
           date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          customerName: authData.user.email?.split('@')[0].toUpperCase(),
+          customerName: authData.user?.user_metadata?.name || authData.user?.email?.split('@')[0].toUpperCase(),
           customerEmail: authData.user.email,
           storeName: userStoreName,
           resellerRole: userRole,
@@ -216,14 +217,14 @@ export default function CartPage() {
                       <p className="text-[10px] text-cyan-400 font-mono font-bold">
                         {item.diamonds} Diamonds • LKR {item.price.toFixed(2)} each
                       </p>
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="text-[10px] text-slate-400 font-mono">PLAYER UID:</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 pt-1">
+                        <span className="text-[10px] text-slate-400 font-mono shrink-0">PLAYER UID:</span>
                         <input
                           type="text"
                           value={item.playerUid}
                           onChange={(e) => updatePlayerUid(item.cartId, e.target.value)}
                           placeholder="Target Free Fire UID"
-                          className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono font-bold text-cyan-400 w-36 focus:outline-none focus:border-cyan-500"
+                          className="px-2.5 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono font-bold text-cyan-400 w-full sm:w-36 focus:outline-none focus:border-cyan-500"
                         />
                       </div>
                     </div>

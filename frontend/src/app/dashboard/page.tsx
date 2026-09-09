@@ -326,15 +326,15 @@ export default function UserDashboardPage() {
       <div className="max-w-6xl mx-auto px-4 space-y-8">
         {/* Admin Quick Access Bar */}
         {profile?.role === 'admin' && (
-          <div className="bg-purple-950/60 border border-purple-800 p-6 rounded-3xl flex justify-between items-center">
+          <div className="bg-purple-950/60 border border-purple-800 p-5 sm:p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
-              <ShieldCheck className="w-6 h-6 text-purple-400" />
+              <ShieldCheck className="w-6 h-6 text-purple-400 shrink-0" />
               <div>
                 <h4 className="text-sm font-bold text-white uppercase">SYSTEM ADMINISTRATOR CONTROL DETECTED</h4>
                 <p className="text-xs text-purple-300 font-mono">Access store settings, packages, shell accounts & reseller applications.</p>
               </div>
             </div>
-            <Link href="/admin/dashboard" className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase rounded-xl">
+            <Link href="/admin/dashboard" className="w-full sm:w-auto text-center px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase rounded-xl transition-all shadow-lg shadow-purple-600/30 shrink-0">
               GO TO ADMIN PANEL
             </Link>
           </div>
@@ -665,12 +665,12 @@ export default function UserDashboardPage() {
         </div>
 
         {/* CHARTS ROW */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
+          <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4 min-w-0 overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
               <TrendingUp className="w-4 h-4 text-cyan-400" /> PURCHASE HISTORY (30 DAYS)
             </div>
-            <div className="h-56 w-full pt-4">
+            <div className="h-56 w-full pt-4 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={lineData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e1b3a" />
@@ -683,11 +683,11 @@ export default function UserDashboardPage() {
             </div>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
+          <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4 min-w-0 overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
               <BarChart3 className="w-4 h-4 text-amber-400" /> PACKAGE PRICING TIERS
             </div>
-            <div className="h-56 w-full pt-4">
+            <div className="h-56 w-full pt-4 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e1b3a" />
@@ -721,17 +721,17 @@ export default function UserDashboardPage() {
                   }}
                   className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 flex items-center justify-between hover:border-purple-500/60 cursor-pointer transition-all hover:bg-slate-900/40"
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="w-12 h-8 rounded-xl bg-slate-900 text-purple-400 font-mono text-xs font-bold flex items-center justify-center border border-slate-800">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 mr-2">
+                    <span className="w-12 h-8 rounded-xl bg-slate-900 text-purple-400 font-mono text-xs font-bold flex items-center justify-center border border-slate-800 shrink-0">
                       #{tx.id}
                     </span>
-                    <div>
-                      <h5 className="font-bold text-white text-xs uppercase">{tx.package_name}</h5>
-                      <p className="text-[10px] text-slate-400 font-mono">PLAYER UID: {tx.player_uid} • {tx.date}</p>
+                    <div className="min-w-0 flex-1">
+                      <h5 className="font-bold text-white text-xs uppercase truncate">{tx.package_name}</h5>
+                      <p className="text-[10px] text-slate-400 font-mono truncate">PLAYER UID: {tx.player_uid} • {tx.date}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                     <span className="font-mono font-bold text-emerald-400 text-xs hidden sm:inline">
                       LKR {Number(tx.amount).toFixed(2)}
                     </span>
@@ -983,12 +983,35 @@ export default function UserDashboardPage() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewReceiptModal({
+                    orderId: String(selectedOrder.id).slice(0, 8).toUpperCase(),
+                    packageName: selectedOrder.package_name,
+                    playerUid: selectedOrder.player_uid || 'N/A',
+                    amount: Number(selectedOrder.amount),
+                    paymentMethod: selectedOrder.receipt_url ? 'Bank Transfer' : 'Shadow Wallet',
+                    status: selectedOrder.status === 'COMPLETED' ? 'COMPLETED' : (selectedOrder.status === 'REFUNDED' || selectedOrder.status === 'refunded') ? 'REFUNDED' : 'PENDING VERIFICATION',
+                    date: selectedOrder.date || new Date().toLocaleDateString(),
+                    customerName: profile?.name || profile?.email?.split('@')[0].toUpperCase(),
+                    customerEmail: profile?.email,
+                    storeName: profile?.store_name,
+                    resellerRole: profile?.role,
+                    receiptUrl: selectedOrder.receipt_url,
+                  });
+                }}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 transition-all"
+              >
+                <Download className="w-4 h-4" /> Download Official Invoice / Receipt
+              </button>
+
               <button
                 onClick={() => setSelectedOrder(null)}
-                className="w-full py-2.5 rounded-xl bg-purple-950/80 border border-purple-800 text-purple-300 font-bold text-xs uppercase"
+                className="w-full py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-800 text-purple-300 font-bold text-xs uppercase transition-all"
               >
-                Close Receipt
+                Close Window
               </button>
             </div>
           </div>

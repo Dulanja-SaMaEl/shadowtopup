@@ -151,17 +151,17 @@ export default function HomePage() {
             ShadowTopUp is an independent third-party top-up portal delivering Free Fire SG/MY diamonds and passes. Enjoy automated Player ID verification, low LKR prices, and reseller discounts.
           </p>
 
-          <div className="flex flex-wrap gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full sm:w-auto">
             <Link
               href="/games/free-fire"
-              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-cyan-500/25 transition-all flex items-center gap-2 hover:scale-105"
+              className="w-full sm:w-auto justify-center px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-cyan-500/25 transition-all flex items-center gap-2 hover:scale-105 text-center"
             >
               <Zap className="w-4 h-4" /> RECHARGE DIAMONDS NOW
             </Link>
 
             <Link
               href="/dashboard"
-              className="px-8 py-4 rounded-2xl bg-[#141229] border border-purple-900/60 hover:bg-purple-950/40 text-purple-300 font-extrabold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+              className="w-full sm:w-auto justify-center px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-[#141229] border border-purple-900/60 hover:bg-purple-950/40 text-purple-300 font-extrabold text-xs uppercase tracking-widest transition-all flex items-center gap-2 text-center"
             >
               <Award className="w-4 h-4 text-amber-400" /> RESELLER TIERS
             </Link>
