@@ -10,50 +10,83 @@ export interface UCBotTopupResult {
 }
 
 /**
- * Resolves standard package names (e.g. "100 Diamonds", "Weekly Membership", "Level Up Pass - LV6") to UC Bot pack_id
+ * Resolves standard package names or codes to the official UC Bot API pack_id
+ * Supports all 20 connected products:
+ * 25, 100, 310, 520, 1060, 2180, 5600, 11500, LITE, WEEKLY, MONTHLY,
+ * 3D, 7D, 30D, lvl6/L6, lvl10/L10, lvl15/L15, lvl20/L20, lvl25/L25, lvl30/L30
  */
 export function resolveUCBotPackId(packageName: string): string {
-  const nameLower = (packageName || '').trim().toLowerCase();
+  const raw = (packageName || '').trim();
+  const lower = raw.toLowerCase();
 
-  // If already a valid pack code from UC Bot API specification (e.g. "25", "100", "lvl6", "weekly", etc.)
-  if (/^(25|50|100|310|520|1060|2180|5600|lvl6|lvl10|lvl30|weekly|weekly_lite|monthly)$/i.test(nameLower)) {
-    return nameLower;
+  // 1. Direct code matches (case-insensitive)
+  if (/^25$/i.test(raw)) return '25';
+  if (/^100$/i.test(raw)) return '100';
+  if (/^310$/i.test(raw)) return '310';
+  if (/^520$/i.test(raw)) return '520';
+  if (/^1060$/i.test(raw)) return '1060';
+  if (/^2180$/i.test(raw)) return '2180';
+  if (/^5600$/i.test(raw)) return '5600';
+  if (/^11500$/i.test(raw)) return '11500';
+
+  if (/^(lite|weekly_lite)$/i.test(raw)) return 'LITE';
+  if (/^weekly$/i.test(raw)) return 'WEEKLY';
+  if (/^monthly$/i.test(raw)) return 'MONTHLY';
+
+  if (/^3d$/i.test(raw)) return '3D';
+  if (/^7d$/i.test(raw)) return '7D';
+  if (/^30d$/i.test(raw)) return '30D';
+
+  if (/^(lvl6|l6)$/i.test(raw)) return 'lvl6';
+  if (/^(lvl10|l10)$/i.test(raw)) return 'lvl10';
+  if (/^(lvl15|l15)$/i.test(raw)) return 'lvl15';
+  if (/^(lvl20|l20)$/i.test(raw)) return 'lvl20';
+  if (/^(lvl25|l25)$/i.test(raw)) return 'lvl25';
+  if (/^(lvl30|l30)$/i.test(raw)) return 'lvl30';
+
+  // 2. EVO Access matches
+  if (lower.includes('evo')) {
+    if (lower.includes('30') || lower.includes('30d') || lower.includes('30 day')) return '30D';
+    if (lower.includes('7') || lower.includes('7d') || lower.includes('7 day')) return '7D';
+    if (lower.includes('3') || lower.includes('3d') || lower.includes('3 day')) return '3D';
   }
 
-  // Level Up Passes (Handle before digit match so LV6 doesn't match '25')
-  if (nameLower.includes('lv6') || nameLower.includes('lvl6') || (nameLower.includes('level up') && nameLower.includes('6'))) {
-    return 'lvl6';
-  }
-  if (nameLower.includes('lv10') || nameLower.includes('lvl10') || (nameLower.includes('level up') && nameLower.includes('10'))) {
-    return 'lvl10';
-  }
-  if (nameLower.includes('lv30') || nameLower.includes('lvl30') || (nameLower.includes('level up') && (nameLower.includes('30') || nameLower.includes('max')))) {
-    return 'lvl30';
-  }
-
-  // Memberships
-  if (nameLower.includes('weekly lite') || nameLower.includes('lite pass')) {
-    return 'weekly_lite';
-  }
-  if (nameLower.includes('weekly')) {
-    return 'weekly';
-  }
-  if (nameLower.includes('monthly')) {
-    return 'monthly';
+  // 3. Level Up Passes (Must check before standard diamond digits!)
+  if (lower.includes('level') || lower.includes('lvl') || lower.includes('lv')) {
+    if (lower.includes('30')) return 'lvl30';
+    if (lower.includes('25')) return 'lvl25';
+    if (lower.includes('20')) return 'lvl20';
+    if (lower.includes('15')) return 'lvl15';
+    if (lower.includes('10')) return 'lvl10';
+    if (lower.includes('6')) return 'lvl6';
   }
 
-  // Standard Diamond Packages
-  const digitsMatch = nameLower.match(/\d+/);
+  // 4. Passes & Memberships
+  if (lower.includes('lite')) return 'LITE';
+  if (lower.includes('weekly')) return 'WEEKLY';
+  if (lower.includes('monthly')) return 'MONTHLY';
+
+  // 5. Standard Diamond Packages
+  if (lower.includes('11500') || lower.includes('11,500')) return '11500';
+  if (lower.includes('5600') || lower.includes('5,600')) return '5600';
+  if (lower.includes('2180') || lower.includes('2,180')) return '2180';
+  if (lower.includes('1060') || lower.includes('1,060')) return '1060';
+  if (lower.includes('520')) return '520';
+  if (lower.includes('310')) return '310';
+  if (lower.includes('100')) return '100';
+  if (lower.includes('25')) return '25';
+
+  const digitsMatch = lower.match(/\d+/);
   if (digitsMatch) {
     const num = parseInt(digitsMatch[0], 10);
-    if (num <= 30) return '25';
-    if (num <= 70) return '50';
-    if (num <= 150) return '100';
+    if (num <= 50) return '25';
+    if (num <= 200) return '100';
     if (num <= 400) return '310';
     if (num <= 800) return '520';
     if (num <= 1500) return '1060';
     if (num <= 3000) return '2180';
-    return '5600';
+    if (num <= 8000) return '5600';
+    return '11500';
   }
 
   return '100';

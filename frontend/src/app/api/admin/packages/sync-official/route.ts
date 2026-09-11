@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
-import { OFFICIAL_GARENA_PACKAGES } from '@/app/api/packages/route';
+import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
 import { requireAdmin } from '@/lib/authGuard';
 
 function getAdminClient() {

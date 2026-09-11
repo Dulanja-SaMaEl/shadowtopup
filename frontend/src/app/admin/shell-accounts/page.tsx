@@ -546,15 +546,40 @@ export default function AdminShellAccountsPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Package Name / Pack ID</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                  Package Name / UC Bot Code
+                </label>
                 <input
                   type="text"
                   required
+                  list="ucbot-packages"
                   value={testPackage}
                   onChange={(e) => setTestPackage(e.target.value)}
-                  placeholder="e.g. 25 Diamonds or 25"
+                  placeholder="e.g. 25, WEEKLY, 3D, lvl6, etc."
                   className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-bold focus:outline-none focus:border-cyan-500"
                 />
+                <datalist id="ucbot-packages">
+                  <option value="25">25 Diamond (Code: 25)</option>
+                  <option value="100">100 Diamond (Code: 100)</option>
+                  <option value="310">310 Diamond (Code: 310)</option>
+                  <option value="520">520 Diamond (Code: 520)</option>
+                  <option value="1060">1060 Diamond (Code: 1060)</option>
+                  <option value="2180">2180 Diamond (Code: 2180)</option>
+                  <option value="5600">5600 Diamond (Code: 5600)</option>
+                  <option value="11500">11500 Diamond (Code: 11500)</option>
+                  <option value="LITE">Weekly Lite Pack (Code: LITE)</option>
+                  <option value="WEEKLY">Weekly Subscription (Code: WEEKLY)</option>
+                  <option value="MONTHLY">Monthly Subscription (Code: MONTHLY)</option>
+                  <option value="3D">EVO 3 Days (Code: 3D)</option>
+                  <option value="7D">EVO 7 Days (Code: 7D)</option>
+                  <option value="30D">EVO 30 Days (Code: 30D)</option>
+                  <option value="lvl6">Level Up 6 (Code: lvl6 / L6)</option>
+                  <option value="lvl10">Level Up 10 (Code: lvl10 / L10)</option>
+                  <option value="lvl15">Level Up 15 (Code: lvl15 / L15)</option>
+                  <option value="lvl20">Level Up 20 (Code: lvl20 / L20)</option>
+                  <option value="lvl25">Level Up 25 (Code: lvl25 / L25)</option>
+                  <option value="lvl30">Level Up 30 (Code: lvl30 / L30)</option>
+                </datalist>
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#0e0c1f] border border-slate-800 text-[11px] text-slate-300 space-y-1">

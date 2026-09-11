@@ -436,6 +436,8 @@ export default function AdminPackagesPage() {
                     <option value="diamond">diamond</option>
                     <option value="weekly_pass">weekly_pass</option>
                     <option value="monthly_pass">monthly_pass</option>
+                    <option value="evo_access">evo_access</option>
+                    <option value="levelup_pass">levelup_pass</option>
                   </select>
                 </div>
 

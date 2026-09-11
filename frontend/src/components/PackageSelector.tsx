@@ -24,6 +24,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const [generatedReceipt, setGeneratedReceipt] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'diamond' | 'membership' | 'evo' | 'levelup'>('all');
 
   const handleAddToCart = (pkg: Package, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -276,39 +277,82 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         )}
       </div>
 
+      {/* Category Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {[
+          { id: 'all', label: `All Packages (${packages.length})` },
+          { id: 'diamond', label: '💎 Diamonds' },
+          { id: 'membership', label: '👑 Passes & VIP' },
+          { id: 'evo', label: '⚡ EVO Access' },
+          { id: 'levelup', label: '🎯 Level Up' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setSelectedCategory(tab.id as any)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition-all ${
+              selectedCategory === tab.id
+                ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-md shadow-cyan-500/20'
+                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {packages.map((pkg) => {
-          const finalPrice = calculatePackagePrice(pkg, userRole);
-          const isSelected = selectedPkg?.id === pkg.id;
-          const isMembership = pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass';
+        {packages
+          .filter((pkg) => {
+            if (selectedCategory === 'all') return true;
+            if (selectedCategory === 'diamond') return pkg.package_type === 'diamond';
+            if (selectedCategory === 'membership') return pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass';
+            if (selectedCategory === 'evo') return pkg.package_type === 'evo_access';
+            if (selectedCategory === 'levelup') return pkg.package_type === 'levelup_pass';
+            return true;
+          })
+          .map((pkg) => {
+            const finalPrice = calculatePackagePrice(pkg, userRole);
+            const isSelected = selectedPkg?.id === pkg.id;
+            const isMembership = pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass';
+            const isEvo = pkg.package_type === 'evo_access';
+            const isLevelUp = pkg.package_type === 'levelup_pass';
 
-          return (
-            <div
-              key={pkg.id}
-              onClick={() => setSelectedPkg(pkg)}
-              className={`relative cursor-pointer rounded-2xl border p-5 transition-all flex flex-col justify-between space-y-4 ${
-                isSelected
-                  ? 'bg-gradient-to-b from-purple-900/40 via-slate-900 to-slate-950 border-purple-500 shadow-xl shadow-purple-500/20 scale-[1.02]'
-                  : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
-              }`}
-            >
-              {pkg.badge && (
-                <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 text-white text-[9px] font-extrabold tracking-wider uppercase shadow-md">
-                  {pkg.badge}
-                </span>
-              )}
+            const subTitle = isMembership
+              ? (pkg.diamond_amount > 0 ? `Pass (${pkg.diamond_amount} 💎)` : 'Subscription Pass')
+              : isEvo
+              ? 'EVO Gun Access Pass'
+              : isLevelUp
+              ? `Level Up Pass (${pkg.diamond_amount} 💎)`
+              : `${pkg.diamond_amount} Diamonds`;
 
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center p-2 shrink-0">
-                  <img src={pkg.image_url} alt={pkg.package_name} className="max-w-full max-h-full object-contain" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-white text-sm">{pkg.package_name}</h3>
-                  <span className="text-xs text-cyan-400 font-mono font-bold block mt-0.5">
-                    {isMembership ? 'Subscription Pass' : `${pkg.diamond_amount} Diamonds`}
+            return (
+              <div
+                key={pkg.id}
+                onClick={() => setSelectedPkg(pkg)}
+                className={`relative cursor-pointer rounded-2xl border p-5 transition-all flex flex-col justify-between space-y-4 ${
+                  isSelected
+                    ? 'bg-gradient-to-b from-purple-900/40 via-slate-900 to-slate-950 border-purple-500 shadow-xl shadow-purple-500/20 scale-[1.02]'
+                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                }`}
+              >
+                {pkg.badge && (
+                  <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 text-white text-[9px] font-extrabold tracking-wider uppercase shadow-md">
+                    {pkg.badge}
                   </span>
+                )}
+
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center p-2 shrink-0">
+                    <img src={pkg.image_url} alt={pkg.package_name} className="max-w-full max-h-full object-contain" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-white text-sm">{pkg.package_name}</h3>
+                    <span className="text-xs text-cyan-400 font-mono font-bold block mt-0.5">
+                      {subTitle}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
                 <div>
