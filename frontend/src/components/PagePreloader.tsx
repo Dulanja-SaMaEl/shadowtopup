@@ -71,7 +71,7 @@ export default function PagePreloader() {
         <div className="text-center space-y-2">
           <Image
             src="/logo.png"
-            alt="Shadow Top Up and Account Center"
+            alt="Shadow Top Up and Account Store"
             width={220}
             height={60}
             className="h-10 w-auto object-contain mx-auto"

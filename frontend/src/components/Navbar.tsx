@@ -76,7 +76,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-3 group py-1">
             <Image
               src="/logo.png"
-              alt="Shadow Top Up and Account Center"
+              alt="Shadow Top Up and Account Store"
               width={180}
               height={52}
               className="h-10 w-auto object-contain transition-transform group-hover:scale-105"

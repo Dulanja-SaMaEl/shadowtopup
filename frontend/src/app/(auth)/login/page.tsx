@@ -61,7 +61,7 @@ export default function LoginPage() {
           <Link href="/" className="inline-block mb-3">
             <Image
               src="/logo.png"
-              alt="Shadow Top Up and Account Center"
+              alt="Shadow Top Up and Account Store"
               width={200}
               height={60}
               className="h-12 w-auto object-contain mx-auto"

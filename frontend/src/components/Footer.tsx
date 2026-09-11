@@ -12,7 +12,7 @@ export default function Footer() {
             <Link href="/" className="inline-block">
               <Image
                 src="/logo.png"
-                alt="Shadow Top Up and Account Center"
+                alt="Shadow Top Up and Account Store"
                 width={180}
                 height={52}
                 className="h-10 w-auto object-contain"
