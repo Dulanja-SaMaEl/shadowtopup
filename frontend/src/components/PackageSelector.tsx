@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Package, UserRole } from '@/types/database';
 import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
-import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap } from 'lucide-react';
+import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap, Smartphone, Copy } from 'lucide-react';
 import TransactionReceiptModal from './TransactionReceiptModal';
 import { useCart } from '@/context/CartContext';
 
@@ -17,7 +17,7 @@ interface Props {
 export default function PackageSelector({ packages, userRole, verifiedPlayerUid, onCheckoutComplete }: Props) {
   const { addToCart } = useCart();
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet'>('shadow_wallet');
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet' | 'ez_cash'>('shadow_wallet');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [userStoreName, setUserStoreName] = useState<string | null>(null);
@@ -25,6 +25,18 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'diamond' | 'membership' | 'evo' | 'levelup'>('all');
+
+  // eZ Cash State
+  const [ezCashTrxId, setEzCashTrxId] = useState('');
+  const [copiedEzNumber, setCopiedEzNumber] = useState(false);
+  const ezCashReceiverNumber = process.env.NEXT_PUBLIC_EZCASH_NUMBER || '0765604635';
+  const ezCashReceiverName = process.env.NEXT_PUBLIC_EZCASH_NAME || 'Shadow Store';
+
+  const handleCopyEzNumber = () => {
+    navigator.clipboard.writeText(ezCashReceiverNumber);
+    setCopiedEzNumber(true);
+    setTimeout(() => setCopiedEzNumber(false), 2000);
+  };
 
   const handleAddToCart = (pkg: Package, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -161,6 +173,70 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
       } catch (err: any) {
         setGeneratedReceipt(null);
         setMessage({ type: 'error', text: err.message || 'Failed to complete wallet checkout.' });
+      }
+      setLoading(false);
+      return;
+    }
+
+    if (paymentMethod === 'ez_cash') {
+      const cleanTrx = ezCashTrxId.trim();
+      if (!cleanTrx) {
+        setMessage({ type: 'error', text: 'Please enter the Dialog eZ Cash Transaction ID (TxID) from your SMS receipt.' });
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/orders/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            packageId: selectedPkg.id,
+            packageName: selectedPkg.package_name,
+            playerUid: verifiedPlayerUid,
+            paymentMethod: 'ez_cash',
+            ezCashTrxId: cleanTrx,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.status === 'completed') {
+          setMessage({
+            type: 'success',
+            text: data.message || `Payment verified! Diamonds delivered instantly to UID: ${verifiedPlayerUid}`,
+          });
+
+          // Generate professional customer receipt
+          setGeneratedReceipt({
+            orderId: data.order?.id || `EZ_${Date.now()}`,
+            transactionId: data.transactionId || cleanTrx,
+            playerUid: verifiedPlayerUid,
+            playerNickname: data.playerNickname || `UID: ${verifiedPlayerUid}`,
+            packageName: selectedPkg.package_name,
+            itemsDelivered: data.items || `${selectedPkg.diamond_amount} Diamonds`,
+            amount: price,
+            paymentMethod: 'Dialog eZ Cash',
+            status: 'COMPLETED & DELIVERED',
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            customerName: authData.user?.user_metadata?.name || authData.user?.email?.split('@')[0].toUpperCase(),
+            customerEmail: authData.user.email,
+            storeName: userStoreName,
+            resellerRole: userRole,
+          });
+
+          setEzCashTrxId('');
+          if (onCheckoutComplete) onCheckoutComplete();
+        } else {
+          setGeneratedReceipt(null);
+          setMessage({
+            type: 'error',
+            text: data.message || 'eZ Cash verification or top-up delivery failed.',
+          });
+        }
+      } catch (err: any) {
+        setGeneratedReceipt(null);
+        setMessage({ type: 'error', text: err.message || 'Failed to complete eZ Cash checkout.' });
       }
       setLoading(false);
       return;
@@ -389,7 +465,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md space-y-6">
           <h3 className="text-lg font-bold text-white">3. Select Payment Method & Checkout</h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
               type="button"
               onClick={() => setPaymentMethod('shadow_wallet')}
@@ -410,6 +486,24 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
             <button
               type="button"
+              onClick={() => setPaymentMethod('ez_cash')}
+              className={`p-4 rounded-xl border flex items-center gap-3 transition-all text-left ${
+                paymentMethod === 'ez_cash'
+                  ? 'bg-emerald-500/15 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+              }`}
+            >
+              <Smartphone className="w-6 h-6 text-emerald-400 shrink-0" />
+              <div>
+                <span className="font-bold text-white block text-xs uppercase flex items-center gap-1">
+                  eZ Cash <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-bold">INSTANT</span>
+                </span>
+                <span className="text-[10px] text-slate-400 block font-mono">Auto SMS Verify</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setPaymentMethod('paypal')}
               className={`p-4 rounded-xl border flex items-center gap-3 transition-all text-left ${
                 paymentMethod === 'paypal'
@@ -420,7 +514,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
               <CreditCard className="w-6 h-6 text-cyan-400 shrink-0" />
               <div>
                 <span className="font-bold text-white block text-xs uppercase">PayPal Express</span>
-                <span className="text-[10px] text-slate-400 block">Instant Top-Up</span>
+                <span className="text-[10px] text-slate-400 block">Instant Gateway</span>
               </div>
             </button>
 
@@ -433,13 +527,64 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                   : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
               }`}
             >
-              <Landmark className="w-6 h-6 text-emerald-400 shrink-0" />
+              <Landmark className="w-6 h-6 text-slate-400 shrink-0" />
               <div>
                 <span className="font-bold text-white block text-xs uppercase">Bank Transfer</span>
-                <span className="text-[10px] text-slate-400 block">Manual Verification</span>
+                <span className="text-[10px] text-slate-400 block">Manual Slip Upload</span>
               </div>
             </button>
           </div>
+
+          {paymentMethod === 'ez_cash' && (
+            <div className="space-y-4 bg-slate-950/90 p-5 rounded-2xl border border-emerald-950/70">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold block flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5" /> Dialog eZ Cash Recipient
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-mono font-extrabold text-white tracking-wider">
+                      {ezCashReceiverNumber}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyEzNumber}
+                      className="px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center gap-1 border border-emerald-500/30 transition-all"
+                    >
+                      {copiedEzNumber ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedEzNumber ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-slate-400 block">Account: <strong className="text-slate-200">{ezCashReceiverName}</strong></span>
+                </div>
+
+                <div className="bg-emerald-950/40 border border-emerald-500/30 px-4 py-2 rounded-xl text-left sm:text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Transfer Exact Amount</span>
+                  <span className="text-base font-black text-emerald-400 font-mono">
+                    LKR {calculatePackagePrice(selectedPkg, userRole).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Enter Dialog eZ Cash Transaction ID (TxID)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. DAL3CHJ361 (from your Dialog confirmation SMS)"
+                  value={ezCashTrxId}
+                  onChange={(e) => setEzCashTrxId(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-emerald-950/80 rounded-xl text-white font-mono uppercase placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-400 tracking-wider"
+                />
+                <p className="text-[11px] text-slate-400">
+                  1. Send <strong>LKR {calculatePackagePrice(selectedPkg, userRole).toLocaleString()}</strong> to <strong>{ezCashReceiverNumber}</strong> via eZ Cash.<br />
+                  2. Enter the <strong>TxID</strong> above and click the button below for instant automated delivery!
+                </p>
+              </div>
+            </div>
+          )}
 
           {paymentMethod === 'bank_transfer' && (
             <div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
@@ -504,6 +649,8 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-white" />
+              ) : paymentMethod === 'ez_cash' ? (
+                <>⚡ Verify eZ Cash ({formatCurrency(calculatePackagePrice(selectedPkg, userRole))}) & Top-Up Now</>
               ) : (
                 <>Pay {formatCurrency(calculatePackagePrice(selectedPkg, userRole))} & Recharge Now</>
               )}

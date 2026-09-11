@@ -7,6 +7,7 @@ export async function GET() {
     renderScraper: { status: 'standby', latencyMs: 140, label: 'Render Garena Scraper' },
     imgbbStorage: { status: 'online', latencyMs: 45, label: 'ImgBB Receipt API (Free)' },
     paypalGateway: { status: 'online', latencyMs: 65, label: 'PayPal REST v2' },
+    ezcashGateway: { status: 'online', latencyMs: 35, label: 'Dialog eZ Cash Gateway (UCBot SMS)' },
   };
 
   // Test Render Scraper endpoint if configured

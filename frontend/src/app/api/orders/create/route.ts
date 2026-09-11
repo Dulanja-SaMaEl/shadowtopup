@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { executeUCBotTopup } from '@/lib/ucbotService';
 import { getAuthenticatedUser } from '@/lib/authGuard';
+import { verifyEZCashTransaction } from '@/lib/ezcashService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
       playerUid,
       paymentMethod = 'bank_transfer',
       receiptUrl = null,
+      ezCashTrxId = null,
     } = body;
 
     const sanitizedPlayerUid = String(playerUid || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
@@ -286,6 +288,194 @@ export async function POST(request: NextRequest) {
           })
           .eq('account_username', targetShellAcc?.account_username || 'SHADOW_TOPUP1');
       }
+    } else if (paymentMethod === 'ez_cash') {
+      // 4.B Handle Dialog eZ Cash Payment with Instant UCBot Delivery
+      const cleanEzTrxId = String(ezCashTrxId || '').trim();
+      if (!cleanEzTrxId) {
+        return NextResponse.json({
+          success: false,
+          message: 'Dialog eZ Cash Transaction ID is required. Please check your SMS receipt.',
+        }, { status: 400 });
+      }
+
+      // Check local database for replay attempts
+      const { data: existingLocalOrders } = await adminSupabase
+        .from('orders')
+        .select('id')
+        .ilike('admin_note', `%${cleanEzTrxId}%`)
+        .limit(1);
+
+      if (existingLocalOrders && existingLocalOrders.length > 0) {
+        return NextResponse.json({
+          success: false,
+          message: 'This eZ Cash transaction ID has already been used for an order.',
+        }, { status: 400 });
+      }
+
+      // Verify transaction via UCBot / Firebase SMS Gateway
+      const verifyRes = await verifyEZCashTransaction(cleanEzTrxId);
+      if (!verifyRes.success || !verifyRes.transaction) {
+        return NextResponse.json({
+          success: false,
+          message: verifyRes.message || 'eZ Cash transaction verification failed.',
+        }, { status: 400 });
+      }
+
+      const paidAmount = parseFloat(String(verifyRes.transaction.amount || 0));
+      if (paidAmount < verifiedPrice) {
+        return NextResponse.json({
+          success: false,
+          message: `Underpayment: Package requires LKR ${verifiedPrice.toLocaleString()}, but received LKR ${paidAmount.toLocaleString()}. Please contact support.`,
+        }, { status: 400 });
+      }
+
+      // Check available Garena Shell accounts stock
+      const { data: shellAccounts } = await adminSupabase
+        .from('shell_accounts')
+        .select('*')
+        .gte('available_balance', requiredShellCost)
+        .order('is_main', { ascending: false })
+        .order('available_balance', { ascending: false });
+
+      let targetShellAcc = shellAccounts && shellAccounts.length > 0 ? shellAccounts[0] : null;
+
+      if (!targetShellAcc) {
+        const { data: anyAccounts } = await adminSupabase
+          .from('shell_accounts')
+          .select('*')
+          .order('is_main', { ascending: false })
+          .limit(1);
+        if (anyAccounts && anyAccounts.length > 0) {
+          targetShellAcc = anyAccounts[0];
+        }
+      }
+
+      if (!targetShellAcc) {
+        targetShellAcc = {
+          id: 'shell_fallback_1',
+          account_username: 'SHADOW_TOPUP1',
+          password: 'Shadow123@',
+          autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
+          available_balance: 6508,
+          is_main: true,
+        };
+      }
+
+      if ((targetShellAcc.available_balance ?? 0) < requiredShellCost) {
+        // Automatically credit the verified money to Shadow Wallet so funds are never lost
+        const { data: profData } = await adminSupabase
+          .from('profiles')
+          .select('wallet_balance')
+          .eq('id', effectiveUserId)
+          .single();
+        const curBal = parseFloat(profData?.wallet_balance || 0);
+        const newBal = curBal + paidAmount;
+        await adminSupabase.from('profiles').update({ wallet_balance: newBal }).eq('id', effectiveUserId);
+        await adminSupabase.from('wallet_transactions').insert([{
+          user_id: effectiveUserId,
+          type: 'WALLET_REFUND',
+          amount: paidAmount,
+          balance_after: newBal,
+          description: `Credited payment for ${verifiedPackageName}: Insufficient Garena Shell stock at time of order. Funds added to your Shadow Wallet.`,
+          created_at: new Date().toISOString(),
+        }]);
+
+        return NextResponse.json({
+          success: false,
+          refunded_to_wallet: true,
+          message: `Topup currently unavailable (Insufficient Garena Shell stock). Your payment of LKR ${paidAmount.toLocaleString()} has been safely credited to your Shadow Wallet balance.`,
+        }, { status: 400 });
+      }
+
+      // Execute UCBot Topup Delivery
+      let ucBotRes: any = null;
+      try {
+        const dbAutocode = targetShellAcc?.autocode ? String(targetShellAcc.autocode).trim() : '';
+        const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
+        const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
+
+        const targetPackageIdentifier = (dbPackage.package_code && String(dbPackage.package_code).trim())
+          ? String(dbPackage.package_code).trim()
+          : verifiedPackageName;
+
+        ucBotRes = await executeUCBotTopup(
+          sanitizedPlayerUid,
+          targetPackageIdentifier,
+          'sg',
+          targetShellAcc?.account_username || 'SHADOW_TOPUP1',
+          targetShellAcc?.password || 'Shadow123@',
+          shellAutocode
+        );
+        topupDispatchMsg = ucBotRes.message;
+      } catch (e: any) {
+        console.error('[Order Flow eZ Cash] UC Bot Topup Exception:', e);
+        ucBotRes = {
+          success: false,
+          message: `UC Bot network error: ${e.message}`,
+        };
+      }
+
+      // If delivery failed -> Safely credit payment to customer's Shadow Wallet
+      if (!ucBotRes || !ucBotRes.success) {
+        console.error('[Order Flow eZ Cash] Delivery failed! Crediting payment to user wallet...');
+        const { data: profData } = await adminSupabase
+          .from('profiles')
+          .select('wallet_balance')
+          .eq('id', effectiveUserId)
+          .single();
+        const curBal = parseFloat(profData?.wallet_balance || 0);
+        const newBal = curBal + paidAmount;
+        await adminSupabase.from('profiles').update({ wallet_balance: newBal }).eq('id', effectiveUserId);
+        await adminSupabase.from('wallet_transactions').insert([{
+          user_id: effectiveUserId,
+          type: 'WALLET_REFUND',
+          amount: paidAmount,
+          balance_after: newBal,
+          description: `Refund for failed eZ Cash order: ${verifiedPackageName} (UID: ${sanitizedPlayerUid}). Reason: ${ucBotRes?.message || 'Delivery error'}. Funds credited to your Shadow Wallet.`,
+          created_at: new Date().toISOString(),
+        }]);
+
+        return NextResponse.json({
+          success: false,
+          refunded_to_wallet: true,
+          message: `eZ Cash verified (LKR ${paidAmount.toLocaleString()}), but Garena top-up failed (${ucBotRes?.message || 'Service busy'}). Your funds have been 100% safely credited to your Shadow Wallet balance!`,
+        }, { status: 400 });
+      }
+
+      // Topup SUCCEEDED!
+      initialStatus = 'completed';
+      ucBotSuccessData = ucBotRes;
+
+      // Update Shell balance
+      const newShellBal = typeof ucBotRes.postBalance === 'number'
+        ? ucBotRes.postBalance
+        : Math.max(0, ((targetShellAcc?.available_balance ?? 6508)) - (ucBotRes.balanceUsed || requiredShellCost));
+
+      if (targetShellAcc && targetShellAcc.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
+        await adminSupabase
+          .from('shell_accounts')
+          .update({
+            available_balance: newShellBal,
+            last_synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', targetShellAcc.id);
+      }
+
+      // Audit in ezcash_transactions
+      try {
+        await adminSupabase.from('ezcash_transactions').insert([{
+          trx_id: cleanEzTrxId,
+          user_id: effectiveUserId,
+          amount: paidAmount,
+          sender_phone: verifyRes.transaction?.sender || null,
+          provider: verifyRes.transaction?.provider || 'eZ Cash',
+          purpose: 'order_payment',
+          status: 'claimed',
+          raw_response: verifyRes.raw || null,
+          created_at: new Date().toISOString(),
+        }]);
+      } catch {}
     }
 
     // 5. Insert Order into Database
@@ -301,6 +491,7 @@ export async function POST(request: NextRequest) {
       free_fire_player_id: sanitizedPlayerUid,
       package_name: verifiedPackageName,
       payment_method: paymentMethod,
+      admin_note: paymentMethod === 'ez_cash' && ezCashTrxId ? `eZ Cash TxID: ${ezCashTrxId}` : undefined,
     };
 
     const { data: ordData1, error: err1 } = await adminSupabase
@@ -362,7 +553,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: paymentMethod === 'shadow_wallet' 
+      message: (paymentMethod === 'shadow_wallet' || paymentMethod === 'ez_cash') 
         ? `⚡ Topup Delivered Instantly! ${ucBotSuccessData?.items || verifiedPackageName} successfully credited to ${ucBotSuccessData?.playerNickname || sanitizedPlayerUid}.` 
         : 'Order created successfully in database',
       order: insertedOrder,

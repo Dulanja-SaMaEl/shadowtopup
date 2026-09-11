@@ -1,19 +1,44 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Wallet, Ticket, Plus, CheckCircle2, AlertCircle, ArrowUpRight, ArrowDownLeft, ShieldCheck, Send } from 'lucide-react';
+import {
+  Wallet,
+  Ticket,
+  Zap,
+  Copy,
+  Check,
+  CheckCircle2,
+  AlertCircle,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Send,
+  Smartphone,
+  Info,
+} from 'lucide-react';
 
 interface ShadowWalletWidgetProps {
   userId: string;
 }
 
 export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) {
+  const [activeTab, setActiveTab] = useState<'ezcash' | 'voucher'>('ezcash');
   const [balance, setBalance] = useState<number>(0);
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [redeemCode, setRedeemCode] = useState('');
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+
+  // Voucher Form State
+  const [redeemCode, setRedeemCode] = useState('');
+  const [submittingVoucher, setSubmittingVoucher] = useState(false);
+
+  // eZ Cash Form State
+  const [ezCashTrxId, setEzCashTrxId] = useState('');
+  const [submittingEzCash, setSubmittingEzCash] = useState(false);
+  const [copiedNumber, setCopiedNumber] = useState(false);
+
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const ezCashNumber = process.env.NEXT_PUBLIC_EZCASH_NUMBER || '0765604635';
+  const ezCashName = process.env.NEXT_PUBLIC_EZCASH_NAME || 'Shadow Store';
 
   const fetchWallet = async () => {
     if (!userId || userId === 'demo-user') return;
@@ -35,11 +60,47 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
     fetchWallet();
   }, [userId]);
 
+  const handleCopyNumber = () => {
+    navigator.clipboard.writeText(ezCashNumber);
+    setCopiedNumber(true);
+    setTimeout(() => setCopiedNumber(false), 2000);
+  };
+
+  const handleEzCashDeposit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanTrx = ezCashTrxId.trim();
+    if (!cleanTrx) return;
+
+    setSubmittingEzCash(true);
+    setMsg(null);
+    try {
+      const res = await fetch('/api/wallet/deposit/ezcash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_id: cleanTrx,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setMsg({ type: 'success', text: data.message });
+        setEzCashTrxId('');
+        await fetchWallet();
+      } else {
+        setMsg({ type: 'error', text: data.message || 'Verification failed. Please check your Transaction ID.' });
+      }
+    } catch (err: any) {
+      setMsg({ type: 'error', text: 'Network connection error. Please try again.' });
+    }
+    setSubmittingEzCash(false);
+  };
+
   const handleRedeem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!redeemCode.trim()) return;
 
-    setSubmitting(true);
+    setSubmittingVoucher(true);
     setMsg(null);
     try {
       const res = await fetch('/api/wallet/redeem', {
@@ -62,7 +123,7 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
     } catch (err: any) {
       setMsg({ type: 'error', text: 'Network error occurred. Please try again.' });
     }
-    setSubmitting(false);
+    setSubmittingVoucher(false);
   };
 
   return (
@@ -77,7 +138,7 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
           </div>
           <div>
             <h3 className="text-base font-black text-white uppercase tracking-wider">Shadow Wallet Balance</h3>
-            <p className="text-xs text-slate-400">Use your wallet balance to instantly buy Free Fire diamonds & passes without payment gateways.</p>
+            <p className="text-xs text-slate-400">Instant Free Fire top-ups and reseller checkout without bank slips.</p>
           </div>
         </div>
 
@@ -89,42 +150,138 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
         </div>
       </div>
 
-      {/* Redeem Voucher Code Form */}
-      <form onSubmit={handleRedeem} className="space-y-3 relative z-10">
-        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <Ticket className="w-3.5 h-3.5 text-purple-400" /> Redeem Gift Voucher Code
-        </label>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            required
-            placeholder="Enter Code (e.g. SHADOW-XXXX-XXXX-XXXX)"
-            value={redeemCode}
-            onChange={(e) => setRedeemCode(e.target.value)}
-            className="flex-1 px-4 py-3 bg-[#0e0c1f] border border-purple-950/80 rounded-xl text-white font-mono uppercase placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-400 tracking-wider"
-          />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
-          >
-            {submitting ? 'Redeeming...' : <><Send className="w-3.5 h-3.5" /> Redeem Code</>}
-          </button>
-        </div>
+      {/* Deposit Modes Navigation */}
+      <div className="flex gap-2 p-1 bg-slate-950/80 rounded-2xl border border-slate-800/80 relative z-10">
+        <button
+          type="button"
+          onClick={() => { setActiveTab('ezcash'); setMsg(null); }}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'ezcash'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 fill-emerald-300 text-emerald-300" />
+          <span>eZ Cash Instant Deposit</span>
+        </button>
 
-        {msg && (
-          <div
-            className={`p-3.5 rounded-xl text-xs flex items-center gap-2 font-mono ${
-              msg.type === 'success'
-                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
-                : 'bg-red-500/10 border border-red-500/30 text-red-300'
-            }`}
-          >
-            {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-            <span>{msg.text}</span>
+        <button
+          type="button"
+          onClick={() => { setActiveTab('voucher'); setMsg(null); }}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'voucher'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/20'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Ticket className="w-3.5 h-3.5 text-purple-300" />
+          <span>Redeem Voucher Code</span>
+        </button>
+      </div>
+
+      {/* Tab 1: Dialog eZ Cash Instant Deposit */}
+      {activeTab === 'ezcash' && (
+        <div className="space-y-4 relative z-10">
+          {/* Merchant Transfer Details Card */}
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-emerald-950/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold block flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5" /> Dialog eZ Cash Recipient
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-mono font-extrabold text-white tracking-wider">
+                  {ezCashNumber}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyNumber}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center gap-1 border border-emerald-500/30 transition-all"
+                >
+                  {copiedNumber ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  <span>{copiedNumber ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+              <span className="text-xs text-slate-400 block font-medium">Account Name: <strong className="text-slate-200">{ezCashName}</strong></span>
+            </div>
+
+            <div className="text-xs text-slate-400 sm:max-w-xs space-y-0.5 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+              <span className="text-[10px] font-bold uppercase text-slate-300 block flex items-center gap-1">
+                <Info className="w-3 h-3 text-cyan-400" /> How to Deposit:
+              </span>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                1. Transfer any amount to <strong>{ezCashNumber}</strong> via eZ Cash.<br />
+                2. Enter the <strong>TxID</strong> from the Dialog SMS below. Funds will be added instantly!
+              </p>
+            </div>
           </div>
-        )}
-      </form>
+
+          <form onSubmit={handleEzCashDeposit} className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                required
+                placeholder="Enter eZ Cash TxID (e.g. DAL3CHJ361)"
+                value={ezCashTrxId}
+                onChange={(e) => setEzCashTrxId(e.target.value)}
+                className="flex-1 px-4 py-3 bg-[#0e0c1f] border border-emerald-950/80 rounded-xl text-white font-mono uppercase placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-400 tracking-wider"
+              />
+              <button
+                type="submit"
+                disabled={submittingEzCash}
+                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+              >
+                {submittingEzCash ? (
+                  'Verifying TxID...'
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5 fill-white" /> Verify & Credit Wallet
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Tab 2: Redeem Voucher Code */}
+      {activeTab === 'voucher' && (
+        <form onSubmit={handleRedeem} className="space-y-3 relative z-10">
+          <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Ticket className="w-3.5 h-3.5 text-purple-400" /> Enter Gift Voucher Code
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              required
+              placeholder="Enter Code (e.g. SHADOW-XXXX-XXXX-XXXX)"
+              value={redeemCode}
+              onChange={(e) => setRedeemCode(e.target.value)}
+              className="flex-1 px-4 py-3 bg-[#0e0c1f] border border-purple-950/80 rounded-xl text-white font-mono uppercase placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-400 tracking-wider"
+            />
+            <button
+              type="submit"
+              disabled={submittingVoucher}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+            >
+              {submittingVoucher ? 'Redeeming...' : <><Send className="w-3.5 h-3.5" /> Redeem Code</>}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Notification Toast */}
+      {msg && (
+        <div
+          className={`p-3.5 rounded-xl text-xs flex items-center gap-2 font-mono relative z-10 ${
+            msg.type === 'success'
+              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+              : 'bg-red-500/10 border border-red-500/30 text-red-300'
+          }`}
+        >
+          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+          <span>{msg.text}</span>
+        </div>
+      )}
 
       {/* Wallet History Audit Trail */}
       <div className="space-y-3 pt-2 border-t border-slate-800/80 relative z-10">
@@ -134,7 +291,7 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
           {loading ? (
             <p className="text-xs text-slate-500 font-mono text-center py-4">Loading activity...</p>
           ) : transactions.length === 0 ? (
-            <p className="text-xs text-slate-500 font-mono text-center py-4">No wallet transactions yet. Redeem a voucher code above!</p>
+            <p className="text-xs text-slate-500 font-mono text-center py-4">No wallet transactions yet. Deposit via eZ Cash or redeem a code above!</p>
           ) : (
             transactions.map((tx) => (
               <div

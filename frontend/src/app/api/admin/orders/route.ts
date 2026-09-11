@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
         package_name: row.package_name || 'Free Fire Diamonds',
         totalAmount: Number(row.total_amount || row.price_paid || 750.00),
         fulfillmentStatus: normStatus,
-        paymentMethod: (row.payment_method || 'BANK TRANSFER').toUpperCase(),
+        paymentMethod: row.payment_method === 'ez_cash' ? 'DIALOG EZ CASH' : (row.payment_method || 'BANK TRANSFER').toUpperCase(),
         paymentReceipt: receiptUrl,
         date: new Date(row.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         timestamp: new Date(row.created_at || Date.now()).toLocaleString(),
