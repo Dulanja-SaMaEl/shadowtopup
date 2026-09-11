@@ -68,6 +68,7 @@ export default function GameDetailPage() {
       <PackageSelector
         packages={packagesList}
         verifiedPlayerUid={verifiedPlayer?.uid}
+        verifiedPlayerNickname={verifiedPlayer?.nickname}
       />
 
       {/* Customer Reviews & Rating Widget */}

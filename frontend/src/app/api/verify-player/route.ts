@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// In-memory cache for resolved player nicknames (persists across requests during server runtime)
+const playerCache = new Map<string, { nickname: string; level?: string | number; region?: string; timestamp: number }>();
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get('slug');
@@ -22,45 +25,82 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // 1. Check in-memory cache first (saves API quota and responds in 0ms)
+  const cached = playerCache.get(cleanUid);
+  if (cached && (Date.now() - cached.timestamp < 24 * 60 * 60 * 1000)) {
+    return NextResponse.json({
+      success: true,
+      data: {
+        uid: cleanUid,
+        nickname: cached.nickname,
+        level: cached.level || 'Verified',
+        region: cached.region || 'SG / MY',
+        isCached: true,
+        avatar: null,
+      },
+    });
+  }
+
+  // 2. Query HL Gaming Official API if configured
   if (slug === 'free-fire') {
-    const useruid = process.env.HL_GAMING_USERUID || 'adminshadowtopup.com@gmail.com';
-    const apiKey = process.env.HL_GAMING_API_KEY || 'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
+    const useruid = process.env.HL_GAMING_USERUID || 'Xv00AKjlBJMgOpxr05VP2Sreu0z1';
+    const apiKey = process.env.HL_GAMING_API_KEY || 'Kjt47EN5VEvYVa77afIsd4hEAFicFg';
 
-    // Primary HL Gaming Official API endpoint
-    const url = `https://proapis.hlgamingofficial.com/main/games/freefire/account/api?sectionName=AllData&PlayerUid=${cleanUid}&region=sg&useruid=${useruid}&api=${apiKey}`;
+    // Support comma-separated pool of API keys if provided
+    const apiKeys = apiKey.split(',').map((k) => k.trim()).filter(Boolean);
 
-    try {
-      const response = await fetch(url, { cache: 'no-store' });
+    for (const currentKey of apiKeys) {
+      const url = `https://proapis.hlgamingofficial.com/main/games/freefire/account/api?sectionName=AllData&PlayerUid=${cleanUid}&region=sg&useruid=${encodeURIComponent(useruid)}&api=${currentKey}`;
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data?.result?.AccountInfo) {
-          const accountInfo = data.result.AccountInfo;
-          return NextResponse.json({
-            success: true,
-            data: {
-              uid: cleanUid,
-              nickname: accountInfo.AccountName || `Verified_Player_${cleanUid.slice(-4)}`,
-              level: accountInfo.AccountLevel || 'N/A',
-              region: accountInfo.AccountRegion || 'SG',
-              avatar: null,
-            },
-          });
+      try {
+        const response = await fetch(url, { cache: 'no-store' });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.result?.AccountInfo?.AccountName) {
+            const accountInfo = data.result.AccountInfo;
+            const resolvedName = accountInfo.AccountName;
+            const resolvedLevel = accountInfo.AccountLevel || 'N/A';
+            const resolvedRegion = accountInfo.AccountRegion || 'SG';
+
+            // Cache successfully resolved player
+            playerCache.set(cleanUid, {
+              nickname: resolvedName,
+              level: resolvedLevel,
+              region: resolvedRegion,
+              timestamp: Date.now(),
+            });
+
+            return NextResponse.json({
+              success: true,
+              data: {
+                uid: cleanUid,
+                nickname: resolvedName,
+                level: resolvedLevel,
+                region: resolvedRegion,
+                avatar: null,
+              },
+            });
+          }
+        } else if (response.status === 429) {
+          console.warn(`[Verify Player API] HL Gaming daily quota reached (HTTP 429) on key: ${currentKey.slice(0, 6)}...`);
         }
+      } catch (err: any) {
+        console.error('[Verify Player API] HL Gaming API Connection Error:', err.message);
       }
-    } catch (err: any) {
-      console.error('[Verify Player API] HL Gaming API Connection Error:', err);
     }
   }
 
-  // Guaranteed seamless customer fallback
+  // 3. Graceful fallback when 3rd-party API quota is reached
+  // Returns isFallback flag so the frontend can display a clean validated status and allow entering/editing the IGN
   return NextResponse.json({
     success: true,
     data: {
       uid: cleanUid,
-      nickname: `Player_${cleanUid.slice(0, 5)}...`,
+      nickname: null,
+      isFallback: true,
       level: 'Verified',
-      region: 'SG / Global',
+      region: 'SG / MY',
       avatar: null,
     },
   });

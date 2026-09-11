@@ -11,10 +11,11 @@ interface Props {
   packages: Package[];
   userRole?: UserRole;
   verifiedPlayerUid?: string | null;
+  verifiedPlayerNickname?: string | null;
   onCheckoutComplete?: () => void;
 }
 
-export default function PackageSelector({ packages, userRole, verifiedPlayerUid, onCheckoutComplete }: Props) {
+export default function PackageSelector({ packages, userRole, verifiedPlayerUid, verifiedPlayerNickname, onCheckoutComplete }: Props) {
   const { addToCart } = useCart();
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet' | 'ez_cash'>('shadow_wallet');
@@ -147,7 +148,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             orderId: data.order?.id ? String(data.order.id).slice(0, 8).toUpperCase() : (txId ? txId.slice(-8) : Math.random().toString(36).slice(2, 10).toUpperCase()),
             packageName: selectedPkg.package_name,
             playerUid: verifiedPlayerUid,
-            playerNickname: data.playerNickname,
+            playerNickname: verifiedPlayerNickname || data.playerNickname || `UID: ${verifiedPlayerUid}`,
             transactionId: data.transactionId,
             itemsDelivered: data.items || `${selectedPkg.diamond_amount} Diamonds`,
             amount: price,
