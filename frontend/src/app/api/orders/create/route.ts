@@ -195,9 +195,13 @@ export async function POST(request: NextRequest) {
         const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
         const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
 
+        const targetPackageIdentifier = (dbPackage.package_code && String(dbPackage.package_code).trim())
+          ? String(dbPackage.package_code).trim()
+          : verifiedPackageName;
+
         ucBotRes = await executeUCBotTopup(
           sanitizedPlayerUid,
-          verifiedPackageName,
+          targetPackageIdentifier,
           'sg',
           targetShellAcc?.account_username || 'SHADOW_TOPUP1',
           targetShellAcc?.password || 'Shadow123@',
