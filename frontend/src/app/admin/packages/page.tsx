@@ -1,8 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Package } from '@/types/database';
-import { Plus, Edit2, Trash2, X, Sparkles, Check, Image as ImageIcon, Zap, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  X,
+  Sparkles,
+  Check,
+  Image as ImageIcon,
+  Zap,
+  DollarSign,
+  CheckCircle2,
+  AlertCircle,
+  Upload,
+  Loader2,
+  Camera,
+  Crown,
+  Target,
+  Diamond,
+} from 'lucide-react';
 
 const DIAMOND_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png';
 const WEEKLY_PASS_CDN = 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/rebate/0000/000/002/logo.png';
@@ -16,6 +34,13 @@ export default function AdminPackagesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
 
+  // Quick Image Modal State
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [imageModalPkg, setImageModalPkg] = useState<Package | null>(null);
+  const [modalImageUrl, setModalImageUrl] = useState('');
+  const [modalUploading, setModalUploading] = useState(false);
+  const modalFileInputRef = useRef<HTMLInputElement | null>(null);
+
   // Form fields
   const [packageName, setPackageName] = useState('');
   const [packageType, setPackageType] = useState('diamond');
@@ -28,6 +53,12 @@ export default function AdminPackagesPage() {
   const [badge, setBadge] = useState('STARTER');
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [formUploading, setFormUploading] = useState(false);
+  const formFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Filter tabs for admin view
+  const [adminTab, setAdminTab] = useState<'all' | 'membership' | 'levelup' | 'diamond' | 'inactive'>('all');
+
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const showToast = (type: 'success' | 'error', text: string) => {
@@ -63,6 +94,37 @@ export default function AdminPackagesPage() {
     setNormalPrice(recNormal.toFixed(2));
     setSilverPrice(recSilver.toFixed(2));
     setGoldPrice(recGold.toFixed(2));
+  };
+
+  // Upload image from file to API
+  const handleUploadImageFile = async (
+    file: File,
+    onSuccess: (url: string) => void,
+    setUploadState: (val: boolean) => void
+  ) => {
+    setUploadState(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch('/api/admin/packages/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success && data.url) {
+        onSuccess(data.url);
+        showToast('success', 'Image uploaded successfully!');
+      } else {
+        showToast('error', data.message || 'Image upload failed');
+      }
+    } catch (err: any) {
+      console.error('Error uploading image file:', err);
+      showToast('error', err.message || 'Network error uploading image');
+    } finally {
+      setUploadState(false);
+    }
   };
 
   const handleAddPackage = async (e: React.FormEvent) => {
@@ -150,6 +212,36 @@ export default function AdminPackagesPage() {
     }
   };
 
+  // 1-Click Save from Quick Image Modal
+  const handleSaveModalImage = async () => {
+    if (!imageModalPkg) return;
+    setSaving(true);
+
+    try {
+      const res = await fetch('/api/admin/packages', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: imageModalPkg.id,
+          image_url: modalImageUrl,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.package) {
+        setPackages(packages.map((p) => (p.id === imageModalPkg.id ? { ...p, image_url: modalImageUrl } : p)));
+        showToast('success', `Image updated for "${imageModalPkg.package_name}"!`);
+        setIsImageModalOpen(false);
+        setImageModalPkg(null);
+      } else {
+        showToast('error', data.message || 'Failed to update image');
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Network error updating image');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeletePackage = async (id: string) => {
     if (!confirm('Are you sure you want to delete this package from the database?')) return;
     try {
@@ -189,11 +281,17 @@ export default function AdminPackagesPage() {
     setIsEditModalOpen(true);
   };
 
+  const openQuickImageModal = (pkg: Package) => {
+    setImageModalPkg(pkg);
+    setModalImageUrl(pkg.image_url || DIAMOND_CDN);
+    setIsImageModalOpen(true);
+  };
+
   const resetForm = () => {
-    setPackageName('100 Diamonds');
+    setPackageName('100 Diamond');
     setPackageType('diamond');
     setDiamondAmount('100');
-    setShellCost('100');
+    setShellCost('50');
     setNormalPrice('350.00');
     setSilverPrice('320.00');
     setGoldPrice('300.00');
@@ -225,6 +323,47 @@ export default function AdminPackagesPage() {
     }
   };
 
+  // Group and sort packages: 1st Memberships, 2nd Level Up, 3rd Diamonds
+  const getCategoryWeight = (pkg: Package) => {
+    if (pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass' || pkg.package_type === 'evo_access') {
+      return 1; // 1st
+    }
+    if (pkg.package_type === 'levelup_pass') {
+      return 2; // 2nd
+    }
+    return 3; // 3rd (Diamonds)
+  };
+
+  const activePackages = packages.filter((p) => p.is_active);
+  const inactivePackages = packages.filter((p) => !p.is_active);
+
+  const displayedPackages = packages
+    .filter((pkg) => {
+      if (adminTab === 'inactive') return !pkg.is_active;
+      if (!pkg.is_active) return false;
+      if (adminTab === 'all') return true;
+      if (adminTab === 'membership') {
+        return pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass' || pkg.package_type === 'evo_access';
+      }
+      if (adminTab === 'levelup') {
+        return pkg.package_type === 'levelup_pass';
+      }
+      if (adminTab === 'diamond') {
+        return pkg.package_type === 'diamond';
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      const weightA = getCategoryWeight(a);
+      const weightB = getCategoryWeight(b);
+      if (weightA !== weightB) return weightA - weightB;
+      return (a.diamond_amount || 0) - (b.diamond_amount || 0) || (a.shell_cost || 0) - (b.shell_cost || 0);
+    });
+
+  const countMemberships = activePackages.filter((p) => p.package_type === 'weekly_pass' || p.package_type === 'monthly_pass' || p.package_type === 'evo_access').length;
+  const countLevelUp = activePackages.filter((p) => p.package_type === 'levelup_pass').length;
+  const countDiamonds = activePackages.filter((p) => p.package_type === 'diamond').length;
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -232,7 +371,7 @@ export default function AdminPackagesPage() {
         <div>
           <h1 className="text-2xl font-black text-white uppercase tracking-wider">Free Fire Packages</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Manage DB package entries, official Garena Shell cost structures, and profit margins.
+            Manage packages, custom images, Garena Shell cost structures, and margins. Order: Memberships → Level Up → Diamonds.
           </p>
         </div>
 
@@ -243,7 +382,7 @@ export default function AdminPackagesPage() {
             className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all"
           >
             <Sparkles className="w-4 h-4" />
-            {syncingOfficial ? 'Syncing Official Garena Shells...' : 'Sync Official Garena Shell Costs'}
+            {syncingOfficial ? 'Syncing Official Garena Shells...' : 'Sync Official Packages'}
           </button>
 
           <button
@@ -282,6 +421,29 @@ export default function AdminPackagesPage() {
         </div>
       )}
 
+      {/* Admin Category Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {[
+          { id: 'all', label: `All Active (${activePackages.length})` },
+          { id: 'membership', label: `👑 1. Memberships (${countMemberships})` },
+          { id: 'levelup', label: `🎯 2. Level Up (${countLevelUp})` },
+          { id: 'diamond', label: `💎 3. Diamonds (${countDiamonds})` },
+          ...(inactivePackages.length > 0 ? [{ id: 'inactive', label: `Archived (${inactivePackages.length})` }] : []),
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setAdminTab(tab.id as any)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition-all ${
+              adminTab === tab.id
+                ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Packages Table */}
       <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6 shadow-2xl">
         <div className="overflow-x-auto">
@@ -304,14 +466,14 @@ export default function AdminPackagesPage() {
                     Loading database packages...
                   </td>
                 </tr>
-              ) : packages.length === 0 ? (
+              ) : displayedPackages.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-400 font-mono">
-                    No packages found in database. Click "Add New Package" above to create one.
+                    No packages found in this category.
                   </td>
                 </tr>
               ) : (
-                packages.map((pkg) => {
+                displayedPackages.map((pkg) => {
                   const baseCost = pkg.shell_cost * 2.60;
                   const profit = pkg.normal_price - baseCost;
                   const margin = pkg.normal_price > 0 ? (profit / pkg.normal_price) * 100 : 0;
@@ -320,13 +482,22 @@ export default function AdminPackagesPage() {
                     <tr key={pkg.id} className="hover:bg-slate-900/40 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          {pkg.image_url ? (
-                            <img src={pkg.image_url} alt="" className="w-9 h-9 object-contain bg-slate-950 rounded-lg p-1 border border-slate-800" />
-                          ) : (
-                            <div className="w-9 h-9 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
-                              <Zap className="w-4 h-4" />
+                          {/* Image with quick Change Image button */}
+                          <div
+                            onClick={() => openQuickImageModal(pkg)}
+                            className="relative group cursor-pointer w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center p-1 shrink-0 overflow-hidden hover:border-cyan-500 transition-all"
+                            title="Click to change package image"
+                          >
+                            {pkg.image_url ? (
+                              <img src={pkg.image_url} alt="" className="w-full h-full object-contain" />
+                            ) : (
+                              <Zap className="w-4 h-4 text-purple-400" />
+                            )}
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Camera className="w-3.5 h-3.5 text-white" />
                             </div>
-                          )}
+                          </div>
+
                           <div>
                             <div className="flex items-center gap-2">
                               <h5 className="font-bold text-white text-xs">{pkg.package_name}</h5>
@@ -336,12 +507,23 @@ export default function AdminPackagesPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-[10px] text-cyan-400 font-mono">{pkg.diamond_amount} Diamonds</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] text-cyan-400 font-mono">
+                                {pkg.diamond_amount > 0 ? `${pkg.diamond_amount} Diamonds` : 'Subscription Pass'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => openQuickImageModal(pkg)}
+                                className="text-[9px] text-slate-500 hover:text-cyan-400 underline font-mono"
+                              >
+                                Edit Image
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="p-4">
-                        <span className="px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 font-mono text-[9px] font-bold uppercase">
+                        <span className="px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 font-mono text-[9px] font-bold uppercase">
                           {pkg.package_type || 'DIAMOND'}
                         </span>
                       </td>
@@ -369,9 +551,16 @@ export default function AdminPackagesPage() {
                       </td>
                       <td className="p-4 flex items-center gap-2">
                         <button
+                          onClick={() => openQuickImageModal(pkg)}
+                          className="p-2 rounded-xl bg-[#121024] border border-cyan-950/60 text-cyan-400 hover:text-white hover:bg-cyan-900/50 transition-colors"
+                          title="Update Image"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => openEditModal(pkg)}
                           className="p-2 rounded-xl bg-[#121024] border border-purple-950/60 text-purple-300 hover:text-white hover:bg-purple-900/50 transition-colors"
-                          title="Edit Package"
+                          title="Edit Package Details"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
@@ -391,6 +580,197 @@ export default function AdminPackagesPage() {
           </table>
         </div>
       </div>
+
+      {/* QUICK IMAGE UPDATE MODAL */}
+      {isImageModalOpen && imageModalPkg && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#141229] border border-purple-950/80 rounded-3xl p-6 sm:p-7 space-y-5">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-cyan-400" />
+                  Update Package Image
+                </h3>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">{imageModalPkg.package_name}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsImageModalOpen(false);
+                  setImageModalPkg(null);
+                }}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Current & Preview */}
+            <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800">
+              <div className="w-16 h-16 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center p-2 shrink-0 overflow-hidden">
+                <img
+                  src={modalImageUrl}
+                  alt="Preview"
+                  className="max-w-full max-h-full object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = DIAMOND_CDN;
+                  }}
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase font-mono block">Image Preview</span>
+                <p className="text-xs text-emerald-400 font-mono font-bold">Ready to apply</p>
+                <p className="text-[10px] text-slate-500 truncate max-w-[200px]">{modalImageUrl}</p>
+              </div>
+            </div>
+
+            {/* Upload from Device */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">
+                Option 1: Upload Image from Computer
+              </label>
+              <input
+                ref={modalFileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleUploadImageFile(file, (url) => setModalImageUrl(url), setModalUploading);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                disabled={modalUploading}
+                onClick={() => modalFileInputRef.current?.click()}
+                className="w-full py-2.5 px-4 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 text-cyan-300 font-mono font-bold text-xs flex items-center justify-center gap-2 transition-all"
+              >
+                {modalUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Uploading Image...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" /> Browse & Upload Image File (.png, .webp, .jpg)
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Presets */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">
+                Option 2: Official Garena Free Fire Presets
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModalImageUrl(DIAMOND_CDN)}
+                  className={`p-2 rounded-xl border text-[11px] font-mono flex items-center gap-2 ${
+                    modalImageUrl === DIAMOND_CDN ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <img src={DIAMOND_CDN} className="w-5 h-5 object-contain" alt="" />
+                  <span>Diamond Pack</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalImageUrl(WEEKLY_PASS_CDN)}
+                  className={`p-2 rounded-xl border text-[11px] font-mono flex items-center gap-2 ${
+                    modalImageUrl === WEEKLY_PASS_CDN ? 'bg-purple-500/20 border-purple-400 text-purple-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <img src={WEEKLY_PASS_CDN} className="w-5 h-5 object-contain" alt="" />
+                  <span>Weekly VIP</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalImageUrl(WEEKLY_LITE_CDN)}
+                  className={`p-2 rounded-xl border text-[11px] font-mono flex items-center gap-2 ${
+                    modalImageUrl === WEEKLY_LITE_CDN ? 'bg-purple-500/20 border-purple-400 text-purple-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <img src={WEEKLY_LITE_CDN} className="w-5 h-5 object-contain" alt="" />
+                  <span>Weekly Lite</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalImageUrl(MONTHLY_PASS_CDN)}
+                  className={`p-2 rounded-xl border text-[11px] font-mono flex items-center gap-2 ${
+                    modalImageUrl === MONTHLY_PASS_CDN ? 'bg-amber-500/20 border-amber-400 text-amber-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <img src={MONTHLY_PASS_CDN} className="w-5 h-5 object-contain" alt="" />
+                  <span>Monthly VIP</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalImageUrl('/uploads/packages/levelup-pass.svg')}
+                  className={`p-2 rounded-xl border text-[11px] font-mono flex items-center gap-2 ${
+                    modalImageUrl === '/uploads/packages/levelup-pass.svg' ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <img src="/uploads/packages/levelup-pass.svg" className="w-5 h-5 object-contain" alt="" />
+                  <span>Level Up Pass</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalImageUrl('/uploads/packages/evo-pass.svg')}
+                  className={`p-2 rounded-xl border text-[11px] font-mono flex items-center gap-2 ${
+                    modalImageUrl === '/uploads/packages/evo-pass.svg' ? 'bg-orange-500/20 border-orange-400 text-orange-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <img src="/uploads/packages/evo-pass.svg" className="w-5 h-5 object-contain" alt="" />
+                  <span>EVO Access</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Custom URL Input */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                Option 3: Or Enter Direct Image URL
+              </label>
+              <input
+                type="text"
+                value={modalImageUrl}
+                onChange={(e) => setModalImageUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-3 py-2 bg-[#0e0c1f] border border-slate-800 rounded-xl text-slate-200 font-mono text-xs focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-3 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsImageModalOpen(false);
+                  setImageModalPkg(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-mono"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={saving || modalUploading}
+                onClick={handleSaveModalImage}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-bold font-mono shadow-lg shadow-cyan-500/25 flex items-center gap-2"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Save New Image
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add / Edit Package Modal */}
       {(isAddModalOpen || isEditModalOpen) && (
@@ -420,7 +800,7 @@ export default function AdminPackagesPage() {
                   required
                   value={packageName}
                   onChange={(e) => setPackageName(e.target.value)}
-                  placeholder="e.g. 100 Diamonds"
+                  placeholder="e.g. 100 Diamond"
                   className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-purple-500"
                 />
               </div>
@@ -433,11 +813,11 @@ export default function AdminPackagesPage() {
                     onChange={(e) => setPackageType(e.target.value)}
                     className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono focus:outline-none"
                   >
-                    <option value="diamond">diamond</option>
-                    <option value="weekly_pass">weekly_pass</option>
-                    <option value="monthly_pass">monthly_pass</option>
-                    <option value="evo_access">evo_access</option>
-                    <option value="levelup_pass">levelup_pass</option>
+                    <option value="weekly_pass">weekly_pass (Membership)</option>
+                    <option value="monthly_pass">monthly_pass (Membership)</option>
+                    <option value="evo_access">evo_access (Membership)</option>
+                    <option value="levelup_pass">levelup_pass (Level Up)</option>
+                    <option value="diamond">diamond (Diamonds)</option>
                   </select>
                 </div>
 
@@ -512,18 +892,110 @@ export default function AdminPackagesPage() {
                 </div>
               </div>
 
-              {/* Image URL & Badge */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Image URL (Garena CDN)</label>
+              {/* Image Upload & Management */}
+              <div className="space-y-2 p-3.5 rounded-2xl bg-[#0e0c1f] border border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] font-bold text-slate-300 uppercase">
+                    Package Image
+                  </label>
+                  <button
+                    type="button"
+                    disabled={formUploading}
+                    onClick={() => formFileInputRef.current?.click()}
+                    className="text-[10px] font-mono text-cyan-400 hover:underline flex items-center gap-1"
+                  >
+                    {formUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                    Upload File
+                  </button>
+                </div>
+
+                <input
+                  ref={formFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleUploadImageFile(file, (url) => setImageUrl(url), setFormUploading);
+                    }
+                  }}
+                />
+
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center p-1.5 shrink-0 overflow-hidden">
+                    <img src={imageUrl} alt="" className="max-w-full max-h-full object-contain" />
+                  </div>
                   <input
                     type="text"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-slate-300 font-mono focus:outline-none text-[11px]"
+                    placeholder="Image URL or upload file"
+                    className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-mono text-xs focus:outline-none focus:border-purple-500"
                   />
                 </div>
+
+                {/* Presets */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl(DIAMOND_CDN)}
+                    className={`px-2 py-1 rounded-lg border text-[9px] font-mono flex items-center gap-1 ${
+                      imageUrl === DIAMOND_CDN ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <img src={DIAMOND_CDN} className="w-3.5 h-3.5 object-contain" alt="" /> Diamond
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl(WEEKLY_PASS_CDN)}
+                    className={`px-2 py-1 rounded-lg border text-[9px] font-mono flex items-center gap-1 ${
+                      imageUrl === WEEKLY_PASS_CDN ? 'bg-purple-500/20 border-purple-500 text-purple-300' : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <img src={WEEKLY_PASS_CDN} className="w-3.5 h-3.5 object-contain" alt="" /> Weekly Pass
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl(WEEKLY_LITE_CDN)}
+                    className={`px-2 py-1 rounded-lg border text-[9px] font-mono flex items-center gap-1 ${
+                      imageUrl === WEEKLY_LITE_CDN ? 'bg-purple-500/20 border-purple-500 text-purple-300' : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <img src={WEEKLY_LITE_CDN} className="w-3.5 h-3.5 object-contain" alt="" /> Weekly Lite
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl(MONTHLY_PASS_CDN)}
+                    className={`px-2 py-1 rounded-lg border text-[9px] font-mono flex items-center gap-1 ${
+                      imageUrl === MONTHLY_PASS_CDN ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <img src={MONTHLY_PASS_CDN} className="w-3.5 h-3.5 object-contain" alt="" /> Monthly Pass
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('/uploads/packages/levelup-pass.svg')}
+                    className={`px-2 py-1 rounded-lg border text-[9px] font-mono flex items-center gap-1 ${
+                      imageUrl === '/uploads/packages/levelup-pass.svg' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <img src="/uploads/packages/levelup-pass.svg" className="w-3.5 h-3.5 object-contain" alt="" /> Level Up Pass
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('/uploads/packages/evo-pass.svg')}
+                    className={`px-2 py-1 rounded-lg border text-[9px] font-mono flex items-center gap-1 ${
+                      imageUrl === '/uploads/packages/evo-pass.svg' ? 'bg-orange-500/20 border-orange-500 text-orange-300' : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <img src="/uploads/packages/evo-pass.svg" className="w-3.5 h-3.5 object-contain" alt="" /> EVO Access
+                  </button>
+                </div>
+              </div>
+
+              {/* Badge & Active State */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Badge (Optional)</label>
                   <input
@@ -534,81 +1006,47 @@ export default function AdminPackagesPage() {
                     className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono focus:outline-none"
                   />
                 </div>
-              </div>
-
-              {/* Quick Image Selectors */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Official Garena Preset Images</label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl(DIAMOND_CDN)}
-                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-mono font-bold flex items-center gap-1.5 ${
-                      imageUrl === DIAMOND_CDN ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-slate-900 border-slate-800 text-slate-400'
-                    }`}
-                  >
-                    <img src={DIAMOND_CDN} className="w-4 h-4 object-contain" alt="" /> Diamond Pack
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl(WEEKLY_PASS_CDN)}
-                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-mono font-bold flex items-center gap-1.5 ${
-                      imageUrl === WEEKLY_PASS_CDN ? 'bg-purple-500/20 border-purple-500 text-purple-300' : 'bg-slate-900 border-slate-800 text-slate-400'
-                    }`}
-                  >
-                    <img src={WEEKLY_PASS_CDN} className="w-4 h-4 object-contain" alt="" /> Weekly Pass
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl(WEEKLY_LITE_CDN)}
-                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-mono font-bold flex items-center gap-1.5 ${
-                      imageUrl === WEEKLY_LITE_CDN ? 'bg-purple-500/20 border-purple-500 text-purple-300' : 'bg-slate-900 border-slate-800 text-slate-400'
-                    }`}
-                  >
-                    <img src={WEEKLY_LITE_CDN} className="w-4 h-4 object-contain" alt="" /> Weekly Lite
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl(MONTHLY_PASS_CDN)}
-                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-mono font-bold flex items-center gap-1.5 ${
-                      imageUrl === MONTHLY_PASS_CDN ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-slate-900 border-slate-800 text-slate-400'
-                    }`}
-                  >
-                    <img src={MONTHLY_PASS_CDN} className="w-4 h-4 object-contain" alt="" /> Monthly Pass
-                  </button>
+                <div className="flex items-center gap-3 pt-4">
+                  <label className="relative flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={(e) => setIsActive(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
+                  <span className="text-xs font-mono font-bold text-white">
+                    {isActive ? 'Active Package' : 'Inactive / Hidden'}
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="w-4 h-4 accent-purple-600 rounded"
-                />
-                <label htmlFor="isActive" className="text-xs text-slate-300 font-bold cursor-pointer">
-                  Is Package Active on Storefront
-                </label>
-              </div>
-
-              <div className="pt-4 flex justify-end gap-3 border-t border-slate-800">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/80">
                 <button
                   type="button"
                   onClick={() => {
                     setIsAddModalOpen(false);
                     setIsEditModalOpen(false);
                   }}
-                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold uppercase"
+                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold uppercase shadow-lg shadow-purple-600/30"
+                  disabled={saving || formUploading}
+                  className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all"
                 >
-                  {saving ? 'Saving...' : isEditModalOpen ? 'Update Package' : 'Save Package'}
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" /> {isEditModalOpen ? 'Update Package' : 'Create Package'}
+                    </>
+                  )}
                 </button>
               </div>
             </form>

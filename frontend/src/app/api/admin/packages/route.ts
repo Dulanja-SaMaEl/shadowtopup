@@ -83,25 +83,35 @@ export async function PUT(request: NextRequest) {
 
     const adminSupabase = getAdminClient();
 
-    const diamondAmount = parseInt(body.diamond_amount);
-    const shellCost = parseInt(body.shell_cost);
-    const normalPrice = parseFloat(body.normal_price);
-    const silverPrice = parseFloat(body.silver_price);
-    const goldPrice = parseFloat(body.gold_price);
-
     const updatedData: Record<string, any> = {
-      package_name: body.package_name?.trim() || 'Package',
-      package_type: body.package_type || 'diamond',
-      diamond_amount: !isNaN(diamondAmount) ? diamondAmount : 100,
-      shell_cost: !isNaN(shellCost) ? shellCost : 100,
-      normal_price: !isNaN(normalPrice) ? normalPrice : 350.00,
-      silver_price: !isNaN(silverPrice) ? silverPrice : null,
-      gold_price: !isNaN(goldPrice) ? goldPrice : null,
-      image_url: body.image_url?.trim() || 'https://cdn-gop.garenanow.com/gop/app/0000/100/067/point.png',
-      badge: body.badge?.trim() || null,
-      is_active: body.is_active !== undefined ? Boolean(body.is_active) : true,
       updated_at: new Date().toISOString(),
     };
+
+    if (body.package_name !== undefined) updatedData.package_name = body.package_name?.trim();
+    if (body.package_type !== undefined) updatedData.package_type = body.package_type;
+    if (body.diamond_amount !== undefined) {
+      const parsed = parseInt(body.diamond_amount);
+      if (!isNaN(parsed)) updatedData.diamond_amount = parsed;
+    }
+    if (body.shell_cost !== undefined) {
+      const parsed = parseInt(body.shell_cost);
+      if (!isNaN(parsed)) updatedData.shell_cost = parsed;
+    }
+    if (body.normal_price !== undefined) {
+      const parsed = parseFloat(body.normal_price);
+      if (!isNaN(parsed)) updatedData.normal_price = parsed;
+    }
+    if (body.silver_price !== undefined) {
+      const parsed = parseFloat(body.silver_price);
+      updatedData.silver_price = !isNaN(parsed) ? parsed : null;
+    }
+    if (body.gold_price !== undefined) {
+      const parsed = parseFloat(body.gold_price);
+      updatedData.gold_price = !isNaN(parsed) ? parsed : null;
+    }
+    if (body.image_url !== undefined) updatedData.image_url = body.image_url?.trim();
+    if (body.badge !== undefined) updatedData.badge = body.badge?.trim() || null;
+    if (body.is_active !== undefined) updatedData.is_active = Boolean(body.is_active);
 
     const { data, error } = await adminSupabase
       .from('packages')

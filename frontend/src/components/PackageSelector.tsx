@@ -25,13 +25,18 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const [generatedReceipt, setGeneratedReceipt] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'diamond' | 'membership' | 'evo' | 'levelup'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'membership' | 'levelup' | 'diamond'>('membership');
 
   // eZ Cash State
   const [ezCashTrxId, setEzCashTrxId] = useState('');
   const [copiedEzNumber, setCopiedEzNumber] = useState(false);
   const ezCashReceiverNumber = process.env.NEXT_PUBLIC_EZCASH_NUMBER || '0765604635';
   const ezCashReceiverName = process.env.NEXT_PUBLIC_EZCASH_NAME || 'Shadow Store';
+
+  // Category counts for clean tab badges
+  const membershipPkgs = packages.filter((pkg) => pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass' || pkg.package_type === 'evo_access');
+  const levelUpPkgs = packages.filter((pkg) => pkg.package_type === 'levelup_pass');
+  const diamondPkgs = packages.filter((pkg) => pkg.package_type === 'diamond' || (!pkg.package_type && pkg.diamond_amount > 0));
 
   const handleCopyEzNumber = () => {
     navigator.clipboard.writeText(ezCashReceiverNumber);
@@ -354,23 +359,21 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         )}
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      {/* Category Tabs: Memberships -> Level Up Packages -> Diamonds */}
+      <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
         {[
-          { id: 'all', label: `All Packages (${packages.length})` },
-          { id: 'diamond', label: '💎 Diamonds' },
-          { id: 'membership', label: '👑 Passes & VIP' },
-          { id: 'evo', label: '⚡ EVO Access' },
-          { id: 'levelup', label: '🎯 Level Up' },
+          { id: 'membership', label: `👑 Memberships (${membershipPkgs.length})` },
+          { id: 'levelup', label: `🎯 Level Up Packages (${levelUpPkgs.length})` },
+          { id: 'diamond', label: `💎 Diamonds (${diamondPkgs.length})` },
         ].map((tab) => (
           <button
             key={tab.id}
             type="button"
-            onClick={() => setSelectedCategory(tab.id as any)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition-all ${
+            onClick={() => setSelectedCategory(tab.id as 'membership' | 'levelup' | 'diamond')}
+            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
               selectedCategory === tab.id
-                ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-md shadow-cyan-500/20'
-                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 scale-[1.02]'
+                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-750'
             }`}
           >
             {tab.label}
@@ -381,12 +384,26 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {packages
           .filter((pkg) => {
-            if (selectedCategory === 'all') return true;
-            if (selectedCategory === 'diamond') return pkg.package_type === 'diamond';
-            if (selectedCategory === 'membership') return pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass';
-            if (selectedCategory === 'evo') return pkg.package_type === 'evo_access';
-            if (selectedCategory === 'levelup') return pkg.package_type === 'levelup_pass';
+            if (selectedCategory === 'membership') {
+              return pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass' || pkg.package_type === 'evo_access';
+            }
+            if (selectedCategory === 'levelup') {
+              return pkg.package_type === 'levelup_pass';
+            }
+            if (selectedCategory === 'diamond') {
+              return pkg.package_type === 'diamond' || (!pkg.package_type && pkg.diamond_amount > 0);
+            }
             return true;
+          })
+          .sort((a, b) => {
+            if (selectedCategory === 'levelup' || selectedCategory === 'diamond') {
+              return (a.diamond_amount || 0) - (b.diamond_amount || 0);
+            }
+            // For memberships: group weekly/monthly first then evo, sorted by shell_cost
+            const aIsEvo = a.package_type === 'evo_access' ? 1 : 0;
+            const bIsEvo = b.package_type === 'evo_access' ? 1 : 0;
+            if (aIsEvo !== bIsEvo) return aIsEvo - bIsEvo;
+            return (a.shell_cost || 0) - (b.shell_cost || 0);
           })
           .map((pkg) => {
             const finalPrice = calculatePackagePrice(pkg, userRole);

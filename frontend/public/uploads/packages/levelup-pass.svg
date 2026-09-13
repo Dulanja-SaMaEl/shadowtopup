@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Shield Glow -->
+  <polygon points="60,8 108,24 108,72 60,112 12,72 12,24" fill="#0f172a" stroke="url(#shieldGrad)" stroke-width="4" filter="url(#glow)"/>
+
+  <!-- Inner Polygon -->
+  <polygon points="60,18 98,32 98,68 60,102 22,68 22,32" fill="#1e1b4b" opacity="0.8"/>
+
+  <!-- Upward Chevrons (Level Up) -->
+  <path d="M40 76 L60 56 L80 76" fill="none" stroke="url(#goldGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M44 60 L60 44 L76 60" fill="none" stroke="url(#goldGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M48 44 L60 32 L72 44" fill="none" stroke="url(#goldGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Center Diamond Accent -->
+  <polygon points="60,40 68,50 60,60 52,50" fill="#38bdf8" stroke="#ffffff" stroke-width="1.5"/>
+
+  <!-- Star Accent -->
+  <polygon points="60,20 62,25 67,25 63,28 65,33 60,30 55,33 57,28 53,25 58,25" fill="#facc15"/>
+</svg>
