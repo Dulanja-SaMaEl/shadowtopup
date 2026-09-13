@@ -1,9 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
-import { ShieldCheck, Download, Printer, X, Zap, Award, CheckCircle2, Clock, FileText, RotateCcw } from 'lucide-react';
-import { formatCurrency } from '@/lib/pricing';
+import {
+  Check,
+  FileText,
+  Calendar,
+  Package,
+  Gamepad2,
+  User,
+  Hash,
+  CreditCard,
+  UserCheck,
+  ShieldCheck,
+  Zap,
+  Shield,
+  Headphones,
+  Heart,
+  QrCode,
+  ChevronRight,
+  Download,
+  Printer,
+  X,
+  RotateCcw,
+  Clock,
+} from 'lucide-react';
 
 export interface ReceiptData {
   orderId: string;
@@ -35,8 +55,38 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
   if (!receipt) return null;
 
   const isRefunded = receipt.status?.toLowerCase().includes('refund');
-  const isPending = !isRefunded && (receipt.status?.toLowerCase().includes('pending') || receipt.status === 'proof_submitted');
-  const isWallet = receipt.paymentMethod?.toLowerCase().includes('wallet');
+  const isPending =
+    !isRefunded &&
+    (receipt.status?.toLowerCase().includes('pending') || receipt.status === 'proof_submitted');
+
+  // Format payment method cleanly
+  const rawMethod = (receipt.paymentMethod || '').toLowerCase();
+  let paymentMethodLabel = 'SHADOW WALLET (INSTANT)';
+  if (rawMethod.includes('ez_cash') || rawMethod.includes('ez cash')) {
+    paymentMethodLabel = 'DIALOG EZ CASH (INSTANT)';
+  } else if (rawMethod.includes('bank')) {
+    paymentMethodLabel = 'BANK TRANSFER (MANUAL)';
+  } else if (rawMethod.includes('paypal')) {
+    paymentMethodLabel = 'PAYPAL (ONLINE)';
+  } else if (rawMethod.includes('wallet')) {
+    paymentMethodLabel = 'SHADOW WALLET (INSTANT)';
+  } else if (receipt.paymentMethod) {
+    paymentMethodLabel = `${receipt.paymentMethod.toUpperCase()} (VERIFIED)`;
+  }
+
+  // Format Amount Paid
+  const formattedAmount = `LKR ${Number(receipt.amount || 0).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+  // Date and Time
+  const formattedDateTime = receipt.time
+    ? `${receipt.date} • ${receipt.time}`
+    : receipt.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  // Store Name
+  const storeDisplay = receipt.storeName || 'Shadow Store';
 
   const handlePrint = () => {
     window.print();
@@ -53,8 +103,8 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
     try {
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: '#0e0c1f',
+        scale: 2.5,
+        backgroundColor: '#070a13',
         useCORS: true,
         logging: false,
       });
@@ -76,13 +126,13 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
           try {
             await navigator.share({
               files: [file],
-              title: `ShadowTopUp Order Receipt #${receipt.orderId}`,
-              text: `Official Receipt for Order #${receipt.orderId}`,
+              title: `Order Receipt #${receipt.orderId}`,
+              text: `Official Transaction Receipt #${receipt.orderId}`,
             });
             setDownloading(false);
             return;
           } catch (shareErr) {
-            // User dismissed or share failed; proceed to download
+            // User dismissed or fallback
           }
         }
 
@@ -104,229 +154,337 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
   };
 
   return (
-    <div className="receipt-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto print:p-0 print:bg-transparent print:static print:block">
-      {/* Dynamic Print CSS override to guarantee exact 1 page print with rich colors */}
-      <style dangerouslySetInnerHTML={{ __html: `
+    <div className="receipt-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto print:p-0 print:bg-transparent print:static print:block">
+      {/* Dynamic Print CSS for exact 1-page high-fidelity output */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @media print {
-          /* Hide web page headers, footers and navbars */
           nav, header, footer, aside, [role="navigation"], .print\\:hidden {
             display: none !important;
           }
-
-          /* Reset html and body layout */
           html, body {
-            background: #0e0c1f !important;
+            background: #070a13 !important;
             color: #ffffff !important;
             margin: 0 !important;
             padding: 0 !important;
             height: auto !important;
             width: 100% !important;
           }
-
-          /* Reset backdrop to block container */
           .receipt-modal-backdrop {
             position: relative !important;
             inset: auto !important;
-            background: #0e0c1f !important;
+            background: #070a13 !important;
             padding: 0 !important;
             margin: 0 !important;
             display: block !important;
             z-index: 1 !important;
           }
-
           .receipt-modal-card {
-            border: 2px solid #5b21b6 !important;
-            border-radius: 20px !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 28px !important;
             margin: 0 auto !important;
             max-width: 580px !important;
-            background-color: #0e0c1f !important;
+            background-color: #070a13 !important;
             box-shadow: none !important;
           }
-
           #printable-receipt {
             display: block !important;
-            background-color: #0e0c1f !important;
+            background-color: #070a13 !important;
             color: #ffffff !important;
             padding: 24px !important;
             margin: 0 !important;
             width: 100% !important;
             max-width: 580px !important;
-            page-break-after: avoid !important;
             page-break-inside: avoid !important;
-            break-after: avoid !important;
-            break-inside: avoid !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-
           @page {
             size: A4 portrait;
             margin: 10mm;
           }
         }
-      ` }} />
+      `,
+        }}
+      />
 
-      <div className="receipt-modal-card relative w-full max-w-lg bg-[#0e0c1f] border border-purple-900/60 rounded-3xl shadow-2xl overflow-hidden my-8 print:border-none print:shadow-none print:my-0">
-        
-        {/* Top Header Action Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-[#141229] print:hidden">
-          <div className="flex items-center gap-2 text-xs font-black text-slate-200 uppercase tracking-wider">
-            <FileText className="w-4 h-4 text-cyan-400" /> Digital Order Receipt
+      <div className="receipt-modal-card relative w-full max-w-lg bg-[#070a13] border border-slate-800/90 rounded-[28px] shadow-2xl shadow-purple-950/20 overflow-hidden my-6 print:border-none print:shadow-none print:my-0">
+        {/* Top Header Action Bar (Screen Only) */}
+        <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-800/80 bg-[#0c101c] print:hidden">
+          <div className="flex items-center gap-2 text-xs font-extrabold text-slate-300 font-mono tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            RECEIPT #{receipt.orderId?.toUpperCase() || 'CONFIRMED'}
           </div>
           <button
             onClick={onClose}
-            className="px-3.5 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-md"
+            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+            title="Close"
           >
-            <X className="w-4 h-4 text-red-400" /> CLOSE
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* PRINTABLE RECEIPT CONTAINER */}
-        <div id="printable-receipt" className="p-6 sm:p-8 space-y-6 text-white bg-[#0e0c1f]">
-          
-          {/* Brand Header & Reseller Store Name */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-6">
-            <div className="flex items-center gap-3">
-              <Image
-                src="/logo.png"
-                alt="Shadow"
-                width={160}
-                height={48}
-                unoptimized
-                className="h-9 w-auto object-contain"
+        {/* PRINTABLE RECEIPT CONTAINER - Matches User Screenshot 100% */}
+        <div
+          id="printable-receipt"
+          className="p-6 sm:p-8 space-y-6 text-white bg-[#070a13] font-sans"
+        >
+          {/* Top Status & Glowing Icon */}
+          <div className="flex flex-col items-center text-center space-y-3 pt-1">
+            <div className="relative flex items-center justify-center">
+              {/* Radial glow */}
+              <div
+                className={`absolute w-20 h-20 rounded-full blur-xl ${
+                  isRefunded
+                    ? 'bg-purple-500/30'
+                    : isPending
+                    ? 'bg-amber-500/30'
+                    : 'bg-emerald-500/30'
+                }`}
               />
-              <div className="border-l border-slate-700 pl-3">
-                <p className="text-[10px] text-cyan-400 font-mono font-bold tracking-widest uppercase">
-                  OFFICIAL RECHARGE INVOICE
-                </p>
-                <p className="text-[9px] text-slate-400 font-mono">AUTOMATED VERIFIED TRANSACTION</p>
+              <div
+                className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg relative z-10 border-2 ${
+                  isRefunded
+                    ? 'bg-purple-600 border-purple-400 text-white shadow-purple-500/40'
+                    : isPending
+                    ? 'bg-amber-500 border-amber-300 text-white shadow-amber-500/40'
+                    : 'bg-[#22c55e] border-emerald-400 text-white shadow-emerald-500/50'
+                }`}
+              >
+                {isRefunded ? (
+                  <RotateCcw className="w-7 h-7 stroke-[3]" />
+                ) : isPending ? (
+                  <Clock className="w-7 h-7 stroke-[3] animate-pulse" />
+                ) : (
+                  <Check className="w-7 h-7 stroke-[3.5]" />
+                )}
               </div>
             </div>
 
-            {/* Reseller Custom Store Branding Badge */}
-            {receipt.storeName ? (
-              <div className="px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-900/40 via-indigo-900/40 to-cyan-900/40 border border-purple-500/40 text-right">
-                <span className="text-[9px] font-mono font-bold text-purple-300 uppercase block tracking-wider">
-                  ISSUED BY STORE:
-                </span>
-                <span className="text-xs font-black text-cyan-300 font-mono uppercase tracking-wide">
-                  {receipt.storeName}
-                </span>
-              </div>
-            ) : receipt.resellerRole && receipt.resellerRole !== 'normal' ? (
-              <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold border border-amber-500/30">
-                CERTIFIED RESELLER
-              </span>
-            ) : null}
-          </div>
-
-          {/* Verification Status Banner */}
-          <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
-            isRefunded
-              ? 'bg-purple-500/15 border-purple-500/40 text-purple-300'
-              : isPending
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-          }`}>
-            {isRefunded ? (
-              <RotateCcw className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-            ) : isPending ? (
-              <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
-            ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-            )}
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-xs font-black uppercase tracking-wider">
-                  {isRefunded
-                    ? 'PACKAGE UNAVAILABLE - FULLY REFUNDED TO SHADOW WALLET'
-                    : isPending
-                    ? 'PAYMENT PENDING ADMIN VERIFICATION'
-                    : 'TRANSACTION COMPLETED & DELIVERED'}
-                </h4>
-              </div>
-              <p className="text-[10px] font-mono mt-0.5 text-slate-300">
+            <div className="space-y-1.5 max-w-sm">
+              <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider">
                 {isRefunded
-                  ? `This top-up package was unavailable for your player account. The full payment of LKR ${receipt.amount.toFixed(2)} has been credited back to your Shadow Wallet.`
+                  ? 'TRANSACTION REFUNDED'
                   : isPending
-                  ? 'Your bank transfer receipt is uploaded and currently under manual verification by our admin team. Top-up will be processed shortly.'
-                  : 'Order paid successfully and digital diamonds/pass dispatched to target Free Fire UID.'}
+                  ? 'PAYMENT PENDING VERIFICATION'
+                  : 'TRANSACTION COMPLETED'}
+              </h2>
+              <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                {isRefunded
+                  ? `Package unavailable for player account. Payment of ${formattedAmount} was fully refunded to your wallet.`
+                  : isPending
+                  ? 'Your payment proof was uploaded and is currently under review by our team.'
+                  : 'Your payment has been successfully verified and the selected package has been delivered to your Free Fire account.'}
               </p>
             </div>
           </div>
 
-          {/* Order Data Summary Table */}
-          <div className="space-y-3 bg-[#141229] border border-slate-800 p-5 rounded-2xl font-mono text-xs">
-            <div className="flex justify-between border-b border-slate-800/80 pb-2">
-              <span className="text-slate-400">ORDER RECEIPT ID</span>
-              <span className="font-bold text-white uppercase">#{receipt.orderId}</span>
+          {/* Details Card Rows */}
+          <div className="space-y-3 pt-2">
+            {/* ORDER RECEIPT ID */}
+            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+              <div className="flex items-center gap-2.5 text-slate-400">
+                <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                  ORDER RECEIPT ID
+                </span>
+              </div>
+              <span className="font-mono font-bold text-white text-xs sm:text-sm">
+                #{receipt.orderId?.toUpperCase()}
+              </span>
             </div>
 
-            <div className="flex justify-between border-b border-slate-800/80 pb-2">
-              <span className="text-slate-400">DATE & TIME</span>
-              <span className="text-slate-200">{receipt.date} {receipt.time || ''}</span>
+            {/* DATE & TIME */}
+            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+              <div className="flex items-center gap-2.5 text-slate-400">
+                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                  DATE & TIME
+                </span>
+              </div>
+              <span className="font-mono text-slate-300 text-xs sm:text-sm">
+                {formattedDateTime}
+              </span>
             </div>
 
-            <div className="flex justify-between border-b border-slate-800/80 pb-2">
-              <span className="text-slate-400">PACKAGE NAME</span>
-              <span className="font-bold text-cyan-400 uppercase">{receipt.packageName}</span>
+            {/* PACKAGE NAME */}
+            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+              <div className="flex items-center gap-2.5 text-slate-400">
+                <Package className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                  PACKAGE NAME
+                </span>
+              </div>
+              <span className="font-mono font-extrabold text-cyan-400 text-xs sm:text-sm uppercase tracking-wide">
+                {receipt.packageName}
+              </span>
             </div>
 
-            <div className="flex justify-between border-b border-slate-800/80 pb-2">
-              <span className="text-slate-400">FREE FIRE PLAYER UID</span>
-              <span className="font-bold text-amber-400">{receipt.playerUid}</span>
+            {/* FREE FIRE PLAYER UID */}
+            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+              <div className="flex items-center gap-2.5 text-slate-400">
+                <Gamepad2 className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                  FREE FIRE PLAYER UID
+                </span>
+              </div>
+              <span className="font-mono font-extrabold text-cyan-400 text-xs sm:text-sm">
+                {receipt.playerUid}
+              </span>
             </div>
 
-            {receipt.playerNickname && (
-              <div className="flex justify-between border-b border-slate-800/80 pb-2">
-                <span className="text-slate-400">PLAYER NICKNAME</span>
-                <span className="font-bold text-emerald-400 font-mono flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  {receipt.playerNickname}
+            {/* PLAYER NICKNAME */}
+            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+              <div className="flex items-center gap-2.5 text-slate-400">
+                <User className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                  PLAYER NICKNAME
+                </span>
+              </div>
+              <span className="font-bold text-cyan-400 text-xs sm:text-sm">
+                {receipt.playerNickname || `UID: ${receipt.playerUid}`}
+              </span>
+            </div>
+
+            {/* GARENA TRX ID */}
+            {receipt.transactionId && (
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <div className="flex items-center gap-2.5 text-slate-400">
+                  <Hash className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                    GARENA TRX ID
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-purple-400 text-xs sm:text-sm">
+                  {receipt.transactionId}
                 </span>
               </div>
             )}
 
-            {receipt.transactionId && (
-              <div className="flex justify-between border-b border-slate-800/80 pb-2">
-                <span className="text-slate-400">GARENA TRX ID</span>
-                <span className="font-bold text-cyan-300 font-mono tracking-wider">{receipt.transactionId}</span>
+            {/* PAYMENT METHOD */}
+            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+              <div className="flex items-center gap-2.5 text-slate-400">
+                <CreditCard className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                  PAYMENT METHOD
+                </span>
               </div>
-            )}
-
-            <div className="flex justify-between border-b border-slate-800/80 pb-2">
-              <span className="text-slate-400">PAYMENT METHOD</span>
-              <span className="font-bold text-purple-300 uppercase">
-                {isWallet ? 'SHADOW WALLET (INSTANT)' : 'BANK TRANSFER (MANUAL)'}
+              <span className="font-mono font-bold text-purple-300 text-xs sm:text-sm uppercase">
+                {paymentMethodLabel}
               </span>
             </div>
 
+            {/* CUSTOMER */}
             {receipt.customerName && (
-              <div className="flex justify-between border-b border-slate-800/80 pb-2">
-                <span className="text-slate-400">CUSTOMER</span>
-                <span className="text-slate-200 uppercase">{receipt.customerName}</span>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <div className="flex items-center gap-2.5 text-slate-400">
+                  <UserCheck className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                    CUSTOMER
+                  </span>
+                </div>
+                <span className="font-bold text-white text-xs sm:text-sm uppercase">
+                  {receipt.customerName}
+                </span>
               </div>
             )}
+          </div>
 
-            <div className="flex justify-between pt-1 text-sm font-bold">
-              <span className="text-slate-300">TOTAL AMOUNT PAID</span>
-              <span className="text-emerald-400">{formatCurrency(receipt.amount)}</span>
+          {/* AMOUNT PAID BOX */}
+          <div className="rounded-2xl bg-[#091122]/90 border border-slate-800/80 p-4 sm:p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <CreditCard className="w-4 h-4" />
+              </div>
+              <span className="text-xs font-mono font-extrabold uppercase tracking-wider text-slate-300">
+                AMOUNT PAID
+              </span>
+            </div>
+            <span className="text-xl sm:text-2xl font-black font-mono text-[#818cf8]">
+              {formattedAmount}
+            </span>
+          </div>
+
+          {/* 4 TRUST / FEATURE BADGES ROW */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="text-[11px] font-medium leading-tight text-slate-300">
+                <span>Secure</span>
+                <span className="block">Payment</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div className="text-[11px] font-medium leading-tight text-slate-300">
+                <span>Instant</span>
+                <span className="block">Delivery</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div className="text-[11px] font-medium leading-tight text-slate-300">
+                <span>Verified</span>
+                <span className="block">Transaction</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                <Headphones className="w-4 h-4" />
+              </div>
+              <div className="text-[11px] font-medium leading-tight text-slate-300">
+                <span>Support</span>
+                <span className="block">Available</span>
+              </div>
             </div>
           </div>
 
-          {/* Footer Security Note */}
-          <div className="text-center pt-2 space-y-1">
-            <p className="text-[10px] text-slate-400 font-mono">
-              Thank you for purchasing with ShadowStore. Keep this digital receipt for your reference.
-            </p>
-            <p className="text-[9px] text-slate-500 font-mono">
-              Independent Third-Party Top-Up Platform • All rights reserved.
-            </p>
+          {/* FOOTER ROW */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-3 border-t border-slate-800/80">
+            {/* Thank you note */}
+            <div className="flex items-start gap-2.5 max-w-xs">
+              <Heart className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+              <div className="text-[11px] text-slate-400 leading-snug">
+                <p>
+                  Thank you for choosing{' '}
+                  <strong className="text-purple-400 font-bold">{storeDisplay}</strong>.
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  Please keep this receipt for future reference.
+                </p>
+              </div>
+            </div>
+
+            {/* Verify Receipt QR Widget */}
+            <div className="w-full sm:w-auto p-2.5 rounded-xl bg-[#0b101c] border border-slate-800 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-white p-1 flex items-center justify-center shrink-0">
+                <QrCode className="w-full h-full text-slate-950" />
+              </div>
+              <div className="flex-1 min-w-0 pr-1">
+                <div className="flex items-center justify-between gap-1 text-[11px] font-bold text-white">
+                  <span>Verify Receipt</span>
+                  <ChevronRight className="w-3 h-3 text-slate-400" />
+                </div>
+                <p className="text-[9px] text-slate-400 leading-tight">
+                  Scan the QR or visit our website to verify this transaction.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Action Buttons Footer */}
-        <div className="p-4 sm:p-6 bg-[#141229] border-t border-slate-800 flex flex-col sm:flex-row gap-2.5 sm:gap-3 print:hidden">
+        {/* Action Buttons Footer (Screen Only) */}
+        <div className="p-4 sm:p-5 bg-[#0c101c] border-t border-slate-800/80 flex flex-col sm:flex-row gap-2.5 sm:gap-3 print:hidden">
           <button
             onClick={handleDownload}
             disabled={downloading}
@@ -335,12 +493,12 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
             {downloading ? (
               <>
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Generating Receipt...</span>
+                <span>Saving Receipt Image...</span>
               </>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>Save Receipt (PNG/PDF)</span>
+                <span>Save Receipt (PNG)</span>
               </>
             )}
           </button>
@@ -355,9 +513,9 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
 
             <button
               onClick={onClose}
-              className="flex-1 sm:flex-none py-3 px-5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-xs uppercase tracking-wider border border-red-500/30 flex items-center justify-center gap-2 transition-all"
+              className="flex-1 sm:flex-none py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider border border-slate-700 flex items-center justify-center gap-2 transition-all"
             >
-              <X className="w-4 h-4 text-red-400" /> Close
+              Close
             </button>
           </div>
         </div>
