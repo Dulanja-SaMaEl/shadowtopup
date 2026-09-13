@@ -23,6 +23,10 @@ import {
   X,
   RotateCcw,
   Clock,
+  Store,
+  Award,
+  Mail,
+  ExternalLink,
 } from 'lucide-react';
 
 export interface ReceiptData {
@@ -58,6 +62,10 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
   const isPending =
     !isRefunded &&
     (receipt.status?.toLowerCase().includes('pending') || receipt.status === 'proof_submitted');
+
+  const isReseller = Boolean(
+    receipt.storeName || (receipt.resellerRole && receipt.resellerRole !== 'normal')
+  );
 
   // Format payment method cleanly
   const rawMethod = (receipt.paymentMethod || '').toLowerCase();
@@ -225,11 +233,36 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
           </button>
         </div>
 
-        {/* PRINTABLE RECEIPT CONTAINER - Matches User Screenshot 100% */}
+        {/* PRINTABLE RECEIPT CONTAINER */}
         <div
           id="printable-receipt"
-          className="p-6 sm:p-8 space-y-6 text-white bg-[#070a13] font-sans"
+          className="p-6 sm:p-8 space-y-5 text-white bg-[#070a13] font-sans"
         >
+          {/* Reseller Shop Banner (Displayed when issued by a Reseller) */}
+          {isReseller && (
+            <div className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/60 via-indigo-950/50 to-cyan-950/60 border border-purple-800/40">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
+                  <Store className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest text-purple-300 block">
+                    ISSUED BY RESELLER STORE:
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wide">
+                    {receipt.storeName || 'OFFICIAL RESELLER STORE'}
+                  </span>
+                </div>
+              </div>
+              {receipt.resellerRole && receipt.resellerRole !== 'normal' && (
+                <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-extrabold uppercase tracking-wider flex items-center gap-1 shrink-0">
+                  <Award className="w-3 h-3 text-amber-400" />
+                  {receipt.resellerRole.toUpperCase()} TIER
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Top Status & Glowing Icon */}
           <div className="flex flex-col items-center text-center space-y-3 pt-1">
             <div className="relative flex items-center justify-center">
@@ -281,7 +314,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
           </div>
 
           {/* Details Card Rows */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-1">
             {/* ORDER RECEIPT ID */}
             <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
               <div className="flex items-center gap-2.5 text-slate-400">
@@ -320,6 +353,21 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
                 {receipt.packageName}
               </span>
             </div>
+
+            {/* ITEMS DELIVERED (if specified) */}
+            {receipt.itemsDelivered && receipt.itemsDelivered !== receipt.packageName && (
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <div className="flex items-center gap-2.5 text-slate-400">
+                  <Award className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                    ITEMS DELIVERED
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-emerald-400 text-xs sm:text-sm">
+                  {receipt.itemsDelivered}
+                </span>
+              </div>
+            )}
 
             {/* FREE FIRE PLAYER UID */}
             <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
@@ -375,7 +423,22 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
               </span>
             </div>
 
-            {/* CUSTOMER */}
+            {/* RESELLER SHOP NAME (If Reseller) */}
+            {isReseller && (
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <div className="flex items-center gap-2.5 text-slate-400">
+                  <Store className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                    RESELLER SHOP
+                  </span>
+                </div>
+                <span className="font-bold text-cyan-300 text-xs sm:text-sm uppercase">
+                  {receipt.storeName || 'OFFICIAL RESELLER STORE'}
+                </span>
+              </div>
+            )}
+
+            {/* CUSTOMER NAME (Always displayed, or customer only if not a reseller) */}
             {receipt.customerName && (
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                 <div className="flex items-center gap-2.5 text-slate-400">
@@ -387,6 +450,42 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
                 <span className="font-bold text-white text-xs sm:text-sm uppercase">
                   {receipt.customerName}
                 </span>
+              </div>
+            )}
+
+            {/* CUSTOMER EMAIL (if available) */}
+            {receipt.customerEmail && (
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <div className="flex items-center gap-2.5 text-slate-400">
+                  <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                    EMAIL
+                  </span>
+                </div>
+                <span className="font-mono text-slate-300 text-xs truncate max-w-[200px]">
+                  {receipt.customerEmail}
+                </span>
+              </div>
+            )}
+
+            {/* PAYMENT RECEIPT PROOF (if uploaded via bank transfer) */}
+            {receipt.receiptUrl && (
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <div className="flex items-center gap-2.5 text-slate-400">
+                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+                    PAYMENT PROOF
+                  </span>
+                </div>
+                <a
+                  href={receipt.receiptUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-cyan-400 hover:text-cyan-300 text-xs font-mono font-bold flex items-center gap-1 underline"
+                >
+                  <span>View Bank Slip</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
             )}
           </div>
@@ -407,7 +506,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
           </div>
 
           {/* 4 TRUST / FEATURE BADGES ROW */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
                 <ShieldCheck className="w-4 h-4" />
