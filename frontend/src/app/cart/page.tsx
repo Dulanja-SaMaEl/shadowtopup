@@ -6,12 +6,14 @@ import { useCart } from '@/context/CartContext';
 import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShieldCheck, Check, Wallet, Landmark, Loader2, Zap, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/pricing';
 import TransactionReceiptModal from '@/components/TransactionReceiptModal';
+import OrderProcessingModal from '@/components/OrderProcessingModal';
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, updatePlayerUid, clearCart, cartTotal, totalCount } = useCart();
   const [paymentMethod, setPaymentMethod] = useState<'shadow_wallet' | 'bank_transfer'>('shadow_wallet');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   const [userStoreName, setUserStoreName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [generatedReceipt, setGeneratedReceipt] = useState<any | null>(null);
@@ -76,6 +78,8 @@ export default function CartPage() {
           setLoading(false);
           return;
         }
+
+        setIsProcessingOrder(true);
 
         // Process all items in batch
         let createdOrdersCount = 0;
@@ -146,6 +150,7 @@ export default function CartPage() {
     } catch (err: any) {
       setErrorMsg(err.message || 'An error occurred during checkout. Please try again.');
     } finally {
+      setIsProcessingOrder(false);
       setLoading(false);
     }
   };
@@ -375,6 +380,15 @@ export default function CartPage() {
           </div>
         )}
       </div>
+
+      {/* Order Processing Preloader Modal */}
+      <OrderProcessingModal
+        isOpen={isProcessingOrder}
+        packageName={cartItems.length === 1 ? cartItems[0].packageName : `Batch Top-Up (${totalCount} Items)`}
+        playerUid={cartItems[0]?.playerUid}
+        amount={cartTotal}
+        paymentMethod="Shadow Wallet"
+      />
 
       {/* Transaction Receipt Modal */}
       <TransactionReceiptModal

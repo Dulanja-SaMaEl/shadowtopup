@@ -29,6 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [userEmail, setUserEmail] = useState('admin@shadowstore.com');
   const [status, setStatus] = useState({ server: 'online', db: 'online', api: 'online' });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [playerApiQuota, setPlayerApiQuota] = useState<{ remaining: number; limit: number } | null>(null);
 
   useEffect(() => {
     async function loadUser() {
@@ -85,6 +86,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       } catch {}
     }
     checkHealth();
+
+    async function loadQuota() {
+      try {
+        const res = await fetch('/api/admin/hlgaming-quota');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.quota) {
+            setPlayerApiQuota({
+              remaining: json.quota.remainingToday,
+              limit: json.quota.dailyLimit,
+            });
+          }
+        }
+      } catch {}
+    }
+    loadQuota();
   }, []);
 
   const handleSignOut = async () => {
@@ -254,7 +271,62 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </span>
                 DB: Online
               </span>
+              {playerApiQuota && (
+                <>
+                  <span className="text-slate-700">|</span>
+                  <Link
+                    href="/admin/dashboard"
+                    className={`flex items-center gap-1.5 font-bold hover:underline transition-colors ${
+                      playerApiQuota.remaining > 10
+                        ? 'text-emerald-400'
+                        : playerApiQuota.remaining > 3
+                        ? 'text-amber-400'
+                        : 'text-red-400'
+                    }`}
+                    title={`HL Gaming Player Verification: ${playerApiQuota.remaining}/${playerApiQuota.limit} requests left today`}
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span
+                        className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                          playerApiQuota.remaining > 10
+                            ? 'bg-emerald-400'
+                            : playerApiQuota.remaining > 3
+                            ? 'bg-amber-400'
+                            : 'bg-red-400'
+                        }`}
+                      />
+                      <span
+                        className={`relative inline-flex rounded-full h-2 w-2 ${
+                          playerApiQuota.remaining > 10
+                            ? 'bg-emerald-500'
+                            : playerApiQuota.remaining > 3
+                            ? 'bg-amber-500'
+                            : 'bg-red-500'
+                        }`}
+                      />
+                    </span>
+                    Player API: {playerApiQuota.remaining}/{playerApiQuota.limit}
+                  </Link>
+                </>
+              )}
             </div>
+
+            {playerApiQuota && (
+              <Link
+                href="/admin/dashboard"
+                className={`lg:hidden px-2.5 py-1 rounded-lg text-[10px] font-mono font-extrabold border uppercase flex items-center gap-1 ${
+                  playerApiQuota.remaining > 10
+                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                    : playerApiQuota.remaining > 3
+                    ? 'bg-amber-950/40 border-amber-500/40 text-amber-300'
+                    : 'bg-red-950/40 border-red-500/40 text-red-300'
+                }`}
+                title="HL Gaming Quota"
+              >
+                <span>API:</span>
+                <span>{playerApiQuota.remaining}/{playerApiQuota.limit}</span>
+              </Link>
+            )}
 
             <Link
               href="/"

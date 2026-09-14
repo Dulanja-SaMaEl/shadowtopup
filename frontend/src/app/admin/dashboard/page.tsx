@@ -18,6 +18,12 @@ import {
   Sparkles,
   Zap,
   ShieldCheck,
+  UserCheck,
+  RefreshCw,
+  Sliders,
+  Key,
+  X,
+  Check,
 } from 'lucide-react';
 
 const SHELL_UNIT_COST_LKR = 2.60; // 1 Garena Shell base cost in LKR
@@ -124,6 +130,70 @@ export default function AdminDashboardPage() {
   const [profitMargin, setProfitMargin] = useState(25.4);
   const [recentOrders, setRecentOrders] = useState<DatabaseOrder[]>([]);
 
+  // HL Gaming Quota State
+  const [quota, setQuota] = useState<{
+    dailyLimit: number;
+    usedToday: number;
+    remainingToday: number;
+    developerUid: string;
+    apiKey: string;
+    limitResetAt: string;
+    status: 'healthy' | 'low' | 'exhausted';
+  }>({
+    dailyLimit: 25,
+    usedToday: 11,
+    remainingToday: 14,
+    developerUid: 'Xv00AKjlBJMgOpxr05VP2Sreu0z1',
+    apiKey: 'Kjt47EN5VEvYVa77afIsd4hEAFicFg',
+    limitResetAt: '',
+    status: 'healthy',
+  });
+  const [loadingQuota, setLoadingQuota] = useState(false);
+  const [quotaModalOpen, setQuotaModalOpen] = useState(false);
+  const [calibrateUsedCount, setCalibrateUsedCount] = useState(11);
+  const [calibrateDailyLimit, setCalibrateDailyLimit] = useState(25);
+  const [savingQuota, setSavingQuota] = useState(false);
+
+  const loadQuota = async () => {
+    setLoadingQuota(true);
+    try {
+      const res = await fetch('/api/admin/hlgaming-quota');
+      const data = await res.json();
+      if (data.success && data.quota) {
+        setQuota(data.quota);
+        setCalibrateUsedCount(data.quota.usedToday);
+        setCalibrateDailyLimit(data.quota.dailyLimit);
+      }
+    } catch (err) {
+      console.error('Failed to load HLGaming quota:', err);
+    } finally {
+      setLoadingQuota(false);
+    }
+  };
+
+  const handleSaveQuotaCalibration = async () => {
+    setSavingQuota(true);
+    try {
+      const res = await fetch('/api/admin/hlgaming-quota', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usedToday: Number(calibrateUsedCount),
+          dailyLimit: Number(calibrateDailyLimit),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.quota) {
+        setQuota(data.quota);
+        setQuotaModalOpen(false);
+      }
+    } catch (err) {
+      console.error('Failed to update quota:', err);
+    } finally {
+      setSavingQuota(false);
+    }
+  };
+
   useEffect(() => {
     async function loadDashboardMetrics() {
       try {
@@ -167,6 +237,7 @@ export default function AdminDashboardPage() {
       }
     }
     loadDashboardMetrics();
+    loadQuota();
   }, []);
 
   return (
@@ -264,6 +335,239 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* HL Gaming Player Verification API Live Quota Widget */}
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-[#121028] via-[#141229] to-[#0e0c1f] border border-purple-800/40 relative overflow-hidden shadow-2xl space-y-5">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="text-[10px] font-mono font-black uppercase tracking-widest text-cyan-400">
+                HL GAMING OFFICIAL API • PLAYER ID VERIFICATION QUOTA
+              </span>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-extrabold uppercase tracking-wider ${
+                  quota.remainingToday > 10
+                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                    : quota.remainingToday > 3
+                    ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300'
+                    : 'bg-red-500/15 border border-red-500/30 text-red-300'
+                }`}
+              >
+                {quota.remainingToday > 10
+                  ? 'Active & Healthy'
+                  : quota.remainingToday > 3
+                  ? 'Low Quota Warning'
+                  : 'Critical / Quota Exhausted'}
+              </span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-wide flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-purple-400 shrink-0" />
+              Free Fire Regional Player Name Lookup Service
+            </h2>
+            <p className="text-xs text-slate-400">
+              Live quota consumption tracker. Official limit: <strong className="text-slate-200 font-mono">25 requests/day</strong>. In-memory player caching preserves daily quota.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setCalibrateUsedCount(quota.usedToday);
+                setCalibrateDailyLimit(quota.dailyLimit);
+                setQuotaModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-purple-900/40 hover:bg-purple-800/60 border border-purple-700/50 text-purple-300 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
+            >
+              <Sliders className="w-3.5 h-3.5" /> Calibrate Quota
+            </button>
+            <button
+              onClick={loadQuota}
+              disabled={loadingQuota}
+              className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all disabled:opacity-50"
+              title="Refresh Quota"
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingQuota ? 'animate-spin text-cyan-400' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* 4 Live Quota Metric Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-purple-950/60 space-y-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+              Remaining Today
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span
+                className={`text-2xl sm:text-3xl font-black font-mono ${
+                  quota.remainingToday > 10
+                    ? 'text-emerald-400'
+                    : quota.remainingToday > 3
+                    ? 'text-amber-400'
+                    : 'text-red-400'
+                }`}
+              >
+                {quota.remainingToday}
+              </span>
+              <span className="text-xs font-mono text-slate-500">/ {quota.dailyLimit}</span>
+            </div>
+            <span className="text-[10px] text-slate-400 block font-medium">Verifications left</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-purple-950/60 space-y-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+              Used Today
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-black font-mono text-cyan-400">
+                {quota.usedToday}
+              </span>
+              <span className="text-xs font-mono text-slate-500">requests</span>
+            </div>
+            <span className="text-[10px] text-cyan-400/80 block font-medium">
+              {Math.round((quota.usedToday / quota.dailyLimit) * 100)}% of daily allowance
+            </span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-purple-950/60 space-y-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+              Daily Limit
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-black font-mono text-white">
+                {quota.dailyLimit}
+              </span>
+              <span className="text-xs font-mono text-slate-500">per day</span>
+            </div>
+            <span className="text-[10px] text-purple-400 block font-medium">Resets daily at 00:00 UTC</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-purple-950/60 space-y-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+              Developer UID
+            </span>
+            <div className="font-mono text-xs font-bold text-slate-200 truncate pt-1">
+              {quota.developerUid}
+            </div>
+            <span className="text-[10px] text-emerald-400 font-mono block">
+              Key: {quota.apiKey.slice(0, 8)}... (V2.0.0 Active)
+            </span>
+          </div>
+        </div>
+
+        {/* Dynamic Visual Progress Bar */}
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 uppercase font-bold">
+            <span>Daily Consumption: {quota.usedToday} / {quota.dailyLimit} used ({Math.round((quota.usedToday / quota.dailyLimit) * 100)}%)</span>
+            <span className={quota.remainingToday <= 5 ? 'text-amber-400 font-bold' : 'text-emerald-400'}>
+              {quota.remainingToday} Requests Remaining
+            </span>
+          </div>
+          <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                quota.remainingToday > 10
+                  ? 'bg-gradient-to-r from-emerald-500 to-cyan-400'
+                  : quota.remainingToday > 3
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-400'
+                  : 'bg-gradient-to-r from-red-600 to-pink-500'
+              }`}
+              style={{
+                width: `${Math.min(100, Math.max(4, (quota.usedToday / quota.dailyLimit) * 100))}%`,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Quota Calibration Modal */}
+      {quotaModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-md bg-[#121028] border border-purple-800/60 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+              <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-purple-400" />
+                Calibrate HL Gaming API Quota
+              </h3>
+              <button
+                onClick={() => setQuotaModalOpen(false)}
+                className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Synchronize the local counter with your official HL Gaming developer portal if manual verification requests were made.
+            </p>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono uppercase text-slate-400 font-bold block">
+                  Requests Used Today
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max={calibrateDailyLimit}
+                  value={calibrateUsedCount}
+                  onChange={(e) => setCalibrateUsedCount(Number(e.target.value))}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono uppercase text-slate-400 font-bold block">
+                  Daily Limit Allowance
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={calibrateDailyLimit}
+                  onChange={(e) => setCalibrateDailyLimit(Number(e.target.value))}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs font-mono space-y-1">
+                <div className="flex justify-between text-slate-400">
+                  <span>Calculated Remaining:</span>
+                  <span className="font-bold text-emerald-400">
+                    {Math.max(0, calibrateDailyLimit - calibrateUsedCount)} requests
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={handleSaveQuotaCalibration}
+                disabled={savingQuota}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {savingQuota ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Update Quota Count</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setQuotaModalOpen(false)}
+                className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recommended Package Pricing Matrix for Profit */}
       <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6 shadow-2xl">

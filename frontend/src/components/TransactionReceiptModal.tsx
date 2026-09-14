@@ -115,6 +115,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
         backgroundColor: '#070a13',
         useCORS: true,
         logging: false,
+        windowWidth: 600,
       });
 
       canvas.toBlob(async (blob) => {
@@ -140,7 +141,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
             setDownloading(false);
             return;
           } catch (shareErr) {
-            // User dismissed or fallback
+            // Fallback to direct download
           }
         }
 
@@ -162,7 +163,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
   };
 
   return (
-    <div className="receipt-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto print:p-0 print:bg-transparent print:static print:block">
+    <div className="receipt-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto print:p-0 print:bg-transparent print:static print:block">
       {/* Dynamic Print CSS for exact 1-page high-fidelity output */}
       <style
         dangerouslySetInnerHTML={{
@@ -195,6 +196,8 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
             max-width: 580px !important;
             background-color: #070a13 !important;
             box-shadow: none !important;
+            max-height: none !important;
+            overflow: visible !important;
           }
           #printable-receipt {
             display: block !important;
@@ -205,6 +208,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
             width: 100% !important;
             max-width: 580px !important;
             page-break-inside: avoid !important;
+            overflow: visible !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -217,58 +221,58 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
         }}
       />
 
-      <div className="receipt-modal-card relative w-full max-w-lg bg-[#070a13] border border-slate-800/90 rounded-[28px] shadow-2xl shadow-purple-950/20 overflow-hidden my-6 print:border-none print:shadow-none print:my-0">
-        {/* Top Header Action Bar (Screen Only) */}
-        <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-800/80 bg-[#0c101c] print:hidden">
-          <div className="flex items-center gap-2 text-xs font-extrabold text-slate-300 font-mono tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            RECEIPT #{receipt.orderId?.toUpperCase() || 'CONFIRMED'}
+      <div className="receipt-modal-card relative w-full max-w-lg bg-[#070a13] border border-slate-800/90 rounded-[24px] sm:rounded-[28px] shadow-2xl shadow-purple-950/20 max-h-[92vh] flex flex-col my-auto overflow-hidden print:border-none print:shadow-none print:my-0 print:max-h-none">
+        {/* Top Header Action Bar (Screen Only - Sticky pinned at top) */}
+        <div className="sticky top-0 z-20 shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-800/80 bg-[#0c101c] print:hidden">
+          <div className="flex items-center gap-2 text-xs font-extrabold text-slate-300 font-mono tracking-wider truncate">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="truncate">RECEIPT #{receipt.orderId?.toUpperCase() || 'CONFIRMED'}</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all shrink-0 ml-2"
             title="Close"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* PRINTABLE RECEIPT CONTAINER */}
+        {/* PRINTABLE RECEIPT CONTAINER (Scrolls smoothly on mobile, fully visible) */}
         <div
           id="printable-receipt"
-          className="p-6 sm:p-8 space-y-5 text-white bg-[#070a13] font-sans"
+          className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 text-white bg-[#070a13] font-sans overflow-y-auto flex-1 min-h-0 print:overflow-visible print:p-6"
         >
           {/* Reseller Shop Banner (Displayed when issued by a Reseller) */}
           {isReseller && (
-            <div className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/60 via-indigo-950/50 to-cyan-950/60 border border-purple-800/40">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
+            <div className="w-full flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/60 via-indigo-950/50 to-cyan-950/60 border border-purple-800/40 gap-2">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
                   <Store className="w-4 h-4" />
                 </div>
-                <div>
-                  <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest text-purple-300 block">
-                    ISSUED BY RESELLER STORE:
+                <div className="min-w-0">
+                  <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest text-purple-300 block truncate">
+                    ISSUED BY RESELLER:
                   </span>
-                  <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wide">
+                  <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wide truncate block">
                     {receipt.storeName || 'OFFICIAL RESELLER STORE'}
                   </span>
                 </div>
               </div>
               {receipt.resellerRole && receipt.resellerRole !== 'normal' && (
-                <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-extrabold uppercase tracking-wider flex items-center gap-1 shrink-0">
+                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[9px] sm:text-[10px] font-mono font-extrabold uppercase tracking-wider flex items-center gap-1 shrink-0">
                   <Award className="w-3 h-3 text-amber-400" />
-                  {receipt.resellerRole.toUpperCase()} TIER
+                  {receipt.resellerRole.toUpperCase()}
                 </span>
               )}
             </div>
           )}
 
           {/* Top Status & Glowing Icon */}
-          <div className="flex flex-col items-center text-center space-y-3 pt-1">
+          <div className="flex flex-col items-center text-center space-y-2.5 sm:space-y-3 pt-1">
             <div className="relative flex items-center justify-center">
               {/* Radial glow */}
               <div
-                className={`absolute w-20 h-20 rounded-full blur-xl ${
+                className={`absolute w-16 h-16 sm:w-20 sm:h-20 rounded-full blur-xl ${
                   isRefunded
                     ? 'bg-purple-500/30'
                     : isPending
@@ -277,7 +281,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
                 }`}
               />
               <div
-                className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg relative z-10 border-2 ${
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg relative z-10 border-2 ${
                   isRefunded
                     ? 'bg-purple-600 border-purple-400 text-white shadow-purple-500/40'
                     : isPending
@@ -286,24 +290,24 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
                 }`}
               >
                 {isRefunded ? (
-                  <RotateCcw className="w-7 h-7 stroke-[3]" />
+                  <RotateCcw className="w-6 h-6 sm:w-7 sm:h-7 stroke-[3]" />
                 ) : isPending ? (
-                  <Clock className="w-7 h-7 stroke-[3] animate-pulse" />
+                  <Clock className="w-6 h-6 sm:w-7 sm:h-7 stroke-[3] animate-pulse" />
                 ) : (
-                  <Check className="w-7 h-7 stroke-[3.5]" />
+                  <Check className="w-6 h-6 sm:w-7 sm:h-7 stroke-[3.5]" />
                 )}
               </div>
             </div>
 
-            <div className="space-y-1.5 max-w-sm">
-              <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider">
+            <div className="space-y-1 max-w-sm px-2">
+              <h2 className="text-base sm:text-xl font-black text-white uppercase tracking-wider">
                 {isRefunded
                   ? 'TRANSACTION REFUNDED'
                   : isPending
                   ? 'PAYMENT PENDING VERIFICATION'
                   : 'TRANSACTION COMPLETED'}
               </h2>
-              <p className="text-xs text-slate-400 leading-relaxed font-medium">
+              <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed font-medium">
                 {isRefunded
                   ? `Package unavailable for player account. Payment of ${formattedAmount} was fully refunded to your wallet.`
                   : isPending
@@ -313,126 +317,126 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
             </div>
           </div>
 
-          {/* Details Card Rows */}
-          <div className="space-y-3 pt-1">
+          {/* Details Card Rows (100% Mobile & PC Responsive with Flex-Wrap) */}
+          <div className="space-y-2 sm:space-y-2.5 pt-1">
             {/* ORDER RECEIPT ID */}
-            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-              <div className="flex items-center gap-2.5 text-slate-400">
-                <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+              <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                   ORDER RECEIPT ID
                 </span>
               </div>
-              <span className="font-mono font-bold text-white text-xs sm:text-sm">
+              <span className="font-mono font-bold text-white text-xs sm:text-sm text-left xs:text-right break-all">
                 #{receipt.orderId?.toUpperCase()}
               </span>
             </div>
 
             {/* DATE & TIME */}
-            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-              <div className="flex items-center gap-2.5 text-slate-400">
-                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+              <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                   DATE & TIME
                 </span>
               </div>
-              <span className="font-mono text-slate-300 text-xs sm:text-sm">
+              <span className="font-mono text-slate-300 text-xs sm:text-sm text-left xs:text-right">
                 {formattedDateTime}
               </span>
             </div>
 
             {/* PACKAGE NAME */}
-            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-              <div className="flex items-center gap-2.5 text-slate-400">
-                <Package className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+              <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                   PACKAGE NAME
                 </span>
               </div>
-              <span className="font-mono font-extrabold text-cyan-400 text-xs sm:text-sm uppercase tracking-wide">
+              <span className="font-mono font-extrabold text-cyan-400 text-xs sm:text-sm uppercase tracking-wide text-left xs:text-right break-words">
                 {receipt.packageName}
               </span>
             </div>
 
             {/* ITEMS DELIVERED (if specified) */}
             {receipt.itemsDelivered && receipt.itemsDelivered !== receipt.packageName && (
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <div className="flex items-center gap-2.5 text-slate-400">
-                  <Award className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+                <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                  <Award className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                     ITEMS DELIVERED
                   </span>
                 </div>
-                <span className="font-mono font-bold text-emerald-400 text-xs sm:text-sm">
+                <span className="font-mono font-bold text-emerald-400 text-xs sm:text-sm text-left xs:text-right break-words">
                   {receipt.itemsDelivered}
                 </span>
               </div>
             )}
 
             {/* FREE FIRE PLAYER UID */}
-            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-              <div className="flex items-center gap-2.5 text-slate-400">
-                <Gamepad2 className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+              <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                <Gamepad2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                   FREE FIRE PLAYER UID
                 </span>
               </div>
-              <span className="font-mono font-extrabold text-cyan-400 text-xs sm:text-sm">
+              <span className="font-mono font-extrabold text-cyan-400 text-xs sm:text-sm text-left xs:text-right break-all">
                 {receipt.playerUid}
               </span>
             </div>
 
             {/* PLAYER NICKNAME */}
-            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-              <div className="flex items-center gap-2.5 text-slate-400">
-                <User className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+              <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                   PLAYER NICKNAME
                 </span>
               </div>
-              <span className="font-bold text-cyan-400 text-xs sm:text-sm">
+              <span className="font-bold text-cyan-400 text-xs sm:text-sm text-left xs:text-right break-words">
                 {receipt.playerNickname || `UID: ${receipt.playerUid}`}
               </span>
             </div>
 
             {/* GARENA TRX ID */}
             {receipt.transactionId && (
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <div className="flex items-center gap-2.5 text-slate-400">
-                  <Hash className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+                <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                  <Hash className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                     GARENA TRX ID
                   </span>
                 </div>
-                <span className="font-mono font-bold text-purple-400 text-xs sm:text-sm">
+                <span className="font-mono font-bold text-purple-400 text-xs sm:text-sm text-left xs:text-right break-all">
                   {receipt.transactionId}
                 </span>
               </div>
             )}
 
             {/* PAYMENT METHOD */}
-            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-              <div className="flex items-center gap-2.5 text-slate-400">
-                <CreditCard className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+              <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                <CreditCard className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                   PAYMENT METHOD
                 </span>
               </div>
-              <span className="font-mono font-bold text-purple-300 text-xs sm:text-sm uppercase">
+              <span className="font-mono font-bold text-purple-300 text-xs sm:text-sm uppercase text-left xs:text-right">
                 {paymentMethodLabel}
               </span>
             </div>
 
             {/* RESELLER SHOP NAME (If Reseller) */}
             {isReseller && (
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <div className="flex items-center gap-2.5 text-slate-400">
-                  <Store className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+                <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                  <Store className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                     RESELLER SHOP
                   </span>
                 </div>
-                <span className="font-bold text-cyan-300 text-xs sm:text-sm uppercase">
+                <span className="font-bold text-cyan-300 text-xs sm:text-sm uppercase text-left xs:text-right break-words">
                   {receipt.storeName || 'OFFICIAL RESELLER STORE'}
                 </span>
               </div>
@@ -440,14 +444,14 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
 
             {/* CUSTOMER NAME (Always displayed, or customer only if not a reseller) */}
             {receipt.customerName && (
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <div className="flex items-center gap-2.5 text-slate-400">
-                  <UserCheck className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+                <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                  <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                     CUSTOMER
                   </span>
                 </div>
-                <span className="font-bold text-white text-xs sm:text-sm uppercase">
+                <span className="font-bold text-white text-xs sm:text-sm uppercase text-left xs:text-right break-words">
                   {receipt.customerName}
                 </span>
               </div>
@@ -455,14 +459,14 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
 
             {/* CUSTOMER EMAIL (if available) */}
             {receipt.customerEmail && (
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <div className="flex items-center gap-2.5 text-slate-400">
-                  <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+                <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                  <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                     EMAIL
                   </span>
                 </div>
-                <span className="font-mono text-slate-300 text-xs truncate max-w-[200px]">
+                <span className="font-mono text-slate-300 text-xs text-left xs:text-right break-all">
                   {receipt.customerEmail}
                 </span>
               </div>
@@ -470,10 +474,10 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
 
             {/* PAYMENT RECEIPT PROOF (if uploaded via bank transfer) */}
             {receipt.receiptUrl && (
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <div className="flex items-center gap-2.5 text-slate-400">
-                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-0.5 sm:gap-2 py-1.5 border-b border-slate-800/60">
+                <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                  <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
                     PAYMENT PROOF
                   </span>
                 </div>
@@ -481,7 +485,7 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
                   href={receipt.receiptUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-cyan-400 hover:text-cyan-300 text-xs font-mono font-bold flex items-center gap-1 underline"
+                  className="text-cyan-400 hover:text-cyan-300 text-xs font-mono font-bold flex items-center gap-1 underline text-left xs:text-right"
                 >
                   <span>View Bank Slip</span>
                   <ExternalLink className="w-3 h-3" />
@@ -491,65 +495,65 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
           </div>
 
           {/* AMOUNT PAID BOX */}
-          <div className="rounded-2xl bg-[#091122]/90 border border-slate-800/80 p-4 sm:p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+          <div className="rounded-2xl bg-[#091122]/90 border border-slate-800/80 p-3.5 sm:p-4 md:p-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
                 <CreditCard className="w-4 h-4" />
               </div>
-              <span className="text-xs font-mono font-extrabold uppercase tracking-wider text-slate-300">
+              <span className="text-[11px] sm:text-xs font-mono font-extrabold uppercase tracking-wider text-slate-300">
                 AMOUNT PAID
               </span>
             </div>
-            <span className="text-xl sm:text-2xl font-black font-mono text-[#818cf8]">
+            <span className="text-lg sm:text-2xl font-black font-mono text-[#818cf8] shrink-0">
               {formattedAmount}
             </span>
           </div>
 
-          {/* 4 TRUST / FEATURE BADGES ROW */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
-                <ShieldCheck className="w-4 h-4" />
+          {/* 4 TRUST / FEATURE BADGES ROW (100% Mobile Responsive Grid) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 pt-1">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <div className="text-[11px] font-medium leading-tight text-slate-300">
+              <div className="text-[10px] sm:text-[11px] font-medium leading-tight text-slate-300">
                 <span>Secure</span>
-                <span className="block">Payment</span>
+                <span className="block text-slate-400">Payment</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
-                <Zap className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <div className="text-[11px] font-medium leading-tight text-slate-300">
+              <div className="text-[10px] sm:text-[11px] font-medium leading-tight text-slate-300">
                 <span>Instant</span>
-                <span className="block">Delivery</span>
+                <span className="block text-slate-400">Delivery</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
-                <Shield className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <div className="text-[11px] font-medium leading-tight text-slate-300">
+              <div className="text-[10px] sm:text-[11px] font-medium leading-tight text-slate-300">
                 <span>Verified</span>
-                <span className="block">Transaction</span>
+                <span className="block text-slate-400">Order</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
-                <Headphones className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                <Headphones className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <div className="text-[11px] font-medium leading-tight text-slate-300">
+              <div className="text-[10px] sm:text-[11px] font-medium leading-tight text-slate-300">
                 <span>Support</span>
-                <span className="block">Available</span>
+                <span className="block text-slate-400">24/7</span>
               </div>
             </div>
           </div>
 
           {/* FOOTER ROW */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-3 border-t border-slate-800/80">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pt-3 border-t border-slate-800/80">
             {/* Thank you note */}
             <div className="flex items-start gap-2.5 max-w-xs">
               <Heart className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
@@ -575,15 +579,15 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
                   <ChevronRight className="w-3 h-3 text-slate-400" />
                 </div>
                 <p className="text-[9px] text-slate-400 leading-tight">
-                  Scan the QR or visit our website to verify this transaction.
+                  Official certified transaction proof.
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons Footer (Screen Only) */}
-        <div className="p-4 sm:p-5 bg-[#0c101c] border-t border-slate-800/80 flex flex-col sm:flex-row gap-2.5 sm:gap-3 print:hidden">
+        {/* Action Buttons Footer (Screen Only - Sticky pinned at bottom) */}
+        <div className="sticky bottom-0 z-20 shrink-0 p-3 sm:p-4 md:p-5 bg-[#0c101c] border-t border-slate-800/80 flex flex-col sm:flex-row gap-2 sm:gap-3 print:hidden">
           <button
             onClick={handleDownload}
             disabled={downloading}

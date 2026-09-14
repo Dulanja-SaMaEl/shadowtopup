@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { incrementHLGamingUsage } from '@/lib/hlgamingQuotaService';
 
 // In-memory cache for resolved player nicknames (persists across requests during server runtime)
 const playerCache = new Map<string, { nickname: string; level?: string | number; region?: string; timestamp: number }>();
+
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -54,6 +56,8 @@ export async function GET(request: NextRequest) {
 
       try {
         const response = await fetch(url, { cache: 'no-store' });
+        // Increment daily quota count on live request
+        await incrementHLGamingUsage().catch(() => {});
 
         if (response.ok) {
           const data = await response.json();

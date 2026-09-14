@@ -5,6 +5,7 @@ import { Package, UserRole } from '@/types/database';
 import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
 import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap, Smartphone, Copy } from 'lucide-react';
 import TransactionReceiptModal from './TransactionReceiptModal';
+import OrderProcessingModal from './OrderProcessingModal';
 import { useCart } from '@/context/CartContext';
 
 interface Props {
@@ -23,6 +24,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [userStoreName, setUserStoreName] = useState<string | null>(null);
   const [generatedReceipt, setGeneratedReceipt] = useState<any | null>(null);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<'membership' | 'levelup' | 'diamond'>('membership');
@@ -120,6 +122,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
     const tier = userRole === 'gold' || userRole === 'silver' ? userRole : 'normal';
 
     if (paymentMethod === 'shadow_wallet') {
+      setIsProcessingOrder(true);
       try {
         const res = await fetch('/api/orders/create', {
           method: 'POST',
@@ -136,6 +139,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         });
 
         const data = await res.json();
+        setIsProcessingOrder(false);
         if (data.success) {
           const deliveredNickname = data.playerNickname || verifiedPlayerUid;
           const txId = data.transactionId || (data.order?.id ? String(data.order.id).slice(0, 8).toUpperCase() : '');
@@ -177,6 +181,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           });
         }
       } catch (err: any) {
+        setIsProcessingOrder(false);
         setGeneratedReceipt(null);
         setMessage({ type: 'error', text: err.message || 'Failed to complete wallet checkout.' });
       }
@@ -192,6 +197,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         return;
       }
 
+      setIsProcessingOrder(true);
       try {
         const res = await fetch('/api/orders/create', {
           method: 'POST',
@@ -206,6 +212,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         });
 
         const data = await res.json();
+        setIsProcessingOrder(false);
         if (data.success && data.status === 'completed') {
           setMessage({
             type: 'success',
@@ -241,6 +248,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           });
         }
       } catch (err: any) {
+        setIsProcessingOrder(false);
         setGeneratedReceipt(null);
         setMessage({ type: 'error', text: err.message || 'Failed to complete eZ Cash checkout.' });
       }
@@ -676,6 +684,16 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           </div>
         </div>
       )}
+
+      {/* Order Processing Preloader Modal */}
+      <OrderProcessingModal
+        isOpen={isProcessingOrder}
+        packageName={selectedPkg?.package_name}
+        playerUid={verifiedPlayerUid || undefined}
+        playerNickname={verifiedPlayerNickname || undefined}
+        amount={selectedPkg ? calculatePackagePrice(selectedPkg, userRole) : undefined}
+        paymentMethod={paymentMethod}
+      />
 
       {/* Transaction Receipt Modal */}
       <TransactionReceiptModal
