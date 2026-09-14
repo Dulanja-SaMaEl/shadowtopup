@@ -55,7 +55,7 @@ export function generateOrganizationSchema() {
     },
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: '+94771234567',
+      telephone: '+94765604635',
       contactType: 'customer service',
       availableLanguage: ['English', 'Sinhala'],
       contactOption: 'TollFree',

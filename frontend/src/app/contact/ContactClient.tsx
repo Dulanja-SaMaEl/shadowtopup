@@ -36,7 +36,15 @@ export default function ContactClient() {
           <Phone className="w-6 h-6 text-emerald-400 shrink-0" />
           <div>
             <span className="text-xs text-slate-500 font-mono block">Hotline & WhatsApp</span>
-            <span className="text-sm font-bold text-white">+94 77 123 4567</span>
+            <a
+              href="https://wa.me/94765604635"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-bold text-white hover:text-emerald-400 transition-colors block"
+            >
+              076 560 4635
+            </a>
+            <span className="text-[10px] text-slate-400 font-mono">+94 76 560 4635</span>
           </div>
         </div>
 
