@@ -63,8 +63,10 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Home', href: '/' },
-    { name: 'Games Catalog', href: '/games' },
-    { name: 'About Us', href: '/about' },
+    { name: 'Games', href: '/games' },
+    { name: 'Reseller', href: '/reseller' },
+    { name: 'How It Works', href: '/how-it-works' },
+    { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
 
@@ -76,7 +78,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-3 group py-1">
             <Image
               src="/logo.png"
-              alt="Shadow Top Up and Account Store"
+              alt="ShadowTopUp - Gaming Top-Up and Reseller Store"
               width={180}
               height={52}
               className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
@@ -119,6 +121,7 @@ export default function Navbar() {
               href="/cart"
               className="relative p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all flex items-center justify-center"
               title="Shopping Cart"
+              aria-label="Shopping Cart"
             >
               <ShoppingCart className="w-5 h-5" />
               {totalCount > 0 && (

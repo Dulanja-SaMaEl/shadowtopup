@@ -12,14 +12,14 @@ export default function Footer() {
             <Link href="/" className="inline-block">
               <Image
                 src="/logo.png"
-                alt="Shadow Top Up and Account Store"
+                alt="ShadowTopUp - Independent Gaming Top-Up Platform"
                 width={180}
                 height={52}
                 className="h-10 w-auto object-contain"
               />
             </Link>
             <p className="text-sm leading-relaxed">
-              Independent third-party gaming recharge service and reseller platform for digital gaming credits.
+              Independent third-party gaming recharge service and wholesale reseller platform delivering digital gaming credits across Sri Lanka.
             </p>
           </div>
 
@@ -34,7 +34,7 @@ export default function Footer() {
                 <ShieldCheck className="w-4 h-4 text-indigo-400" /> Player UID Verification
               </li>
               <li className="flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-emerald-400" /> Visa, Mastercard, Ez Cash & Bank Transfer
+                <CreditCard className="w-4 h-4 text-emerald-400" /> Dialog eZ Cash & Bank Transfer
               </li>
               <li className="flex items-center gap-2">
                 <Headset className="w-4 h-4 text-amber-400" /> 24/7 Customer Support
@@ -47,19 +47,23 @@ export default function Footer() {
             <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Navigation</h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="/" className="hover:text-cyan-400 transition-colors">Home</Link></li>
+              <li><Link href="/games/free-fire" className="hover:text-cyan-400 transition-colors">Free Fire Diamonds</Link></li>
               <li><Link href="/games" className="hover:text-cyan-400 transition-colors">Games Catalog</Link></li>
-              <li><Link href="/about" className="hover:text-cyan-400 transition-colors">About Platform</Link></li>
-              <li><Link href="/contact" className="hover:text-cyan-400 transition-colors">Support & Contact</Link></li>
+              <li><Link href="/reseller" className="hover:text-cyan-400 transition-colors">Reseller Program</Link></li>
+              <li><Link href="/how-it-works" className="hover:text-cyan-400 transition-colors">How It Works</Link></li>
+              <li><Link href="/faq" className="hover:text-cyan-400 transition-colors">Help & FAQ</Link></li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Legal & Resellers</h4>
+            <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Company & Legal</h4>
             <ul className="space-y-2 text-sm">
+              <li><Link href="/about" className="hover:text-cyan-400 transition-colors">About ShadowTopUp</Link></li>
+              <li><Link href="/contact" className="hover:text-cyan-400 transition-colors">Support & Contact</Link></li>
               <li><Link href="/terms" className="hover:text-cyan-400 transition-colors">Terms of Service</Link></li>
               <li><Link href="/privacy" className="hover:text-cyan-400 transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/dashboard" className="hover:text-cyan-400 transition-colors">Reseller Tier Portal</Link></li>
+              <li><Link href="/dashboard" className="hover:text-cyan-400 transition-colors">Reseller Dashboard</Link></li>
             </ul>
           </div>
         </div>
@@ -75,8 +79,8 @@ export default function Footer() {
         </div>
 
         <div className="pt-4 border-t border-slate-900 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>© {new Date().getFullYear()} ShadowStore by Dulanja Abeysinghe. Independent Service Platform.</p>
-          <p className="font-mono text-cyan-500/80">Powered by Next.js & Supabase</p>
+          <p>© {new Date().getFullYear()} ShadowTopUp by Dulanja Abeysinghe. Independent Service Platform.</p>
+          <p className="font-mono text-cyan-500/80">Sri Lanka Gaming Recharge Engine</p>
         </div>
       </div>
     </footer>

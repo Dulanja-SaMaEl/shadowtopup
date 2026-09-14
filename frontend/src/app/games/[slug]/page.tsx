@@ -1,78 +1,286 @@
-'use client';
+import { Metadata } from 'next';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { ChevronRight, Home, ShieldCheck, Zap, HelpCircle, CheckCircle2 } from 'lucide-react';
+import GameRechargeClient from './GameRechargeClient';
+import {
+  SITE_NAME,
+  createCanonicalUrl,
+  generateBreadcrumbSchema,
+  generateGameProductSchema,
+  generateFAQSchema,
+} from '@/lib/seo';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import PlayerVerificationForm from '@/components/PlayerVerificationForm';
-import PackageSelector from '@/components/PackageSelector';
-import CustomerReviewsSection from '@/components/CustomerReviewsSection';
-import { Package } from '@/types/database';
-import { Gamepad2, Zap } from 'lucide-react';
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
 
-import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
+const SUPPORTED_GAMES_METADATA: Record<
+  string,
+  {
+    title: string;
+    h1: string;
+    description: string;
+    minPrice: number;
+    maxPrice: number;
+    faqs: { question: string; answer: string }[];
+  }
+> = {
+  'free-fire': {
+    title: 'Free Fire Diamonds Sri Lanka | Fast Diamond Recharge',
+    h1: 'Garena Free Fire Diamonds Top Up (Sri Lanka)',
+    description:
+      'Recharge Free Fire diamonds and passes in Sri Lanka with instant Player UID nickname verification. Fast automated delivery in 30 seconds via Dialog eZ Cash, Bank Transfer, and Shadow Wallet.',
+    minPrice: 140,
+    maxPrice: 11500,
+    faqs: [
+      {
+        question: 'How long does a Free Fire diamond top-up take to deliver?',
+        answer:
+          'Our top-up system is fully automated. Once your payment or wallet transaction is verified, Free Fire diamonds and passes are credited to your game account in under 30 seconds.',
+      },
+      {
+        question: 'Do I need my Free Fire account password to recharge?',
+        answer:
+          'No! Never share your game password. ShadowTopUp only requires your numeric Player Game UID. Our system verifies your in-game nickname live before you pay to ensure safe delivery.',
+      },
+      {
+        question: 'What payment methods are supported in Sri Lanka?',
+        answer:
+          'We support Dialog eZ Cash automated payment verification, direct Sri Lankan bank transfers (Commercial Bank, Sampath Bank, Bank of Ceylon, etc.), and instant Shadow Wallet top-up.',
+      },
+      {
+        question: 'Can I purchase Free Fire memberships and Level Up passes?',
+        answer:
+          'Yes. We support Weekly Lite Pass, Weekly VIP Membership, Monthly Subscription, Level Up Passes (Lv.6 to Lv.30), and Evo Gun passes with official Garena Shell fulfillment.',
+      },
+      {
+        question: 'How do reseller discounts work for Free Fire diamonds?',
+        answer:
+          'Registered resellers unlock tiered wholesale pricing from Silver (8% off) to Gold (15% off) and Diamond (20% off) automatically on all diamond packs and subscriptions.',
+      },
+    ],
+  },
+  'pubg-mobile': {
+    title: 'PUBG Mobile UC Recharge Sri Lanka | ShadowTopUp',
+    h1: 'PUBG Mobile Unknown Cash (UC) Top Up',
+    description:
+      'PUBG Mobile UC top-up service in Sri Lanka with Character ID verification. Coming soon on ShadowTopUp.',
+    minPrice: 350,
+    maxPrice: 15000,
+    faqs: [
+      {
+        question: 'When will PUBG Mobile UC top-up be available?',
+        answer:
+          'PUBG Mobile Unknown Cash (UC) top-up is currently under development and will launch with Character ID automated validation.',
+      },
+    ],
+  },
+  'mobile-legends': {
+    title: 'Mobile Legends Diamonds Sri Lanka | ShadowTopUp',
+    h1: 'Mobile Legends: Bang Bang Diamonds Top Up',
+    description:
+      'Direct top-up for Mobile Legends Diamonds and Weekly Diamond Pass in Sri Lanka via User ID and Zone ID. Coming soon on ShadowTopUp.',
+    minPrice: 280,
+    maxPrice: 12000,
+    faqs: [
+      {
+        question: 'How will Mobile Legends top-up work?',
+        answer:
+          'You will enter your MLBB User ID and Zone ID for instant diamond delivery once this service goes live.',
+      },
+    ],
+  },
+};
 
-const mockPackages: Package[] = OFFICIAL_GARENA_PACKAGES;
+export async function generateStaticParams() {
+  return [{ slug: 'free-fire' }];
+}
 
-export default function GameDetailPage() {
-  const params = useParams();
-  const slug = (params.slug as string) || 'free-fire';
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const gameData = SUPPORTED_GAMES_METADATA[slug] || {
+    title: `${slug.toUpperCase().replace(/-/g, ' ')} Top Up Sri Lanka`,
+    h1: `${slug.toUpperCase().replace(/-/g, ' ')} Recharge`,
+    description: `Instant ${slug.toUpperCase().replace(/-/g, ' ')} recharge service in Sri Lanka with automated player UID verification on ShadowTopUp.`,
+    minPrice: 140,
+    maxPrice: 11500,
+    faqs: [],
+  };
 
-  const [verifiedPlayer, setVerifiedPlayer] = useState<{
-    uid: string;
-    nickname: string;
-  } | null>(null);
+  const canonicalUrl = createCanonicalUrl(`/games/${slug}`);
 
-  const [packagesList, setPackagesList] = useState<Package[]>(mockPackages);
+  return {
+    title: gameData.title,
+    description: gameData.description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${gameData.title} | ${SITE_NAME}`,
+      description: gameData.description,
+      url: canonicalUrl,
+      type: 'website',
+      siteName: SITE_NAME,
+      images: [
+        {
+          url: '/logo-wide.png',
+          width: 1200,
+          height: 630,
+          alt: `${gameData.h1} - ${SITE_NAME}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${gameData.title} | ${SITE_NAME}`,
+      description: gameData.description,
+      images: ['/logo-wide.png'],
+    },
+  };
+}
 
-  useEffect(() => {
-    async function fetchDbPackages() {
-      try {
-        const res = await fetch('/api/packages');
-        const data = await res.json();
-        if (data.success && data.packages && data.packages.length > 0) {
-          setPackagesList(data.packages as Package[]);
-        }
-      } catch (e) {
-        console.log('Using fallback package list');
-      }
-    }
-    fetchDbPackages();
-  }, []);
+export default async function GameDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  const gameData = SUPPORTED_GAMES_METADATA[slug] || {
+    title: `${slug.toUpperCase().replace(/-/g, ' ')} Top Up`,
+    h1: `${slug.toUpperCase().replace(/-/g, ' ')} Recharge`,
+    description: `Instant digital game top-up for Sri Lankan gamers.`,
+    minPrice: 140,
+    maxPrice: 11500,
+    faqs: [],
+  };
 
-  const gameTitle = slug === 'free-fire' ? 'Garena Free Fire ( SG / MY )' : slug.toUpperCase().replace('-', ' ');
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Games Catalog', path: '/games' },
+    { name: gameData.h1, path: `/games/${slug}` },
+  ]);
+
+  const productSchema = generateGameProductSchema({
+    gameTitle: gameData.h1,
+    gameSlug: slug,
+    description: gameData.description,
+    minPrice: gameData.minPrice,
+    maxPrice: gameData.maxPrice,
+    inStock: slug === 'free-fire',
+  });
+
+  const faqSchema =
+    gameData.faqs.length > 0 ? generateFAQSchema(gameData.faqs) : null;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-      {/* Game Header */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6 backdrop-blur-md">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-cyan-500/20">
-          <Gamepad2 className="w-10 h-10" />
-        </div>
-        <div className="text-center sm:text-left">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-semibold mb-2">
-            <Zap className="w-3.5 h-3.5 fill-cyan-400" /> Instant Shell Processing
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+        {/* Visual Breadcrumb Bar */}
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-2 text-xs font-mono text-slate-400 border-b border-purple-950/30 pb-4"
+        >
+          <Link href="/" className="hover:text-cyan-400 flex items-center gap-1 transition-colors">
+            <Home className="w-3.5 h-3.5" /> Home
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+          <Link href="/games" className="hover:text-cyan-400 transition-colors">
+            Games Catalog
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+          <span className="text-cyan-400 font-bold truncate">{gameData.h1}</span>
+        </nav>
+
+        {/* Client Interactive Recharge Engine (UID Verification, Package Selection, Reviews) */}
+        <GameRechargeClient slug={slug} />
+
+        {/* Semantic Information & Trust Section */}
+        <section className="bg-[#141229] border border-purple-950/40 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="space-y-2">
+            <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider">
+              --- HOW IT WORKS ---
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wide">
+              How to Top Up Free Fire Diamonds on ShadowTopUp
+            </h2>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{gameTitle}</h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1">
-            Independent Free Fire ( SG / MY ) Topup Service • Instant Processing & Reseller Pricing (LKR)
-          </p>
-        </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+              <span className="w-7 h-7 rounded-xl bg-cyan-500/20 text-cyan-400 font-mono font-bold text-xs flex items-center justify-center">
+                1
+              </span>
+              <h3 className="text-sm font-bold text-white">Enter Your Player UID</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Find your 8–11 digit numeric Player ID in your Free Fire profile. Click Check to verify your in-game nickname automatically.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+              <span className="w-7 h-7 rounded-xl bg-purple-500/20 text-purple-300 font-mono font-bold text-xs flex items-center justify-center">
+                2
+              </span>
+              <h3 className="text-sm font-bold text-white">Select Diamonds or Pass</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Choose from Weekly Lite, Weekly Pass, Monthly VIP, or Diamond packs ranging from 25 to 11,500 diamonds at wholesale LKR rates.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+              <span className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 font-mono font-bold text-xs flex items-center justify-center">
+                3
+              </span>
+              <h3 className="text-sm font-bold text-white">Pay & Receive Instantly</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Checkout with Dialog eZ Cash SMS verification, Bank Slip upload, or Shadow Wallet. Diamonds are delivered to your Free Fire account in &lt;30s.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Game FAQs Section */}
+        {gameData.faqs.length > 0 && (
+          <section className="space-y-6 pt-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider">
+                <HelpCircle className="w-4 h-4" /> FREQUENTLY ASKED QUESTIONS
+              </div>
+              <h2 className="text-2xl font-black text-white uppercase tracking-wide">
+                Free Fire Top-Up Questions & Answers
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {gameData.faqs.map((faq, idx) => (
+                <div
+                  key={idx}
+                  className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 space-y-2"
+                >
+                  <h3 className="text-sm font-bold text-white flex items-start gap-2">
+                    <span className="text-cyan-400 shrink-0 font-mono">Q:</span>
+                    <span>{faq.question}</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed pl-5">
+                    {faq.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
-
-      {/* Step 1: Verification */}
-      <PlayerVerificationForm
-        gameSlug={slug}
-        onVerified={(player) => setVerifiedPlayer(player)}
-      />
-
-      {/* Step 2: Package Selection */}
-      <PackageSelector
-        packages={packagesList}
-        verifiedPlayerUid={verifiedPlayer?.uid}
-        verifiedPlayerNickname={verifiedPlayer?.nickname}
-      />
-
-      {/* Customer Reviews & Rating Widget */}
-      <CustomerReviewsSection />
-    </div>
+    </>
   );
 }

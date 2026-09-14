@@ -1,118 +1,86 @@
-'use client';
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { Home, ChevronRight, Headphones } from 'lucide-react';
+import ContactClient from './ContactClient';
+import {
+  SITE_NAME,
+  createCanonicalUrl,
+  generateBreadcrumbSchema,
+} from '@/lib/seo';
 
-import { useState } from 'react';
-import { Mail, MessageSquare, Phone, Send, CheckCircle2, Loader2 } from 'lucide-react';
+export const metadata: Metadata = {
+  title: 'Contact ShadowTopUp | Customer Support Desk',
+  description:
+    'Contact the ShadowTopUp gaming support desk. Inquiries regarding Free Fire diamond top-ups, Dialog eZ Cash verification, order status, or reseller upgrades.',
+  alternates: {
+    canonical: createCanonicalUrl('/contact'),
+  },
+  openGraph: {
+    title: `Contact ${SITE_NAME} | Customer Support Desk`,
+    description:
+      'Contact ShadowTopUp support desk for top-up assistance, eZ Cash verification, and reseller accounts.',
+    url: createCanonicalUrl('/contact'),
+    type: 'website',
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: '/logo-wide.png',
+        width: 1200,
+        height: 630,
+        alt: `Contact ${SITE_NAME}`,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `Contact ${SITE_NAME} | Customer Support Desk`,
+    description: 'Contact ShadowTopUp support desk for top-up assistance.',
+    images: ['/logo-wide.png'],
+  },
+};
 
 export default function ContactPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 1000);
-  };
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Contact Support', path: '/contact' },
+  ]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
-      <div className="text-center space-y-3">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white">Contact & Customer Support</h1>
-        <p className="text-slate-400 text-sm max-w-xl mx-auto">
-          Have a question regarding your Garena Free Fire top-up or reseller account? Send us a message!
-        </p>
-      </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center gap-4">
-            <Mail className="w-6 h-6 text-cyan-400 shrink-0" />
-            <div>
-              <span className="text-xs text-slate-500 font-mono block">Email Support</span>
-              <span className="text-sm font-bold text-white">support@shadowstore.com</span>
-            </div>
-          </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+        {/* Breadcrumbs */}
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-2 text-xs font-mono text-slate-400 border-b border-purple-950/30 pb-4"
+        >
+          <Link href="/" className="hover:text-cyan-400 flex items-center gap-1 transition-colors">
+            <Home className="w-3.5 h-3.5" /> Home
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+          <span className="text-cyan-400 font-bold">Contact Support</span>
+        </nav>
 
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center gap-4">
-            <Phone className="w-6 h-6 text-emerald-400 shrink-0" />
-            <div>
-              <span className="text-xs text-slate-500 font-mono block">Hotline</span>
-              <span className="text-sm font-bold text-white">+94 77 123 4567</span>
-            </div>
+        {/* Header */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold uppercase">
+            <Headphones className="w-3.5 h-3.5" /> 24/7 ASSISTANCE
           </div>
-
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center gap-4">
-            <MessageSquare className="w-6 h-6 text-amber-400 shrink-0" />
-            <div>
-              <span className="text-xs text-slate-500 font-mono block">Telegram Reseller Desk</span>
-              <span className="text-sm font-bold text-white">@ShadowStoreSupport</span>
-            </div>
-          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white">
+            Contact & Customer Support
+          </h1>
+          <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">
+            Have a question regarding your Garena Free Fire top-up, Dialog eZ Cash deposit, or reseller membership? Send us a message!
+          </p>
         </div>
 
-        <div className="md:col-span-2 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md">
-          {submitted ? (
-            <div className="text-center py-8 space-y-3">
-              <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
-              <h3 className="text-xl font-bold text-white">Message Sent Successfully!</h3>
-              <p className="text-xs text-slate-400">
-                Our support team will respond to your inquiry within 24 hours.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Your Name</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="john@example.com"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Message</label>
-                <textarea
-                  required
-                  rows={4}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe your inquiry or order reference..."
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-sm"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Send Message <Send className="w-4 h-4" /></>}
-              </button>
-            </form>
-          )}
-        </div>
+        {/* Interactive Contact Form & Cards */}
+        <ContactClient />
       </div>
-    </div>
+    </>
   );
 }

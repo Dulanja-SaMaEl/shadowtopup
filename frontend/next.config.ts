@@ -15,6 +15,26 @@ const cspHeader = `
 `.replace(/\s{2,}/g, ' ').trim();
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn-gop.garenanow.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ibb.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+    ],
+  },
   async headers() {
     return [
       {
@@ -55,3 +75,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
