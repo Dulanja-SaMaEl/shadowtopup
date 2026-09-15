@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { fetchDatabaseOrders, DatabaseOrder } from '@/lib/ordersService';
+import AdminStockEnduranceWidget from '@/components/AdminStockEnduranceWidget';
 import {
   ShoppingBag,
   Users,
@@ -335,6 +336,9 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Garena Shell Inventory Stock Endurance & Purchasing Capacity Widget */}
+      <AdminStockEnduranceWidget />
 
       {/* HL Gaming Player Verification API Live Quota Widget */}
       <div className="p-6 rounded-3xl bg-gradient-to-br from-[#121028] via-[#141229] to-[#0e0c1f] border border-purple-800/40 relative overflow-hidden shadow-2xl space-y-5">

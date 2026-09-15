@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ShellAccount } from '@/types/database';
 import { Plus, Edit2, Trash2, X, RefreshCw, CheckCircle2, AlertCircle, Zap, Shield, Save } from 'lucide-react';
+import AdminStockEnduranceWidget from '@/components/AdminStockEnduranceWidget';
 
 export default function AdminShellAccountsPage() {
   const [accounts, setAccounts] = useState<ShellAccount[]>([]);
@@ -236,20 +237,8 @@ export default function AdminShellAccountsPage() {
         </div>
       </div>
 
-      {/* Total Stock Banner */}
-      <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <span className="text-[10px] font-mono font-bold uppercase text-slate-400 tracking-wider">Total Available Shell Inventory</span>
-          <h2 className="text-3xl font-black text-cyan-400 font-mono mt-1">
-            {totalShellStock.toLocaleString()} <span className="text-sm font-sans text-purple-400 uppercase font-bold">Shells</span>
-          </h2>
-        </div>
-
-        <div className="text-right font-mono text-xs text-slate-400 space-y-1">
-          <div>Accounts Registered: <span className="text-white font-bold">{accounts.length}</span></div>
-          <div>Sync Method: <span className="text-emerald-400 font-bold">Auto-Sync On Order Top-Up</span></div>
-        </div>
-      </div>
+      {/* Total Stock & Endurance Forecasting Widget */}
+      <AdminStockEnduranceWidget />
 
       {/* Account Table */}
       <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6 shadow-2xl">
