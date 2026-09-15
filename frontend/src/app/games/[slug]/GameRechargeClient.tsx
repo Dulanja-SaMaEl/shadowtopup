@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import PlayerVerificationForm from '@/components/PlayerVerificationForm';
 import PackageSelector from '@/components/PackageSelector';
 import CustomerReviewsSection from '@/components/CustomerReviewsSection';
-import { Package } from '@/types/database';
+import { Package, UserRole } from '@/types/database';
 import { Gamepad2, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
 
@@ -17,6 +17,37 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
   } | null>(null);
 
   const [packagesList, setPackagesList] = useState<Package[]>(mockPackages);
+  const [userRole, setUserRole] = useState<UserRole | undefined>(undefined);
+
+  useEffect(() => {
+    async function loadUserData() {
+      try {
+        if (typeof window !== 'undefined') {
+          const savedRole = localStorage.getItem('active_session_role') as UserRole | null;
+          if (savedRole) setUserRole(savedRole);
+        }
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData?.user?.id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', authData.user.id)
+            .single();
+          if (profile?.role) {
+            setUserRole(profile.role as UserRole);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('active_session_role', profile.role);
+            }
+          }
+        }
+      } catch (err) {
+        // Fallback to saved
+      }
+    }
+    loadUserData();
+  }, []);
 
   useEffect(() => {
     async function fetchDbPackages() {
@@ -80,6 +111,7 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
       {/* Step 2: Package Selection & Checkout */}
       <PackageSelector
         packages={packagesList}
+        userRole={userRole}
         verifiedPlayerUid={verifiedPlayer?.uid}
         verifiedPlayerNickname={verifiedPlayer?.nickname}
       />

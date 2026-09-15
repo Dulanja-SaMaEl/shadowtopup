@@ -23,6 +23,10 @@ export default function CartPage() {
   useEffect(() => {
     async function loadUserData() {
       try {
+        if (typeof window !== 'undefined') {
+          const savedRole = localStorage.getItem('active_session_role');
+          if (savedRole) setUserRole(savedRole);
+        }
         const { createClient } = await import('@/lib/supabase/client');
         const supabase = createClient();
         const { data: authData } = await supabase.auth.getUser();
@@ -37,6 +41,9 @@ export default function CartPage() {
           const profileRes = await supabase.from('profiles').select('*').eq('id', authData.user.id).single();
           if (profileRes.data) {
             setUserRole(profileRes.data.role);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('active_session_role', profileRes.data.role);
+            }
             setUserStoreName(profileRes.data.store_name);
           }
         }
@@ -87,6 +94,9 @@ export default function CartPage() {
         let lastTxId: string | undefined = undefined;
         let lastPlayerNickname: string | undefined = undefined;
 
+        const normalizedCartRole = (userRole || '').toLowerCase();
+        const effectiveCartTier = normalizedCartRole === 'gold' || normalizedCartRole === 'admin' ? 'gold' : (normalizedCartRole === 'silver' ? 'silver' : 'normal');
+
         for (const item of cartItems) {
           for (let q = 0; q < item.quantity; q++) {
             const res = await fetch('/api/orders/create', {
@@ -98,7 +108,7 @@ export default function CartPage() {
                 playerUid: item.playerUid,
                 totalAmount: item.price,
                 paymentMethod: 'shadow_wallet',
-                priceTier: userRole || 'normal',
+                priceTier: effectiveCartTier,
                 shellCost: item.shellCost || 0,
               }),
             });
@@ -299,7 +309,9 @@ export default function CartPage() {
                   {userRole && userRole !== 'normal' && (
                     <div className="flex justify-between text-purple-300">
                       <span>Reseller Tier</span>
-                      <span className="font-semibold uppercase text-purple-400">{userRole} Tier Applied</span>
+                      <span className="font-semibold uppercase text-amber-400">
+                        {userRole === 'admin' ? 'Gold Wholesale Tier Applied' : `${userRole} Tier Applied`}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between border-t border-white/[0.08] pt-3 text-sm font-bold text-white">

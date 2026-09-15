@@ -76,11 +76,12 @@ export async function POST(request: NextRequest) {
 
     // 3. Compute verified price strictly server-side based on the authenticated user's role
     const userRole = authUser.role || 'normal';
+    const normalizedRole = userRole.toLowerCase();
     let verifiedPrice: number;
 
-    if (userRole === 'gold') {
+    if (normalizedRole === 'gold' || normalizedRole === 'admin') {
       verifiedPrice = Number(dbPackage.gold_price || dbPackage.silver_price || dbPackage.normal_price || dbPackage.price);
-    } else if (userRole === 'silver') {
+    } else if (normalizedRole === 'silver') {
       verifiedPrice = Number(dbPackage.silver_price || dbPackage.normal_price || dbPackage.price);
     } else {
       verifiedPrice = Number(dbPackage.normal_price || dbPackage.price);

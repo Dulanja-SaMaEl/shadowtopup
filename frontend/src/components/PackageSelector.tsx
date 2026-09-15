@@ -18,6 +18,7 @@ interface Props {
 
 export default function PackageSelector({ packages, userRole, verifiedPlayerUid, verifiedPlayerNickname, onCheckoutComplete }: Props) {
   const { addToCart } = useCart();
+  const [effectiveRole, setEffectiveRole] = useState<UserRole | undefined>(userRole);
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet' | 'ez_cash'>('shadow_wallet');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -40,6 +41,19 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const levelUpPkgs = packages.filter((pkg) => pkg.package_type === 'levelup_pass');
   const diamondPkgs = packages.filter((pkg) => pkg.package_type === 'diamond' || (!pkg.package_type && pkg.diamond_amount > 0));
 
+  useEffect(() => {
+    if (userRole) {
+      setEffectiveRole(userRole);
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      const savedRole = localStorage.getItem('active_session_role') as UserRole | null;
+      if (savedRole) {
+        setEffectiveRole(savedRole);
+      }
+    }
+  }, [userRole]);
+
   const handleCopyEzNumber = () => {
     navigator.clipboard.writeText(ezCashReceiverNumber);
     setCopiedEzNumber(true);
@@ -52,7 +66,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
       setMessage({ type: 'error', text: 'Please enter and verify your Player UID in Step 1 first.' });
       return;
     }
-    const price = calculatePackagePrice(pkg, userRole);
+    const price = calculatePackagePrice(pkg, effectiveRole);
     addToCart({
       packageId: pkg.id,
       packageName: pkg.package_name,
@@ -82,10 +96,20 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             setWalletBalance(data.wallet_balance || 0);
           }
 
-          const userOrdersRes = await fetch('/api/user/orders');
-          const userOrdersJson = await userOrdersRes.json();
-          if (userOrdersJson.success && userOrdersJson.user?.store_name) {
-            setUserStoreName(userOrdersJson.user.store_name);
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role, store_name')
+            .eq('id', authData.user.id)
+            .single();
+
+          if (profile?.role) {
+            setEffectiveRole(profile.role as UserRole);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('active_session_role', profile.role);
+            }
+          }
+          if (profile?.store_name) {
+            setUserStoreName(profile.store_name);
           }
         }
       } catch (e) {
@@ -108,7 +132,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
     setLoading(true);
     setMessage(null);
 
-    const price = calculatePackagePrice(selectedPkg, userRole);
+    const price = calculatePackagePrice(selectedPkg, effectiveRole);
     const { createClient } = await import('@/lib/supabase/client');
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();
@@ -119,7 +143,8 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
       return;
     }
     const userId = authData.user.id;
-    const tier = userRole === 'gold' || userRole === 'silver' ? userRole : 'normal';
+    const normalizedRole = (effectiveRole || '').toLowerCase();
+    const tier = normalizedRole === 'gold' || normalizedRole === 'admin' ? 'gold' : (normalizedRole === 'silver' ? 'silver' : 'normal');
 
     if (paymentMethod === 'shadow_wallet') {
       setIsProcessingOrder(true);
@@ -168,7 +193,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             customerName: authData.user?.user_metadata?.name || authData.user?.email?.split('@')[0].toUpperCase(),
             customerEmail: authData.user.email,
             storeName: userStoreName,
-            resellerRole: userRole,
+            resellerRole: effectiveRole,
           });
 
           if (onCheckoutComplete) onCheckoutComplete();
@@ -235,7 +260,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             customerName: authData.user?.user_metadata?.name || authData.user?.email?.split('@')[0].toUpperCase(),
             customerEmail: authData.user.email,
             storeName: userStoreName,
-            resellerRole: userRole,
+            resellerRole: effectiveRole,
           });
 
           setEzCashTrxId('');
@@ -336,7 +361,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             customerName: authData.user?.user_metadata?.name || authData.user?.email?.split('@')[0].toUpperCase(),
             customerEmail: authData.user.email,
             storeName: userStoreName,
-            resellerRole: userRole,
+            resellerRole: effectiveRole,
             receiptUrl: receiptUrl,
           });
 
@@ -360,9 +385,10 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           </h2>
           <p className="text-xs text-slate-400">Select Free Fire diamonds, Weekly Pass, or Monthly VIP subscription</p>
         </div>
-        {userRole && userRole !== 'normal' && (
-          <span className="px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold uppercase shrink-0">
-            {userRole} Tier Active
+        {effectiveRole && effectiveRole !== 'normal' && (
+          <span className="px-3 py-1 rounded-md bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold uppercase shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.25)] flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+            <span>{effectiveRole === 'admin' ? 'Gold Wholesale (Admin)' : `${effectiveRole} Wholesale Tier Active`}</span>
           </span>
         )}
       </div>
@@ -413,11 +439,12 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             return (a.shell_cost || 0) - (b.shell_cost || 0);
           })
           .map((pkg) => {
-            const finalPrice = calculatePackagePrice(pkg, userRole);
+            const finalPrice = calculatePackagePrice(pkg, effectiveRole);
             const isSelected = selectedPkg?.id === pkg.id;
             const isMembership = pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass';
             const isEvo = pkg.package_type === 'evo_access';
             const isLevelUp = pkg.package_type === 'levelup_pass';
+            const hasDiscount = Boolean(effectiveRole && effectiveRole !== 'normal' && pkg.normal_price && finalPrice < Number(pkg.normal_price));
 
             const subTitle = isMembership
               ? (pkg.diamond_amount > 0 ? `Pass (${pkg.diamond_amount} Diamonds)` : 'Subscription Pass')
@@ -458,9 +485,21 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                 <div className="flex items-center justify-between pt-2.5 border-t border-purple-950/60">
                   <div>
                     <span className="text-[10px] text-slate-500 font-mono uppercase block">Price</span>
-                    <span className="text-sm font-bold text-emerald-400 font-mono drop-shadow-[0_0_8px_rgba(52,211,153,0.35)]">
-                      {formatCurrency(finalPrice)}
-                    </span>
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-sm font-bold text-emerald-400 font-mono drop-shadow-[0_0_8px_rgba(52,211,153,0.35)]">
+                        {formatCurrency(finalPrice)}
+                      </span>
+                      {hasDiscount && (
+                        <span className="text-[10px] text-slate-500 line-through font-mono">
+                          {formatCurrency(Number(pkg.normal_price))}
+                        </span>
+                      )}
+                    </div>
+                    {hasDiscount && (
+                      <span className="text-[9px] font-mono font-bold text-amber-400 block mt-0.5">
+                        Save {formatCurrency(Number(pkg.normal_price) - finalPrice)}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -589,7 +628,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                 <div className="bg-[#110e24] border border-purple-950/80 px-3.5 py-1.5 rounded-lg text-left sm:text-right">
                   <span className="text-[10px] uppercase font-semibold text-slate-400 block">Exact Amount</span>
                   <span className="text-sm font-bold text-emerald-400 font-mono drop-shadow-[0_0_8px_rgba(52,211,153,0.35)]">
-                    LKR {calculatePackagePrice(selectedPkg, userRole).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    LKR {calculatePackagePrice(selectedPkg, effectiveRole).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -654,9 +693,9 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : paymentMethod === 'ez_cash' ? (
-                <>Verify eZ Cash ({formatCurrency(calculatePackagePrice(selectedPkg, userRole))}) & Top-Up</>
+                <>Verify eZ Cash ({formatCurrency(calculatePackagePrice(selectedPkg, effectiveRole))}) & Top-Up</>
               ) : (
-                <>Pay {formatCurrency(calculatePackagePrice(selectedPkg, userRole))} & Recharge Now</>
+                <>Pay {formatCurrency(calculatePackagePrice(selectedPkg, effectiveRole))} & Recharge Now</>
               )}
             </button>
           </div>
@@ -669,7 +708,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         packageName={selectedPkg?.package_name}
         playerUid={verifiedPlayerUid || undefined}
         playerNickname={verifiedPlayerNickname || undefined}
-        amount={selectedPkg ? calculatePackagePrice(selectedPkg, userRole) : undefined}
+        amount={selectedPkg ? calculatePackagePrice(selectedPkg, effectiveRole) : undefined}
         paymentMethod={paymentMethod}
       />
 
