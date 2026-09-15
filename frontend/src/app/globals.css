@@ -1,9 +1,29 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-gaming: var(--font-chakra), var(--font-rajdhani), sans-serif;
+  --font-display: var(--font-rajdhani), var(--font-chakra), sans-serif;
+}
+
 @layer base {
   body {
-    @apply bg-[#080711] text-slate-100 antialiased selection:bg-purple-600/40 selection:text-white min-h-screen flex flex-col font-sans;
+    @apply bg-[#080711] text-slate-100 antialiased selection:bg-purple-600/40 selection:text-white min-h-screen flex flex-col;
+    font-family: var(--font-sans);
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-gaming);
+    letter-spacing: 0.03em;
+  }
+}
+
+.font-gaming {
+  font-family: var(--font-gaming);
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 /* Crisp, solid surface utility for cards and panels */
@@ -182,7 +202,7 @@
 .preloader .animation-preloader .txt-loading {
   font-size: 4em;
   font-weight: 900;
-  font-family: inherit;
+  font-family: var(--font-gaming);
   text-align: center;
   user-select: none;
   letter-spacing: 4px;
@@ -225,6 +245,7 @@
   animation: shadow-letters-loading 4s infinite;
   color: #ffffff;
   content: attr(data-text-preloader);
+  font-family: var(--font-gaming);
   left: 0;
   opacity: 0;
   position: absolute;
@@ -234,14 +255,14 @@
 }
 
 .preloader p {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 8px;
   color: #c084fc;
   text-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
   margin-top: 1.5em;
-  font-family: monospace;
+  font-family: var(--font-gaming);
 }
 
 /* 4-Panel Curtain split loader */

@@ -127,7 +127,7 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider disabled:opacity-50 transition-all min-w-[135px] neon-glow-btn"
+            className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider disabled:opacity-50 transition-all min-w-[135px] neon-glow-btn font-gaming"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin text-white" />

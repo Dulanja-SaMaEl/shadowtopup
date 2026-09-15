@@ -368,7 +368,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
       </div>
 
       {/* Category Tabs: Memberships -> Level Up Packages -> Diamonds */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none font-gaming">
         {[
           { id: 'membership', label: `Memberships (${membershipPkgs.length})` },
           { id: 'levelup', label: `Level Up Passes (${levelUpPkgs.length})` },
@@ -636,7 +636,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-gaming">
             <button
               type="button"
               onClick={(e) => selectedPkg && handleAddToCart(selectedPkg, e)}

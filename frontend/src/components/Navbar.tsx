@@ -99,7 +99,7 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-7">
+          <nav className="hidden md:flex items-center gap-7 font-gaming">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -159,7 +159,7 @@ export default function Navbar() {
 
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161230] hover:bg-[#1d183f] border border-purple-900/60 text-white text-xs font-semibold hover:shadow-[0_0_12px_rgba(168,85,247,0.2)] transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161230] hover:bg-[#1d183f] border border-purple-900/60 text-white text-xs font-semibold hover:shadow-[0_0_12px_rgba(168,85,247,0.2)] transition-all font-gaming uppercase tracking-wider"
                 >
                   <User className="w-3.5 h-3.5 text-purple-400" />
                   <span>Dashboard</span>
@@ -174,16 +174,16 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 font-gaming">
                 <Link
                   href="/login"
-                  className="text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
+                  className="text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg transition-colors uppercase tracking-wider"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition-all neon-glow-btn"
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition-all neon-glow-btn uppercase tracking-wider"
                 >
                   Create Account
                 </Link>
@@ -218,13 +218,13 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden px-4 pt-2 pb-5 space-y-1.5 bg-[#0e0c1f] border-b border-slate-800">
+        <div className="md:hidden px-4 pt-2 pb-5 space-y-1.5 bg-[#0e0c1f] border-b border-slate-800 font-gaming">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-900"
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-900 uppercase tracking-wider"
             >
               {link.name}
             </Link>
@@ -232,7 +232,7 @@ export default function Navbar() {
           <Link
             href="/cart"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-purple-300 hover:bg-slate-900"
+            className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-purple-300 hover:bg-slate-900 uppercase tracking-wider"
           >
             <span className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" /> Cart
@@ -247,7 +247,7 @@ export default function Navbar() {
             <Link
               href="/admin/dashboard"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-semibold text-purple-300 bg-purple-950/40 border border-purple-900/50"
+              className="block px-3 py-2 rounded-lg text-sm font-semibold text-purple-300 bg-purple-950/40 border border-purple-900/50 uppercase tracking-wider"
             >
               Admin Control Panel
             </Link>
@@ -257,13 +257,13 @@ export default function Navbar() {
               <Link
                 href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm font-medium text-white hover:bg-slate-900"
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-white hover:bg-slate-900 uppercase tracking-wider"
               >
                 Dashboard ({profile.name || 'Account'})
               </Link>
               <button
                 onClick={handleSignOut}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10"
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10 uppercase tracking-wider"
               >
                 Sign Out
               </button>
@@ -273,14 +273,14 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center px-4 py-2 rounded-lg bg-[#141029] border border-slate-800 text-slate-200 text-xs font-semibold"
+                className="w-full text-center px-4 py-2 rounded-lg bg-[#141029] border border-slate-800 text-slate-200 text-xs font-semibold uppercase tracking-wider"
               >
                 Sign In
               </Link>
               <Link
                 href="/register"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold"
+                className="w-full text-center px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold uppercase tracking-wider"
               >
                 Create Account
               </Link>

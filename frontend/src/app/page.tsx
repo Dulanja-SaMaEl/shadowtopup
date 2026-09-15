@@ -237,7 +237,7 @@ export default async function HomePage() {
                   Reload your Free Fire account in under 30 seconds with automatic Player UID nickname verification. Pay securely via Dialog eZ Cash, Sri Lankan bank transfer, or prepaid wallet.
                 </p>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2 font-gaming">
                   <Link
                     href="/games/free-fire"
                     className="px-6 py-3.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider text-center transition-all neon-glow-btn flex items-center justify-center gap-2"
@@ -378,7 +378,7 @@ export default async function HomePage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="font-gaming">
                   {game.available ? (
                     <Link
                       href={`/games/${game.slug}`}

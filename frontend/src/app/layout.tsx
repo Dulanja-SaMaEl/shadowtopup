@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Chakra_Petch, Rajdhani } from 'next/font/google';
 import { Suspense } from 'react';
 import './globals.css';
 import AppLayout from '@/components/AppLayout';
@@ -16,6 +16,21 @@ import {
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
+  variable: '--font-inter',
+});
+
+const chakraPetch = Chakra_Petch({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-chakra',
+});
+
+const rajdhani = Rajdhani({
+  weight: ['500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-rajdhani',
 });
 
 const siteUrl = getSiteUrl();
@@ -125,7 +140,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${chakraPetch.variable} ${rajdhani.variable} font-sans`}>
         <Suspense fallback={null}>
           <PagePreloader />
         </Suspense>
