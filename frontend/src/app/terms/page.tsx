@@ -96,7 +96,7 @@ export default function TermsPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-white">4. Reseller Partner Program</h2>
             <p>
-              Silver and Gold reseller partner accounts must adhere to ethical resale guidelines. Reseller discounts are governed by wholesale margins set within the platform. Misuse of the platform or fraudulent payment attempts will result in immediate account termination.
+              Standard and Elite reseller partner accounts must adhere to ethical resale guidelines. Reseller discounts are governed by wholesale margins set within the platform. Misuse of the platform or fraudulent payment attempts will result in immediate account termination.
             </p>
           </section>
         </div>

@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { executeUCBotTopup } from '@/lib/ucbotService';
 import { getAuthenticatedUser } from '@/lib/authGuard';
 import { verifyEZCashTransaction } from '@/lib/ezcashService';
+import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,15 +31,417 @@ export async function POST(request: NextRequest) {
       paymentMethod = 'bank_transfer',
       receiptUrl = null,
       ezCashTrxId = null,
+      items,
     } = body;
+
+    const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
+
+    // 1.B Batch Cart Checkout Handler (when items array is provided from Shopping Cart)
+    if (items && Array.isArray(items) && items.length > 0) {
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        const uid = String(it.playerUid || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
+        if (!uid || uid.length < 5) {
+          return NextResponse.json({
+            success: false,
+            message: `Item #${i + 1} (${it.packageName || 'Top-up'}) requires a valid Free Fire Player UID (min 5 digits).`,
+          }, { status: 400 });
+        }
+      }
+
+      const { data: allDbPackages } = await adminSupabase.from('packages').select('*');
+      const catalog = allDbPackages && allDbPackages.length > 0 ? allDbPackages : OFFICIAL_GARENA_PACKAGES;
+
+      const userRole = authUser.role || 'normal';
+      const normalizedRole = userRole.toLowerCase();
+
+      interface ExpandedItem {
+        dbPackage: any;
+        packageName: string;
+        packageId: string;
+        playerUid: string;
+        unitPrice: number;
+        shellCost: number;
+      }
+
+      const expandedItems: ExpandedItem[] = [];
+      let totalAmount = 0;
+      let totalShells = 0;
+
+      for (const it of items) {
+        const sanitizedUid = String(it.playerUid || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
+        let dbPkg = catalog.find((p: any) => p.id === it.packageId) ||
+          catalog.find((p: any) => p.package_name.toLowerCase() === (it.packageName || '').toLowerCase()) ||
+          OFFICIAL_GARENA_PACKAGES.find((p: any) => p.id === it.packageId || p.package_name.toLowerCase() === (it.packageName || '').toLowerCase());
+
+        if (!dbPkg) {
+          return NextResponse.json({
+            success: false,
+            message: `Package "${it.packageName || it.packageId}" not found in catalog.`,
+          }, { status: 400 });
+        }
+
+        let unitPrice: number;
+        if (normalizedRole === 'gold' || normalizedRole === 'admin') {
+          unitPrice = Number(dbPkg.gold_price || dbPkg.silver_price || dbPkg.normal_price || dbPkg.price);
+        } else if (normalizedRole === 'silver') {
+          unitPrice = Number(dbPkg.silver_price || dbPkg.normal_price || dbPkg.price);
+        } else {
+          unitPrice = Number(dbPkg.normal_price || dbPkg.price);
+        }
+
+        const shellCost = Number(dbPkg.shell_cost) || 50;
+        const qty = Math.max(1, Number(it.quantity) || 1);
+
+        for (let q = 0; q < qty; q++) {
+          expandedItems.push({
+            dbPackage: dbPkg,
+            packageName: dbPkg.package_name || it.packageName,
+            packageId: dbPkg.id || it.packageId,
+            playerUid: sanitizedUid,
+            unitPrice,
+            shellCost,
+          });
+          totalAmount += unitPrice;
+          totalShells += shellCost;
+        }
+      }
+
+      // Shell account retrieval for automated top-up
+      let targetShellAcc: any = null;
+      if (paymentMethod === 'shadow_wallet' || paymentMethod === 'ez_cash') {
+        const { data: shellAccounts } = await adminSupabase
+          .from('shell_accounts')
+          .select('*')
+          .gte('available_balance', totalShells)
+          .order('is_main', { ascending: false })
+          .order('available_balance', { ascending: false });
+
+        targetShellAcc = shellAccounts && shellAccounts.length > 0 ? shellAccounts[0] : null;
+        if (!targetShellAcc) {
+          const { data: anyAccounts } = await adminSupabase
+            .from('shell_accounts')
+            .select('*')
+            .order('is_main', { ascending: false })
+            .limit(1);
+          if (anyAccounts && anyAccounts.length > 0) {
+            targetShellAcc = anyAccounts[0];
+          }
+        }
+
+        if (!targetShellAcc) {
+          targetShellAcc = {
+            id: 'shell_fallback_1',
+            account_username: 'SHADOW_TOPUP1',
+            password: 'Shadow123@',
+            autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
+            available_balance: 6508,
+            is_main: true,
+          };
+        }
+      }
+
+      // 1. SHADOW WALLET BATCH CHECKOUT
+      if (paymentMethod === 'shadow_wallet') {
+        const { data: userProfile, error: profErr } = await adminSupabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (profErr || !userProfile) {
+          return NextResponse.json({ success: false, message: 'User profile not found.' }, { status: 400 });
+        }
+
+        const currentWalletBalance = parseFloat(userProfile.wallet_balance || 0);
+        if (currentWalletBalance < totalAmount) {
+          return NextResponse.json({
+            success: false,
+            message: `Insufficient Shadow Wallet balance. Required: LKR ${totalAmount.toLocaleString()}, Available: LKR ${currentWalletBalance.toLocaleString()}`,
+          }, { status: 400 });
+        }
+
+        const newWalletBalance = currentWalletBalance - totalAmount;
+        const { data: updatedProfileRows, error: updateBalErr } = await adminSupabase
+          .from('profiles')
+          .update({
+            wallet_balance: newWalletBalance,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', authUser.id)
+          .gte('wallet_balance', totalAmount)
+          .select();
+
+        if (updateBalErr || !updatedProfileRows || updatedProfileRows.length === 0) {
+          return NextResponse.json({
+            success: false,
+            message: 'Wallet payment failed: Concurrent transaction or insufficient balance.',
+          }, { status: 400 });
+        }
+
+        await adminSupabase.from('wallet_transactions').insert([{
+          user_id: authUser.id,
+          type: 'PACKAGE_PURCHASE',
+          amount: -totalAmount,
+          balance_after: newWalletBalance,
+          description: `Cart Checkout: ${expandedItems.length} items purchased via Shadow Wallet`,
+          created_at: new Date().toISOString(),
+        }]);
+
+        const createdOrders = [];
+        let lastTxId = '';
+        let lastPlayerNickname = '';
+        let shellsUsedTotal = 0;
+
+        for (const it of expandedItems) {
+          let ucBotRes: any = null;
+          try {
+            const dbAutocode = targetShellAcc?.autocode ? String(targetShellAcc.autocode).trim() : '';
+            const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
+            const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
+            const targetPackageIdentifier = (it.dbPackage.package_code && String(it.dbPackage.package_code).trim())
+              ? String(it.dbPackage.package_code).trim()
+              : it.packageName;
+
+            ucBotRes = await executeUCBotTopup(
+              it.playerUid,
+              targetPackageIdentifier,
+              'sg',
+              targetShellAcc?.account_username || 'SHADOW_TOPUP1',
+              targetShellAcc?.password || 'Shadow123@',
+              shellAutocode
+            );
+          } catch (e: any) {
+            ucBotRes = { success: false, message: e.message };
+          }
+
+          const isDelivered = ucBotRes && ucBotRes.success;
+          if (isDelivered) {
+            shellsUsedTotal += it.shellCost;
+            if (ucBotRes.transactionId) lastTxId = ucBotRes.transactionId;
+            if (ucBotRes.playerNickname) lastPlayerNickname = ucBotRes.playerNickname;
+          }
+
+          const { data: ord } = await adminSupabase.from('orders').insert([{
+            user_id: authUser.id,
+            total_amount: it.unitPrice,
+            status: isDelivered ? 'completed' : 'pending',
+            free_fire_player_id: it.playerUid,
+            package_name: it.packageName,
+            payment_method: 'shadow_wallet',
+            admin_note: isDelivered ? `Delivered via UCBot TxID: ${ucBotRes.transactionId || ''}` : `UCBot note: ${ucBotRes?.message || 'Queued'}`,
+          }]).select();
+
+          if (ord && ord[0]) createdOrders.push(ord[0]);
+
+          await adminSupabase.from('purchase_transactions').insert([{
+            user_id: authUser.id,
+            package_id: it.packageId,
+            package_name: it.packageName,
+            free_fire_player_id: it.playerUid,
+            shells_deducted: isDelivered ? it.shellCost : 0,
+            price_paid: it.unitPrice,
+            price_tier: userRole,
+            status: isDelivered ? 'completed' : 'pending',
+            payment_method: 'shadow_wallet',
+          }]);
+        }
+
+        if (shellsUsedTotal > 0 && targetShellAcc?.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
+          await adminSupabase.from('shell_accounts').update({
+            available_balance: Math.max(0, (targetShellAcc.available_balance || 0) - shellsUsedTotal),
+            last_synced_at: new Date().toISOString(),
+          }).eq('id', targetShellAcc.id);
+        }
+
+        return NextResponse.json({
+          success: true,
+          status: 'completed',
+          message: `⚡ Batch Top-Up Delivered! ${expandedItems.length} package(s) delivered instantly.`,
+          orders: createdOrders,
+          transactionId: lastTxId || `W_${Date.now().toString().slice(-8)}`,
+          playerNickname: lastPlayerNickname,
+          totalAmount,
+        });
+      }
+
+      // 2. DIALOG EZ CASH BATCH CHECKOUT
+      if (paymentMethod === 'ez_cash') {
+        const cleanEzTrxId = String(ezCashTrxId || '').trim();
+        if (!cleanEzTrxId) {
+          return NextResponse.json({
+            success: false,
+            message: 'Dialog eZ Cash RN number is required. Please check your SMS receipt.',
+          }, { status: 400 });
+        }
+
+        const { data: existingLocalOrders } = await adminSupabase
+          .from('orders')
+          .select('id')
+          .ilike('admin_note', `%${cleanEzTrxId}%`)
+          .limit(1);
+
+        if (existingLocalOrders && existingLocalOrders.length > 0) {
+          return NextResponse.json({
+            success: false,
+            message: 'This eZ Cash transaction ID has already been used for an order.',
+          }, { status: 400 });
+        }
+
+        const verifyRes = await verifyEZCashTransaction(cleanEzTrxId);
+        if (!verifyRes.success || !verifyRes.transaction) {
+          return NextResponse.json({
+            success: false,
+            message: verifyRes.message || 'eZ Cash transaction verification failed.',
+          }, { status: 400 });
+        }
+
+        const paidAmount = parseFloat(String(verifyRes.transaction.amount || 0));
+        if (paidAmount < totalAmount) {
+          return NextResponse.json({
+            success: false,
+            message: `Underpayment: Cart requires LKR ${totalAmount.toLocaleString()}, but received LKR ${paidAmount.toLocaleString()}.`,
+          }, { status: 400 });
+        }
+
+        const createdOrders = [];
+        let lastTxId = cleanEzTrxId;
+        let lastPlayerNickname = '';
+        let shellsUsedTotal = 0;
+
+        for (const it of expandedItems) {
+          let ucBotRes: any = null;
+          try {
+            const dbAutocode = targetShellAcc?.autocode ? String(targetShellAcc.autocode).trim() : '';
+            const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
+            const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
+            const targetPackageIdentifier = (it.dbPackage.package_code && String(it.dbPackage.package_code).trim())
+              ? String(it.dbPackage.package_code).trim()
+              : it.packageName;
+
+            ucBotRes = await executeUCBotTopup(
+              it.playerUid,
+              targetPackageIdentifier,
+              'sg',
+              targetShellAcc?.account_username || 'SHADOW_TOPUP1',
+              targetShellAcc?.password || 'Shadow123@',
+              shellAutocode
+            );
+          } catch (e: any) {
+            ucBotRes = { success: false, message: e.message };
+          }
+
+          const isDelivered = ucBotRes && ucBotRes.success;
+          if (isDelivered) {
+            shellsUsedTotal += it.shellCost;
+            if (ucBotRes.transactionId) lastTxId = ucBotRes.transactionId;
+            if (ucBotRes.playerNickname) lastPlayerNickname = ucBotRes.playerNickname;
+          }
+
+          const { data: ord } = await adminSupabase.from('orders').insert([{
+            user_id: authUser.id,
+            total_amount: it.unitPrice,
+            status: isDelivered ? 'completed' : 'pending',
+            free_fire_player_id: it.playerUid,
+            package_name: it.packageName,
+            payment_method: 'ez_cash',
+            admin_note: `eZ Cash TxID: ${cleanEzTrxId} | Delivery: ${isDelivered ? 'Delivered' : (ucBotRes?.message || 'Queued')}`,
+          }]).select();
+
+          if (ord && ord[0]) createdOrders.push(ord[0]);
+
+          await adminSupabase.from('purchase_transactions').insert([{
+            user_id: authUser.id,
+            package_id: it.packageId,
+            package_name: it.packageName,
+            free_fire_player_id: it.playerUid,
+            shells_deducted: isDelivered ? it.shellCost : 0,
+            price_paid: it.unitPrice,
+            price_tier: userRole,
+            status: isDelivered ? 'completed' : 'pending',
+            payment_method: 'ez_cash',
+          }]);
+        }
+
+        if (shellsUsedTotal > 0 && targetShellAcc?.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
+          await adminSupabase.from('shell_accounts').update({
+            available_balance: Math.max(0, (targetShellAcc.available_balance || 0) - shellsUsedTotal),
+            last_synced_at: new Date().toISOString(),
+          }).eq('id', targetShellAcc.id);
+        }
+
+        try {
+          await adminSupabase.from('ezcash_transactions').insert([{
+            trx_id: cleanEzTrxId,
+            user_id: authUser.id,
+            amount: paidAmount,
+            sender_phone: verifyRes.transaction?.sender || null,
+            provider: verifyRes.transaction?.provider || 'eZ Cash',
+            purpose: 'cart_checkout',
+            status: 'claimed',
+            raw_response: verifyRes.raw || null,
+            created_at: new Date().toISOString(),
+          }]);
+        } catch {}
+
+        return NextResponse.json({
+          success: true,
+          status: 'completed',
+          message: `⚡ Dialog eZ Cash Verified! ${expandedItems.length} package(s) delivered instantly.`,
+          orders: createdOrders,
+          transactionId: lastTxId,
+          playerNickname: lastPlayerNickname,
+          totalAmount,
+        });
+      }
+
+      // 3. BANK TRANSFER BATCH CHECKOUT
+      const createdOrders = [];
+      for (const it of expandedItems) {
+        const { data: ord } = await adminSupabase.from('orders').insert([{
+          user_id: authUser.id,
+          total_amount: it.unitPrice,
+          status: receiptUrl ? 'proof_submitted' : 'pending',
+          receipt_path: receiptUrl,
+          receipt_url: receiptUrl,
+          free_fire_player_id: it.playerUid,
+          package_name: it.packageName,
+          payment_method: 'bank_transfer',
+          admin_note: 'Bank transfer cart batch order awaiting admin slip verification',
+        }]).select();
+
+        if (ord && ord[0]) createdOrders.push(ord[0]);
+
+        await adminSupabase.from('purchase_transactions').insert([{
+          user_id: authUser.id,
+          package_id: it.packageId,
+          package_name: it.packageName,
+          free_fire_player_id: it.playerUid,
+          shells_deducted: 0,
+          price_paid: it.unitPrice,
+          price_tier: userRole,
+          status: receiptUrl ? 'proof_submitted' : 'pending',
+          payment_method: 'bank_transfer',
+          receipt_path: receiptUrl,
+        }]);
+      }
+
+      return NextResponse.json({
+        success: true,
+        status: receiptUrl ? 'proof_submitted' : 'pending',
+        message: 'Bank transfer orders created successfully. Payment receipt is under review by admin team.',
+        orders: createdOrders,
+        transactionId: `BT_${Date.now().toString().slice(-8)}`,
+        receiptUrl,
+        totalAmount,
+      });
+    }
 
     const sanitizedPlayerUid = String(playerUid || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
 
     if (!sanitizedPlayerUid) {
       return NextResponse.json({ success: false, message: 'Invalid request: valid Free Fire Player UID is required.' }, { status: 400 });
     }
-
-    const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
     // 2. Fetch official package from database (Server-Side Price Calculation)
     let dbPackage: any = null;
@@ -58,6 +461,15 @@ export async function POST(request: NextRequest) {
         .ilike('package_name', packageName.trim())
         .maybeSingle();
       dbPackage = pkgByName;
+    }
+
+    if (!dbPackage) {
+      const fallback = OFFICIAL_GARENA_PACKAGES.find(
+        (p) => p.id === packageId || p.package_name.toLowerCase() === (packageName || '').toLowerCase()
+      );
+      if (fallback) {
+        dbPackage = fallback;
+      }
     }
 
     if (!dbPackage) {

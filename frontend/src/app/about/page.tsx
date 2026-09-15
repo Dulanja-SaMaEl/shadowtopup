@@ -103,7 +103,7 @@ export default function AboutPage() {
             </div>
             <h2 className="text-lg font-bold text-white">Tiered Reseller System</h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Commercial top-up vendors and gaming shops unlock exclusive discounts through structured Silver, Gold, and Diamond wholesale tiers.
+              Commercial top-up vendors and gaming shops unlock exclusive discounts through structured Standard, Elite, and Diamond wholesale tiers.
             </p>
           </div>
 

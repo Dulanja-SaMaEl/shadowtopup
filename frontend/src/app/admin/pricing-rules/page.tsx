@@ -171,7 +171,7 @@ export default function AdminPricingRulesPage() {
 
             <div className="space-y-1">
               <label className="block text-[9px] font-extrabold uppercase tracking-widest text-cyan-400">
-                Silver Reseller {isFixed ? '(+LKR)' : '(%)'}
+                Standard Reseller {isFixed ? '(+LKR)' : '(%)'}
               </label>
               <input
                 type="text"
@@ -184,7 +184,7 @@ export default function AdminPricingRulesPage() {
 
             <div className="space-y-1">
               <label className="block text-[9px] font-extrabold uppercase tracking-widest text-amber-400">
-                Gold Reseller {isFixed ? '(+LKR)' : '(%)'}
+                Elite Reseller {isFixed ? '(+LKR)' : '(%)'}
               </label>
               <input
                 type="text"
@@ -258,7 +258,7 @@ export default function AdminPricingRulesPage() {
               <strong className="text-white font-bold">Step 3:</strong>{' '}
               {isFixed
                 ? 'Fixed LKR markup amount is added to base cost per customer tier.'
-                : 'Markup percentage is added per customer tier (Normal, Silver, Gold).'}
+                : 'Markup percentage is added per customer tier (Normal, Standard, Elite).'}
             </p>
           </div>
 
@@ -274,10 +274,10 @@ export default function AdminPricingRulesPage() {
                 Normal Price ({isFixed ? `+LKR ${nVal}` : `+${nVal}%`}): LKR {sample100Normal.toFixed(2)}
               </p>
               <p className="text-cyan-300 font-bold">
-                Silver Reseller ({isFixed ? `+LKR ${sVal}` : `+${sVal}%`}): LKR {sample100Silver.toFixed(2)}
+                Standard Reseller ({isFixed ? `+LKR ${sVal}` : `+${sVal}%`}): LKR {sample100Silver.toFixed(2)}
               </p>
               <p className="text-amber-300 font-bold">
-                Gold Reseller ({isFixed ? `+LKR ${gVal}` : `+${gVal}%`}): LKR {sample100Gold.toFixed(2)}
+                Elite Reseller ({isFixed ? `+LKR ${gVal}` : `+${gVal}%`}): LKR {sample100Gold.toFixed(2)}
               </p>
             </div>
           </div>

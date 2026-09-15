@@ -29,7 +29,7 @@ const resellerFaqs = [
   {
     question: 'What discounts do resellers get on Free Fire diamonds?',
     answer:
-      'Silver resellers get up to 8% discount, Gold resellers get up to 15% discount, and Diamond tier partners receive up to 20% discount off standard retail pricing across all diamond packs and passes.',
+      'Standard Resellers get up to 8% discount, Elite Resellers get up to 15% discount, and Diamond tier partners receive up to 20% discount off standard retail pricing across all diamond packs and passes.',
   },
   {
     question: 'How are reseller orders fulfilled?',
@@ -77,14 +77,14 @@ export const metadata: Metadata = {
 
 const tiers = [
   {
-    name: 'SILVER RESELLER',
+    name: 'STANDARD RESELLER',
     discount: '8% OFF',
     requirements: 'Active Wallet Balance',
     color: 'from-cyan-500/20 to-blue-600/30 border-cyan-500/40 text-cyan-400',
     perks: ['8% discount on all diamond packs', 'Instant Player UID validation', 'Standard support desk'],
   },
   {
-    name: 'GOLD RESELLER',
+    name: 'ELITE RESELLER',
     discount: '15% OFF',
     requirements: 'High Volume Top-Ups',
     color: 'from-amber-500/20 to-yellow-600/30 border-amber-500/40 text-amber-400',

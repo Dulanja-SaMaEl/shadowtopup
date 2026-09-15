@@ -65,14 +65,14 @@ const defaultFeaturedGames: FeaturedGame[] = [
 
 const resellerTiers = [
   {
-    name: 'Silver Reseller',
+    name: 'Standard Reseller',
     discount: '8% Off',
     minDeposit: 'LKR 5,000 Wallet Balance',
     sampleProfit: 'Profit ~LKR 50–200 per order',
     idealFor: 'Casual sellers & gaming friends',
   },
   {
-    name: 'Gold Reseller',
+    name: 'Elite Reseller',
     discount: '15% Off',
     minDeposit: 'LKR 15,000 Wallet Balance',
     sampleProfit: 'Profit ~LKR 100–450 per order',

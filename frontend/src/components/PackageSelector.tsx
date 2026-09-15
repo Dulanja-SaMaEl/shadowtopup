@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Package, UserRole } from '@/types/database';
 import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
-import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap, Smartphone, Copy } from 'lucide-react';
+import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap, Smartphone, Copy, X } from 'lucide-react';
 import TransactionReceiptModal from './TransactionReceiptModal';
 import OrderProcessingModal from './OrderProcessingModal';
 import { useCart } from '@/context/CartContext';
@@ -17,7 +18,8 @@ interface Props {
 }
 
 export default function PackageSelector({ packages, userRole, verifiedPlayerUid, verifiedPlayerNickname, onCheckoutComplete }: Props) {
-  const { addToCart } = useCart();
+  const { addToCart, totalCount } = useCart();
+  const [cartToast, setCartToast] = useState<{ show: boolean; packageName: string; quantity: number } | null>(null);
   const [effectiveRole, setEffectiveRole] = useState<UserRole | undefined>(userRole);
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet' | 'ez_cash'>('shadow_wallet');
@@ -62,10 +64,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
   const handleAddToCart = (pkg: Package, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (!verifiedPlayerUid) {
-      setMessage({ type: 'error', text: 'Please enter and verify your Player UID in Step 1 first.' });
-      return;
-    }
+    const targetUid = (verifiedPlayerUid || '').trim();
     const price = calculatePackagePrice(pkg, effectiveRole);
     addToCart({
       packageId: pkg.id,
@@ -73,15 +72,30 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
       diamonds: pkg.diamond_amount,
       price: price,
       shellCost: pkg.shell_cost,
-      playerUid: verifiedPlayerUid,
+      playerUid: targetUid,
       quantity: 1,
       image: pkg.image_url,
     });
+    setCartToast({
+      show: true,
+      packageName: pkg.package_name,
+      quantity: 1,
+    });
     setMessage({
       type: 'success',
-      text: `Added 1x ${pkg.package_name} to your Shopping Cart!`,
+      text: targetUid
+        ? `Added 1x ${pkg.package_name} (UID: ${targetUid}) to your Shopping Cart!`
+        : `Added 1x ${pkg.package_name} to your Shopping Cart! You can enter or modify Player UID in your Cart.`,
     });
   };
+
+  useEffect(() => {
+    if (!cartToast?.show) return;
+    const timer = setTimeout(() => {
+      setCartToast(null);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [cartToast]);
 
   useEffect(() => {
     async function checkWallet() {
@@ -388,7 +402,15 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         {effectiveRole && effectiveRole !== 'normal' && (
           <span className="px-3 py-1 rounded-md bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold uppercase shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.25)] flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{effectiveRole === 'admin' ? 'Gold Wholesale (Admin)' : `${effectiveRole} Wholesale Tier Active`}</span>
+            <span>
+              {effectiveRole === 'admin'
+                ? 'Elite Reseller (Admin)'
+                : effectiveRole === 'gold'
+                ? 'Elite Reseller Tier Active'
+                : effectiveRole === 'silver'
+                ? 'Standard Reseller Tier Active'
+                : `${effectiveRole} Reseller Tier Active`}
+            </span>
           </span>
         )}
       </div>
@@ -717,6 +739,53 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         receipt={generatedReceipt}
         onClose={() => setGeneratedReceipt(null)}
       />
+
+      {/* Floating Cart Toast Notification */}
+      {cartToast?.show && (
+        <aside
+          aria-label="Cart Notification"
+          className="fixed bottom-5 right-5 sm:bottom-8 sm:right-8 z-50 max-w-sm w-[calc(100%-2.5rem)] bg-[#110e24]/95 backdrop-blur-md border border-purple-500/50 rounded-xl p-4 shadow-[0_0_30px_rgba(168,85,247,0.35)] text-white animate-in fade-in slide-in-from-bottom-5 duration-300"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <ShoppingCart className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-gaming">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" /> Added to Cart!
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setCartToast(null)}
+                  className="text-slate-400 hover:text-white p-0.5 rounded transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-200 truncate mt-1 font-medium">
+                {cartToast.packageName}
+              </p>
+              <div className="flex items-center gap-2 mt-3 font-gaming">
+                <Link
+                  href="/cart"
+                  className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] flex items-center gap-1.5"
+                >
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  <span>View Cart ({totalCount})</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setCartToast(null)}
+                  className="px-3 py-1.5 rounded-lg bg-[#181335] hover:bg-[#201b44] text-slate-300 hover:text-white text-xs transition-colors border border-purple-900/50"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      )}
     </div>
   );
 }

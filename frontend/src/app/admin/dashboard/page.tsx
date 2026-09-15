@@ -598,8 +598,8 @@ export default function AdminDashboardPage() {
                 <th className="p-4">Shell Cost</th>
                 <th className="p-4">Base Cost (LKR)</th>
                 <th className="p-4">Rec. Normal Price</th>
-                <th className="p-4">Rec. Silver Tier</th>
-                <th className="p-4">Rec. Gold Tier</th>
+                <th className="p-4">Rec. Standard Reseller</th>
+                <th className="p-4">Rec. Elite Reseller</th>
                 <th className="p-4">Est. Profit / Order</th>
                 <th className="p-4">Margin %</th>
               </tr>

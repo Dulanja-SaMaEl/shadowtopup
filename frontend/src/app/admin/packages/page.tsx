@@ -532,9 +532,9 @@ export default function AdminPackagesPage() {
                         <span className="block text-[9px] text-slate-500 font-normal">~LKR {baseCost.toFixed(2)} cost</span>
                       </td>
                       <td className="p-4 font-mono text-[11px] space-y-0.5">
-                        <div><span className="text-slate-400 font-bold">N:</span> <span className="text-emerald-400 font-bold">LKR {Number(pkg.normal_price).toFixed(2)}</span></div>
-                        <div><span className="text-slate-400 font-bold">S:</span> <span className="text-cyan-300 font-bold">LKR {Number(pkg.silver_price || 0).toFixed(2)}</span></div>
-                        <div><span className="text-slate-400 font-bold">G:</span> <span className="text-amber-300 font-bold">LKR {Number(pkg.gold_price || 0).toFixed(2)}</span></div>
+                        <div><span className="text-slate-400 font-bold">Normal:</span> <span className="text-emerald-400 font-bold">LKR {Number(pkg.normal_price).toFixed(2)}</span></div>
+                        <div><span className="text-slate-400 font-bold">Standard:</span> <span className="text-cyan-300 font-bold">LKR {Number(pkg.silver_price || 0).toFixed(2)}</span></div>
+                        <div><span className="text-slate-400 font-bold">Elite:</span> <span className="text-amber-300 font-bold">LKR {Number(pkg.gold_price || 0).toFixed(2)}</span></div>
                       </td>
                       <td className="p-4 font-mono">
                         <span className="text-emerald-300 font-bold block text-xs">+LKR {profit.toFixed(2)}</span>
@@ -871,7 +871,7 @@ export default function AdminPackagesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-bold text-cyan-400 uppercase mb-1">Silver Price (LKR)</label>
+                  <label className="block text-[9px] font-bold text-cyan-400 uppercase mb-1">Standard Reseller (Silver)</label>
                   <input
                     type="text"
                     required
@@ -881,7 +881,7 @@ export default function AdminPackagesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-bold text-amber-400 uppercase mb-1">Gold Price (LKR)</label>
+                  <label className="block text-[9px] font-bold text-amber-400 uppercase mb-1">Elite Reseller (Gold)</label>
                   <input
                     type="text"
                     required

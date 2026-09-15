@@ -261,7 +261,13 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
               {receipt.resellerRole && receipt.resellerRole !== 'normal' && (
                 <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[9px] sm:text-[10px] font-mono font-extrabold uppercase tracking-wider flex items-center gap-1 shrink-0">
                   <Award className="w-3 h-3 text-amber-400" />
-                  {receipt.resellerRole.toUpperCase()}
+                  {receipt.resellerRole === 'gold'
+                    ? 'ELITE RESELLER'
+                    : receipt.resellerRole === 'silver'
+                    ? 'STANDARD RESELLER'
+                    : receipt.resellerRole === 'admin'
+                    ? 'ELITE RESELLER (ADMIN)'
+                    : receipt.resellerRole.toUpperCase()}
                 </span>
               )}
             </div>

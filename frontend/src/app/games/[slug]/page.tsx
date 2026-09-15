@@ -57,7 +57,7 @@ const SUPPORTED_GAMES_METADATA: Record<
       {
         question: 'How do reseller discounts work for Free Fire diamonds?',
         answer:
-          'Registered resellers unlock tiered wholesale pricing from Silver (8% off) to Gold (15% off) and Diamond (20% off) automatically on all diamond packs and subscriptions.',
+          'Registered resellers unlock tiered wholesale pricing from Standard Reseller (8% off) to Elite Reseller (15% off) and Diamond (20% off) automatically on all diamond packs and subscriptions.',
       },
     ],
   },

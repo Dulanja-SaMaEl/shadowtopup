@@ -49,7 +49,7 @@ export default function AdminResellersPage() {
         setGoldResellers(
           gold.map((u) => ({
             id: u.id,
-            name: u.name || u.email?.split('@')[0] || 'Gold Reseller',
+            name: u.name || u.email?.split('@')[0] || 'Elite Reseller',
             email: u.email || 'N/A',
             role: 'gold',
             expires: u.reseller_expires_at ? new Date(u.reseller_expires_at).toLocaleDateString() : 'Active Partner',
@@ -59,7 +59,7 @@ export default function AdminResellersPage() {
         setSilverResellers(
           silver.map((u) => ({
             id: u.id,
-            name: u.name || u.email?.split('@')[0] || 'Silver Reseller',
+            name: u.name || u.email?.split('@')[0] || 'Standard Reseller',
             email: u.email || 'N/A',
             role: 'silver',
             expires: u.reseller_expires_at ? new Date(u.reseller_expires_at).toLocaleDateString() : 'Active Partner',
@@ -151,7 +151,7 @@ export default function AdminResellersPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-white uppercase tracking-wider">Reseller Tier Management</h1>
-          <p className="text-xs text-slate-400 mt-1">Review reseller applications, grant Silver & Gold tiers, and manage partner accounts.</p>
+          <p className="text-xs text-slate-400 mt-1">Review reseller applications, grant Standard & Elite tiers, and manage partner accounts.</p>
         </div>
 
         <button
@@ -179,7 +179,7 @@ export default function AdminResellersPage() {
             <Award className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[9px] font-mono font-bold uppercase text-slate-400">Gold Partners</span>
+            <span className="text-[9px] font-mono font-bold uppercase text-slate-400">Elite Partners</span>
             <h3 className="text-xl font-black text-amber-400 font-mono">{goldResellers.length}</h3>
           </div>
         </div>
@@ -189,7 +189,7 @@ export default function AdminResellersPage() {
             <Star className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[9px] font-mono font-bold uppercase text-slate-400">Silver Partners</span>
+            <span className="text-[9px] font-mono font-bold uppercase text-slate-400">Standard Partners</span>
             <h3 className="text-xl font-black text-cyan-300 font-mono">{silverResellers.length}</h3>
           </div>
         </div>
@@ -235,7 +235,7 @@ export default function AdminResellersPage() {
                       <span className="block text-[10px] text-slate-400 font-mono font-normal">{app.email}</span>
                     </td>
                     <td className="p-4 font-mono font-bold text-amber-300 uppercase">
-                      {app.requested_tier} TIER
+                      {app.requested_tier === 'gold' ? 'ELITE RESELLER' : 'STANDARD RESELLER'}
                     </td>
                     <td className="p-4">
                       <span className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold uppercase">
@@ -248,7 +248,7 @@ export default function AdminResellersPage() {
                         disabled={processingId === app.id}
                         className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-[10px] uppercase flex items-center gap-1 shadow-md shadow-emerald-600/20"
                       >
-                        <Check className="w-3.5 h-3.5" /> Approve {app.requested_tier?.toUpperCase()}
+                        <Check className="w-3.5 h-3.5" /> Approve {app.requested_tier === 'gold' ? 'Elite' : 'Standard'}
                       </button>
                       <button
                         onClick={() => handleRejectApplication(app)}
@@ -266,10 +266,10 @@ export default function AdminResellersPage() {
         </div>
       )}
 
-      {/* 2. Gold Resellers Table */}
+      {/* 2. Elite Resellers Table */}
       <div className="p-6 rounded-3xl bg-[#141229] border border-amber-500/40 space-y-6 shadow-2xl">
         <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
-          <Award className="w-4 h-4 text-amber-400" /> Active Gold Tier Resellers (Max Wholesale Discount)
+          <Award className="w-4 h-4 text-amber-400" /> Active Elite Tier Resellers (Max Wholesale Discount)
         </h3>
 
         <div className="overflow-x-auto">
@@ -286,7 +286,7 @@ export default function AdminResellersPage() {
               {goldResellers.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-6 text-center text-slate-500 font-mono">
-                    No Gold tier resellers assigned yet.
+                    No Elite tier resellers assigned yet.
                   </td>
                 </tr>
               ) : (
@@ -303,7 +303,7 @@ export default function AdminResellersPage() {
                         disabled={processingId === user.id}
                         className="px-3 py-1.5 rounded-lg bg-cyan-950 border border-cyan-800 text-cyan-300 text-[10px] font-mono font-bold uppercase"
                       >
-                        Downgrade to Silver
+                        Change to Standard
                       </button>
                       <button
                         onClick={() => handlePromoteUser(user, 'normal')}
@@ -321,10 +321,10 @@ export default function AdminResellersPage() {
         </div>
       </div>
 
-      {/* 3. Silver Resellers Table */}
+      {/* 3. Standard Resellers Table */}
       <div className="p-6 rounded-3xl bg-[#141229] border border-cyan-500/40 space-y-6 shadow-2xl">
         <h3 className="text-sm font-black text-cyan-300 uppercase tracking-wider flex items-center gap-2">
-          <Star className="w-4 h-4 text-cyan-400" /> Active Silver Tier Resellers (Standard Discount)
+          <Star className="w-4 h-4 text-cyan-400" /> Active Standard Tier Resellers (Standard Discount)
         </h3>
 
         <div className="overflow-x-auto">
@@ -341,7 +341,7 @@ export default function AdminResellersPage() {
               {silverResellers.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-6 text-center text-slate-500 font-mono">
-                    No Silver tier resellers assigned yet.
+                    No Standard tier resellers assigned yet.
                   </td>
                 </tr>
               ) : (
@@ -358,7 +358,7 @@ export default function AdminResellersPage() {
                         disabled={processingId === user.id}
                         className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-mono font-bold uppercase shadow-md shadow-amber-600/20"
                       >
-                        Upgrade to Gold
+                        Upgrade to Elite
                       </button>
                       <button
                         onClick={() => handlePromoteUser(user, 'normal')}
@@ -411,14 +411,14 @@ export default function AdminResellersPage() {
                         disabled={processingId === user.id}
                         className="px-3 py-1.5 rounded-lg bg-cyan-950 border border-cyan-800 text-cyan-300 hover:bg-cyan-900 text-[10px] font-mono font-bold uppercase"
                       >
-                        + Grant Silver
+                        + Grant Standard
                       </button>
                       <button
                         onClick={() => handlePromoteUser(user, 'gold')}
                         disabled={processingId === user.id}
                         className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-mono font-bold uppercase shadow-md shadow-amber-600/20"
                       >
-                        + Grant Gold
+                        + Grant Elite
                       </button>
                     </td>
                   </tr>

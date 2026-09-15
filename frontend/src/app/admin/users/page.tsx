@@ -177,11 +177,13 @@ export default function AdminUsersPage() {
                     <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                       u.role === 'ADMIN'
                         ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                        : u.role === 'GOLD'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                         : u.role === 'SILVER'
                         ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
                         : 'bg-slate-800 text-slate-400 border border-slate-700'
                     }`}>
-                      {u.role}
+                      {u.role === 'GOLD' ? 'ELITE RESELLER' : u.role === 'SILVER' ? 'STANDARD RESELLER' : u.role}
                     </span>
                   </td>
                   <td className="p-4">
@@ -270,8 +272,8 @@ export default function AdminUsersPage() {
                   className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono focus:outline-none"
                 >
                   <option value="USER">USER</option>
-                  <option value="SILVER">SILVER RESELLER</option>
-                  <option value="GOLD">GOLD RESELLER</option>
+                  <option value="SILVER">STANDARD RESELLER</option>
+                  <option value="GOLD">ELITE RESELLER</option>
                   <option value="ADMIN">ADMIN</option>
                 </select>
               </div>
@@ -308,8 +310,8 @@ export default function AdminUsersPage() {
                   className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono focus:outline-none"
                 >
                   <option value="USER">USER</option>
-                  <option value="SILVER">SILVER RESELLER</option>
-                  <option value="GOLD">GOLD RESELLER</option>
+                  <option value="SILVER">STANDARD RESELLER</option>
+                  <option value="GOLD">ELITE RESELLER</option>
                   <option value="ADMIN">ADMIN</option>
                 </select>
               </div>

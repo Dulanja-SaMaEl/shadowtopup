@@ -298,8 +298,8 @@ export default function UserDashboardPage() {
   ];
 
   const barData = [
-    { name: '100 Diamonds', Normal: 750, Silver: 690, Gold: 637 },
-    { name: '310 Diamonds', Normal: 2100, Silver: 1932, Gold: 1785 },
+    { name: '100 Diamonds', Normal: 750, Standard: 690, Elite: 637 },
+    { name: '310 Diamonds', Normal: 2100, Standard: 1932, Elite: 1785 },
   ];
 
   const totalSpent = transactions.reduce((acc, t) => acc + Number(t.amount || 0), 0);
@@ -370,7 +370,7 @@ export default function UserDashboardPage() {
                     ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
                     : 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-sm shadow-blue-500/20'
                 }`}>
-                  {profile?.role === 'gold' ? 'GOLD RESELLER' : profile?.role === 'silver' ? 'SILVER RESELLER' : profile?.role === 'admin' ? 'ADMIN' : 'NORMAL USER'}
+                  {profile?.role === 'gold' ? 'ELITE RESELLER' : profile?.role === 'silver' ? 'STANDARD RESELLER' : profile?.role === 'admin' ? 'ADMIN' : 'NORMAL USER'}
                 </span>
               </div>
             </div>
@@ -452,10 +452,10 @@ export default function UserDashboardPage() {
             <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
               <div className="flex items-center gap-2">
                 <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">GOLD TIER RESELLER ACTIVE</h4>
+                <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">ELITE RESELLER ACTIVE</h4>
               </div>
               <p className="text-[10px] text-slate-300 font-mono uppercase tracking-wider">
-                YOUR ACCOUNT HAS AN ACTIVE GOLD RESELLER SUBSCRIPTION. A 15% WHOLESALE DISCOUNT MATRIX IS AUTOMATICALLY APPLIED TO ALL TOP-UP ORDERS.
+                YOUR ACCOUNT HAS AN ACTIVE ELITE RESELLER SUBSCRIPTION. A 15% WHOLESALE DISCOUNT MATRIX IS AUTOMATICALLY APPLIED TO ALL TOP-UP ORDERS.
               </p>
               <span className="inline-block px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold uppercase border border-amber-500/30">
                 SUBSCRIPTION VALID UNTIL AUG 30, 2027
@@ -465,10 +465,10 @@ export default function UserDashboardPage() {
             <div className="p-6 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 space-y-3">
               <div className="flex items-center gap-2">
                 <Star className="w-5 h-5 text-cyan-400 fill-cyan-400" />
-                <h4 className="text-xs font-black text-cyan-400 uppercase tracking-wider">SILVER TIER RESELLER ACTIVE</h4>
+                <h4 className="text-xs font-black text-cyan-400 uppercase tracking-wider">STANDARD RESELLER ACTIVE</h4>
               </div>
               <p className="text-[10px] text-slate-300 font-mono uppercase tracking-wider">
-                YOUR ACCOUNT HAS AN ACTIVE SILVER RESELLER SUBSCRIPTION. AN 8% DISCOUNT MATRIX IS AUTOMATICALLY APPLIED TO ALL TOP-UP ORDERS.
+                YOUR ACCOUNT HAS AN ACTIVE STANDARD RESELLER SUBSCRIPTION. AN 8% DISCOUNT MATRIX IS AUTOMATICALLY APPLIED TO ALL TOP-UP ORDERS.
               </p>
               <span className="inline-block px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-[9px] font-mono font-bold uppercase border border-cyan-500/30">
                 SUBSCRIPTION VALID UNTIL JUL 23, 2026
@@ -544,7 +544,7 @@ export default function UserDashboardPage() {
               }`}>
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Star className="w-4 h-4 fill-cyan-400" /> SILVER RESELLER TIER
+                    <Star className="w-4 h-4 fill-cyan-400" /> STANDARD RESELLER TIER
                   </span>
                   <div className="flex items-center gap-1.5">
                     {profile?.role === 'silver' && (
@@ -583,7 +583,7 @@ export default function UserDashboardPage() {
               }`}>
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Award className="w-4 h-4 text-amber-400" /> GOLD RESELLER TIER
+                    <Award className="w-4 h-4 text-amber-400" /> ELITE RESELLER TIER
                   </span>
                   <div className="flex items-center gap-1.5">
                     {profile?.role === 'gold' && (
@@ -627,9 +627,9 @@ export default function UserDashboardPage() {
                       className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-amber-400 uppercase"
                     >
                       {profile?.role !== 'silver' && (
-                        <option value="silver">Silver Tier (8% Wholesale Discount)</option>
+                        <option value="silver">Standard Reseller (8% Wholesale Discount)</option>
                       )}
-                      <option value="gold">Gold Tier (15% Maximum Wholesale Discount)</option>
+                      <option value="gold">Elite Reseller (15% Maximum Wholesale Discount)</option>
                     </select>
                   </div>
 
@@ -642,7 +642,7 @@ export default function UserDashboardPage() {
                       'APPLICATION PENDING REVIEW'
                     ) : (
                       <>
-                        <ShieldCheck className="w-4 h-4" /> {profile?.role === 'silver' ? 'UPGRADE TO GOLD TIER' : 'APPLY NOW & GROW YOUR STORE'}
+                        <ShieldCheck className="w-4 h-4" /> {profile?.role === 'silver' ? 'UPGRADE TO ELITE RESELLER' : 'APPLY NOW & GROW YOUR STORE'}
                       </>
                     )}
                   </button>
@@ -658,7 +658,7 @@ export default function UserDashboardPage() {
             ) : (
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold flex items-center gap-2 relative z-10">
                 <Award className="w-5 h-5 text-amber-400 shrink-0" />
-                <span>YOU HAVE UNLOCKED MAXIMUM GOLD RESELLER TIER (15% PROFIT MARGIN ACTIVE).</span>
+                <span>YOU HAVE UNLOCKED MAXIMUM ELITE RESELLER TIER (15% PROFIT MARGIN ACTIVE).</span>
               </div>
             )}
           </div>
@@ -696,8 +696,8 @@ export default function UserDashboardPage() {
                   <Tooltip contentStyle={{ backgroundColor: '#0e0c1f', borderColor: '#334155', fontSize: '10px' }} />
                   <Legend wrapperStyle={{ fontSize: '10px' }} />
                   <Bar dataKey="Normal" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Silver" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Gold" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Standard" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Elite" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
