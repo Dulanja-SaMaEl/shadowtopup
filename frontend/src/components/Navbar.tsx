@@ -191,7 +191,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Cart & Menu Button */}
+          {/* Mobile Cart, Dashboard & Menu Button */}
           <div className="md:hidden flex items-center gap-2">
             <Link
               href="/cart"
@@ -205,6 +205,24 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
+
+            {/* Mobile Profile / Dashboard Shortcut */}
+            <Link
+              href={profile ? "/dashboard" : "/login"}
+              className={`relative p-2 rounded-lg border flex items-center justify-center transition-all ${
+                pathname === '/dashboard'
+                  ? 'bg-purple-600/20 border-purple-500/60 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.3)]'
+                  : 'bg-[#141029] border-slate-800 text-slate-300 hover:text-white hover:border-purple-500/40'
+              }`}
+              title={profile ? `My Dashboard (${profile.name || 'Account'})` : "Sign In / Profile"}
+              aria-label={profile ? "My Dashboard" : "Sign In"}
+            >
+              <User className="w-4 h-4" />
+              {profile && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+              )}
+            </Link>
+
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg bg-[#141029] border border-slate-800 text-slate-300"
