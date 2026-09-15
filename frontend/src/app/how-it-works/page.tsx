@@ -139,33 +139,33 @@ export default function HowItWorksPage() {
         </nav>
 
         {/* Hero Header */}
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider">
-            <Zap className="w-4 h-4 fill-cyan-400" /> TOP-UP WALKTHROUGH
+        <div className="p-8 sm:p-12 rounded-xl bg-[#110e24] border border-white/[0.08] text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium">
+            <Zap className="w-3.5 h-3.5 text-purple-400" /> Step-by-Step Guide
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight">
-            HOW SHADOWTOPUP WORKS
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
+            How Free Fire Top-Up Works
           </h1>
-          <p className="max-w-2xl mx-auto text-slate-400 text-xs sm:text-sm leading-relaxed">
-            Recharge your favorite games in 5 easy steps without ever giving out your account password or login credentials.
+          <p className="max-w-2xl mx-auto text-slate-300 text-sm sm:text-base leading-relaxed">
+            Recharge your Free Fire account in 5 simple steps. We never ask for your game password, Facebook login, or Google account credentials.
           </p>
         </div>
 
         {/* Steps List */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {steps.map((step, idx) => (
             <div
               key={idx}
-              className="p-6 sm:p-8 rounded-3xl bg-[#141229] border border-purple-950/40 shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-6"
+              className="p-6 rounded-xl bg-[#110e24] border border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center gap-5 transition-colors hover:border-white/20"
             >
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shrink-0 shadow-lg shadow-cyan-500/20">
+              <div className="w-11 h-11 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 font-mono font-bold text-sm flex items-center justify-center shrink-0">
                 {step.num}
               </div>
-              <div className="space-y-1.5 flex-1">
-                <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">
+              <div className="space-y-1 flex-1">
+                <span className="text-xs font-mono font-medium text-purple-400 uppercase tracking-wider">
                   {step.badge}
                 </span>
-                <h2 className="text-lg sm:text-xl font-bold text-white">{step.title}</h2>
+                <h2 className="text-base sm:text-lg font-bold text-white">{step.title}</h2>
                 <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">{step.desc}</p>
               </div>
             </div>
@@ -173,17 +173,17 @@ export default function HowItWorksPage() {
         </div>
 
         {/* Action Banner */}
-        <div className="p-8 rounded-3xl bg-gradient-to-r from-cyan-950/60 via-[#141229] to-purple-950/60 border border-purple-900/40 text-center space-y-4 shadow-xl">
-          <h2 className="text-2xl font-black text-white uppercase">READY TO RECHARGE?</h2>
-          <p className="text-xs text-slate-300 max-w-lg mx-auto">
-            Experience the fastest Free Fire diamond top-up engine in Sri Lanka.
+        <div className="p-8 rounded-xl bg-[#110e24] border border-white/[0.08] text-center space-y-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Ready to recharge your diamonds?</h2>
+          <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+            Test our real-time Player UID verification and enjoy instant delivery to your game account.
           </p>
           <div className="pt-2">
             <Link
               href="/games/free-fire"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-all hover:scale-105"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition-colors shadow-sm"
             >
-              TOP UP FREE FIRE NOW <ArrowRight className="w-4 h-4" />
+              Top Up Free Fire Now <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
@@ -191,10 +191,10 @@ export default function HowItWorksPage() {
         {/* FAQs */}
         <section className="space-y-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider">
-              <HelpCircle className="w-4 h-4" /> HELPFUL FAQS
+            <div className="flex items-center gap-2 text-purple-400 text-xs font-semibold">
+              <HelpCircle className="w-4 h-4" /> FAQ
             </div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-wide">
+            <h2 className="text-2xl font-bold text-white tracking-tight">
               Top-Up Process Questions
             </h2>
           </div>
@@ -203,13 +203,12 @@ export default function HowItWorksPage() {
             {guideFaqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 space-y-2"
+                className="p-5 rounded-xl bg-[#110e24] border border-white/[0.08] space-y-2"
               >
-                <h3 className="text-sm font-bold text-white flex items-start gap-2">
-                  <span className="text-cyan-400 font-mono shrink-0">Q:</span>
-                  <span>{faq.question}</span>
+                <h3 className="text-sm font-semibold text-white">
+                  {faq.question}
                 </h3>
-                <p className="text-xs text-slate-400 leading-relaxed pl-5">
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
                   {faq.answer}
                 </p>
               </div>

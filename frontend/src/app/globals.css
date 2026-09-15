@@ -2,27 +2,38 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950 min-h-screen flex flex-col font-sans;
+    @apply bg-[#080711] text-slate-100 antialiased selection:bg-purple-600/40 selection:text-white min-h-screen flex flex-col font-sans;
   }
 }
 
-.glass-card {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
+/* Crisp, solid surface utility for cards and panels */
+.surface-card {
+  background-color: #110e24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.glow-cyan {
-  box-shadow: 0 0 30px -5px rgba(6, 182, 212, 0.3);
+.surface-raised {
+  background-color: #16132e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+/* Subtle scrollbar for overflow areas */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.animate-pulse-slow {
-  animation: pulse-glow 4s ease-in-out infinite;
+::-webkit-scrollbar-track {
+  background: #080711;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252044;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3b336a;
 }
 
 @media print {
@@ -32,7 +43,7 @@
   }
 
   body {
-    background: #0e0c1f !important;
+    background: #080711 !important;
     color: #ffffff !important;
     min-height: 0 !important;
     height: auto !important;

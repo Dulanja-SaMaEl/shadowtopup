@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Search, CheckCircle2, AlertCircle, Loader2, UserCheck, Edit3, Check } from 'lucide-react';
 
 interface PlayerInfo {
@@ -30,7 +30,7 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
     e.preventDefault();
     const cleanUid = uid.trim();
     if (!cleanUid) {
-      setError('Please enter your Player ID first');
+      setError('Please enter your Player ID');
       return;
     }
 
@@ -44,16 +44,13 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
       const data = await res.json();
 
       if (data.success && data.data) {
-        // Check if there is a saved IGN in local storage for this UID
         let savedIgn = '';
         try {
           savedIgn = localStorage.getItem(`ff_ign_${cleanUid}`) || '';
         } catch {}
 
-        // Resolve best nickname
         const finalNickname = data.data.nickname || savedIgn || `Free Fire Player (${cleanUid})`;
 
-        // Cache into localStorage if real nickname returned
         if (data.data.nickname) {
           try {
             localStorage.setItem(`ff_ign_${cleanUid}`, data.data.nickname);
@@ -72,10 +69,10 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
         setCustomNameInput(savedIgn || (data.data.nickname ? data.data.nickname : ''));
         onVerified(resolvedPlayer);
       } else {
-        setError(data.message || 'Player verification failed. Check your ID.');
+        setError(data.message || 'Player verification failed. Please verify your UID.');
       }
     } catch (err: any) {
-      setError('Error connecting to verification server');
+      setError('Error connecting to verification server. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -102,14 +99,14 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
   };
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md mb-8">
+    <div className="bg-[#110e24] border border-slate-800 rounded-xl p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-          <UserCheck className="w-5 h-5" />
+        <div className="w-9 h-9 rounded-lg bg-purple-950/60 border border-purple-800/60 flex items-center justify-center text-purple-300 shrink-0">
+          <UserCheck className="w-4 h-4" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-white">1. Verify Player Account</h3>
-          <p className="text-xs text-slate-400">Enter your in-game User ID (UID) to verify account for instant delivery</p>
+          <h3 className="text-base font-bold text-white">Step 1: Enter Player ID (UID)</h3>
+          <p className="text-xs text-slate-400">Validate your Free Fire numeric UID to preview in-game nickname before ordering</p>
         </div>
       </div>
 
@@ -121,38 +118,38 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
               value={uid}
               onChange={(e) => setUid(e.target.value)}
               placeholder="e.g. 8718615060"
-              className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 font-mono text-sm"
+              className="w-full px-4 py-2.5 bg-[#090714] border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 font-mono text-xs"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 disabled:opacity-50 transition-all text-sm min-w-[140px]"
+            className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider disabled:opacity-50 transition-colors min-w-[130px]"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin text-white" />
             ) : (
               <>
-                <Search className="w-4 h-4" /> Verify ID
+                <Search className="w-3.5 h-3.5" /> Check Account
               </>
             )}
           </button>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
+          <div className="flex items-center gap-2 text-rose-400 text-xs bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {verifiedData && (
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl text-emerald-300">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0a1612] border border-emerald-500/30 p-4 rounded-lg text-emerald-300">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
               <div>
-                <span className="text-[10px] uppercase font-mono tracking-wider text-emerald-400/80 font-bold block">
-                  Account Verified & Ready for Top-Up
+                <span className="text-[10px] uppercase font-mono tracking-wider text-emerald-400 font-semibold block">
+                  Account Verified
                 </span>
                 
                 {isEditingName ? (
@@ -161,20 +158,20 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
                       type="text"
                       value={customNameInput}
                       onChange={(e) => setCustomNameInput(e.target.value)}
-                      placeholder="Enter your exact in-game nickname"
-                      className="px-3 py-1 bg-slate-950 border border-emerald-500/50 rounded-lg text-white font-bold text-sm focus:outline-none focus:border-cyan-400 font-sans min-w-[180px]"
+                      placeholder="Enter in-game nickname"
+                      className="px-2.5 py-1 bg-[#090714] border border-emerald-500/50 rounded-md text-white font-semibold text-xs focus:outline-none focus:border-purple-400 min-w-[180px]"
                       autoFocus
                     />
                     <button
                       type="button"
                       onClick={handleSaveCustomName}
-                      className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-lg flex items-center gap-1 transition-all"
+                      className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-md flex items-center gap-1 transition-colors"
                     >
-                      <Check className="w-3.5 h-3.5" /> Save
+                      <Check className="w-3 h-3" /> Save
                     </button>
                   </div>
                 ) : (
-                  <h4 className="font-extrabold text-base text-white flex items-center gap-2 mt-0.5">
+                  <h4 className="font-bold text-sm text-white flex items-center gap-2 mt-0.5">
                     <span>{verifiedData.nickname}</span>
                     <button
                       type="button"
@@ -182,16 +179,16 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
                         setCustomNameInput(verifiedData.nickname.startsWith('Free Fire Player') ? '' : verifiedData.nickname);
                         setIsEditingName(true);
                       }}
-                      className="text-slate-400 hover:text-cyan-400 p-1 transition-colors"
-                      title="Edit in-game nickname"
+                      className="text-slate-400 hover:text-white p-0.5 transition-colors"
+                      title="Edit display nickname"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
+                      <Edit3 className="w-3 h-3" />
                     </button>
                   </h4>
                 )}
 
-                <p className="text-xs text-emerald-300/80 font-mono mt-0.5">
-                  UID: {verifiedData.uid} {verifiedData.level && `| Level ${verifiedData.level}`} {verifiedData.region && `(${verifiedData.region})`}
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  UID: {verifiedData.uid} {verifiedData.level && `• Level ${verifiedData.level}`} {verifiedData.region && `• (${verifiedData.region})`}
                 </p>
               </div>
             </div>
@@ -203,10 +200,10 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
                   setCustomNameInput(verifiedData.nickname.startsWith('Free Fire Player') ? '' : verifiedData.nickname);
                   setIsEditingName(true);
                 }}
-                className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 self-end sm:self-center transition-all"
+                className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 self-end sm:self-center transition-colors"
               >
                 <Edit3 className="w-3 h-3" />
-                <span>{verifiedData.isFallback ? 'Set In-Game Name' : 'Edit Name'}</span>
+                <span>{verifiedData.isFallback ? 'Set Nickname' : 'Edit'}</span>
               </button>
             )}
           </div>

@@ -158,7 +158,7 @@ export default async function GamesCatalogPage() {
         </div>
 
         {/* Games Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {games.map((game) => {
             const isPlayable = game.is_active || game.slug === 'free-fire';
 
@@ -167,47 +167,47 @@ export default async function GamesCatalogPage() {
                 <Link
                   key={game.slug}
                   href={`/games/${game.slug}`}
-                  className="group rounded-3xl bg-[#141229] border border-purple-950/40 hover:border-cyan-500/50 transition-all hover:-translate-y-1 shadow-xl flex flex-col justify-between overflow-hidden"
+                  className="group rounded-xl bg-[#110e24] border border-white/[0.08] hover:border-purple-500/50 transition-colors shadow-sm flex flex-col justify-between overflow-hidden"
                 >
                   <div>
                     {/* Game Image Banner */}
-                    <div className="relative h-44 bg-[#0e0c1f] overflow-hidden border-b border-purple-950/30">
+                    <div className="relative h-44 bg-[#080711] overflow-hidden border-b border-white/[0.08]">
                       {game.image_path ? (
                         <img
                           src={game.image_path}
                           alt={`${game.title} Top Up`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-slate-900 text-cyan-400">
+                        <div className="w-full h-full flex items-center justify-center bg-[#080711] text-purple-400">
                           <Gamepad2 className="w-10 h-10" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#141229] via-transparent to-transparent" />
-                      <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-emerald-500/20 backdrop-blur-sm border border-emerald-500/40 text-emerald-300 text-[9px] font-mono font-bold uppercase tracking-wider">
-                        ACTIVE TOPUP
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#110e24] via-transparent to-transparent opacity-80" />
+                      <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-semibold uppercase tracking-wide">
+                        Available Now
                       </span>
                     </div>
 
-                    <div className="p-6">
-                      <span className="text-[10px] font-mono uppercase text-purple-400 font-bold block mb-1">
+                    <div className="p-5">
+                      <span className="text-[11px] font-mono uppercase text-purple-400 font-medium block mb-1">
                         {game.category}
                       </span>
-                      <h2 className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">
+                      <h2 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
                         {game.title}
                       </h2>
                       {game.description && (
-                        <p className="text-xs text-slate-400 mt-2 line-clamp-2">
+                        <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
                           {game.description}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="p-6 pt-0">
-                    <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                      <span className="text-xs text-cyan-400 font-mono flex items-center gap-1.5 font-bold">
-                        <Zap className="w-3.5 h-3.5 fill-cyan-400" /> Instant Shell Processing
+                  <div className="p-5 pt-0">
+                    <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between">
+                      <span className="text-xs text-purple-300 font-medium flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-purple-400" /> Instant UID Delivery
                       </span>
                     </div>
                   </div>
@@ -218,9 +218,9 @@ export default async function GamesCatalogPage() {
             return (
               <div
                 key={game.slug}
-                className="relative rounded-3xl bg-[#141229]/50 border border-slate-800/60 opacity-75 flex flex-col justify-between select-none overflow-hidden"
+                className="relative rounded-xl bg-[#110e24]/40 border border-white/[0.04] opacity-75 flex flex-col justify-between select-none overflow-hidden"
               >
-                <div className="relative h-44 bg-slate-950 overflow-hidden border-b border-slate-800/60 grayscale opacity-60">
+                <div className="relative h-44 bg-[#080711] overflow-hidden border-b border-white/[0.04] grayscale opacity-50">
                   {game.image_path ? (
                     <img
                       src={game.image_path}
@@ -228,33 +228,33 @@ export default async function GamesCatalogPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-600">
+                    <div className="w-full h-full flex items-center justify-center bg-[#080711] text-slate-600">
                       <Lock className="w-8 h-8" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#141229] via-transparent to-transparent" />
-                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-amber-500/10 backdrop-blur-sm border border-amber-500/30 text-amber-400 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> COMING SOON
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#110e24] via-transparent to-transparent" />
+                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/10 text-slate-400 text-[10px] font-mono font-medium uppercase tracking-wide flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Coming Soon
                   </div>
                 </div>
 
-                <div className="p-6">
-                  <span className="text-[10px] font-mono uppercase text-slate-500 block mb-1">
+                <div className="p-5">
+                  <span className="text-[11px] font-mono uppercase text-slate-500 block mb-1">
                     {game.category}
                   </span>
-                  <h2 className="text-lg font-bold text-slate-400">
+                  <h2 className="text-base font-semibold text-slate-400">
                     {game.title}
                   </h2>
                   {game.description && (
-                    <p className="text-xs text-slate-500 mt-2 line-clamp-2">
+                    <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
                       {game.description}
                     </p>
                   )}
                 </div>
 
-                <div className="p-6 pt-0">
-                  <div className="pt-4 border-t border-slate-800/40 flex items-center justify-between">
-                    <span className="text-xs text-amber-400/80 font-mono flex items-center gap-1">
+                <div className="p-5 pt-0">
+                  <div className="pt-3 border-t border-white/[0.04] flex items-center justify-between">
+                    <span className="text-xs text-slate-500 font-mono flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" /> Under Development
                     </span>
                   </div>

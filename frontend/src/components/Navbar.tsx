@@ -6,8 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
-import { ShoppingCart, ShieldCheck, User, LogOut, Zap, Menu, X } from 'lucide-react';
-
+import { ShoppingCart, ShieldCheck, User, LogOut, Menu, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
 export default function Navbar() {
@@ -64,39 +63,39 @@ export default function Navbar() {
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Games', href: '/games' },
-    { name: 'Reseller', href: '/reseller' },
+    { name: 'Reseller Program', href: '/reseller' },
     { name: 'How It Works', href: '/how-it-works' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0a0814]/90 backdrop-blur-md border-b border-purple-950/40 text-white">
+    <header className="sticky top-0 z-50 bg-[#0b0918] border-b border-slate-800/80 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group py-1">
+          <Link href="/" className="flex items-center gap-3 py-1">
             <Image
               src="/logo.png"
-              alt="ShadowTopUp - Gaming Top-Up and Reseller Store"
-              width={180}
-              height={52}
-              className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+              alt="ShadowTopUp - Gaming Top-Up Platform"
+              width={170}
+              height={48}
+              className="h-9 w-auto object-contain"
               priority
             />
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-7">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-sm font-medium transition-colors ${
+                  className={`text-xs uppercase tracking-wider font-semibold transition-colors ${
                     isActive
-                      ? 'text-cyan-400 font-semibold'
+                      ? 'text-purple-400'
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
@@ -108,39 +107,38 @@ export default function Navbar() {
             {profile?.role === 'admin' && (
               <Link
                 href="/admin/dashboard"
-                className="text-xs font-bold text-purple-400 bg-purple-950/60 border border-purple-800/80 px-3 py-1.5 rounded-xl hover:bg-purple-900 flex items-center gap-1.5 transition-all"
+                className="text-xs font-semibold text-purple-300 bg-purple-950/40 border border-purple-800/60 px-3 py-1.5 rounded-lg hover:bg-purple-900/60 flex items-center gap-1.5 transition-colors"
               >
-                <ShieldCheck className="w-4 h-4 text-purple-400" /> Admin Panel
+                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> Admin
               </Link>
             )}
           </nav>
 
           {/* Right Action Icons & Profile */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
             <Link
               href="/cart"
-              className="relative p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all flex items-center justify-center"
+              className="relative p-2 rounded-lg bg-[#141029] border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-colors flex items-center justify-center"
               title="Shopping Cart"
               aria-label="Shopping Cart"
             >
-              <ShoppingCart className="w-5 h-5" />
+              <ShoppingCart className="w-4 h-4" />
               {totalCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-mono font-bold text-[10px] flex items-center justify-center border-2 border-[#0a0814] animate-pulse">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white font-mono font-bold text-[9px] flex items-center justify-center">
                   {totalCount}
                 </span>
               )}
             </Link>
 
             {profile ? (
-              <div className="flex items-center gap-3">
-                {/* Reseller Badge */}
+              <div className="flex items-center gap-2.5">
                 {profile.role !== 'normal' && (
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider ${
                     profile.role === 'admin'
-                      ? 'bg-purple-500/10 border border-purple-500/30 text-purple-400'
+                      ? 'bg-purple-500/10 border border-purple-500/30 text-purple-300'
                       : profile.role === 'gold'
-                      ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
-                      : 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-400'
+                      ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
+                      : 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-300'
                   }`}>
                     {profile.role}
                   </span>
@@ -148,33 +146,33 @@ export default function Navbar() {
 
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-600/30 hover:from-red-500 hover:to-rose-500 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161230] hover:bg-[#1d183f] border border-slate-700/80 text-white text-xs font-semibold transition-colors"
                 >
-                  <User className="w-4 h-4" />
-                  <span>DASHBOARD</span>
+                  <User className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Dashboard</span>
                 </Link>
 
                 <button
                   onClick={handleSignOut}
-                  className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all"
+                  className="p-1.5 rounded-lg bg-[#141029] border border-slate-800 text-slate-400 hover:text-rose-400 hover:border-rose-900/50 transition-colors"
                   title="Sign Out"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="text-sm font-medium text-slate-300 hover:text-white px-3 py-2"
+                  className="text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
-                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-cyan-500 to-indigo-600 text-white hover:from-cyan-400 hover:to-indigo-500 shadow-lg shadow-cyan-500/25 transition-all"
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition-colors"
                 >
-                  Get Started
+                  Create Account
                 </Link>
               </div>
             )}
@@ -184,22 +182,22 @@ export default function Navbar() {
           <div className="md:hidden flex items-center gap-2">
             <Link
               href="/cart"
-              className="relative p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white flex items-center justify-center"
+              className="relative p-2 rounded-lg bg-[#141029] border border-slate-800 text-slate-300 hover:text-white flex items-center justify-center"
               title="Shopping Cart"
             >
-              <ShoppingCart className="w-5 h-5" />
+              <ShoppingCart className="w-4 h-4" />
               {totalCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-mono font-bold text-[10px] flex items-center justify-center border-2 border-[#0a0814] animate-pulse">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white font-mono font-bold text-[9px] flex items-center justify-center">
                   {totalCount}
                 </span>
               )}
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300"
+              className="p-2 rounded-lg bg-[#141029] border border-slate-800 text-slate-300"
               aria-label="Toggle navigation menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -207,13 +205,13 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden px-4 pt-2 pb-4 space-y-2 bg-slate-950 border-b border-slate-800">
+        <div className="md:hidden px-4 pt-2 pb-5 space-y-1.5 bg-[#0e0c1f] border-b border-slate-800">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-900"
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-900"
             >
               {link.name}
             </Link>
@@ -221,14 +219,14 @@ export default function Navbar() {
           <Link
             href="/cart"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-between px-3 py-2 rounded-lg text-base font-medium text-cyan-400 hover:bg-slate-900"
+            className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-purple-300 hover:bg-slate-900"
           >
             <span className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" /> Shopping Cart
+              <ShoppingCart className="w-4 h-4" /> Cart
             </span>
             {totalCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-mono font-bold text-xs">
-                {totalCount} Items
+              <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono font-bold text-xs">
+                {totalCount}
               </span>
             )}
           </Link>
@@ -236,42 +234,42 @@ export default function Navbar() {
             <Link
               href="/admin/dashboard"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-base font-bold text-purple-400 bg-purple-950/60"
+              className="block px-3 py-2 rounded-lg text-sm font-semibold text-purple-300 bg-purple-950/40 border border-purple-900/50"
             >
               Admin Control Panel
             </Link>
           )}
           {profile ? (
-            <>
+            <div className="pt-2 border-t border-slate-800 space-y-1">
               <Link
                 href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-base font-medium text-cyan-400 hover:bg-slate-900"
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-white hover:bg-slate-900"
               >
-                Dashboard ({profile.name})
+                Dashboard ({profile.name || 'Account'})
               </Link>
               <button
                 onClick={handleSignOut}
-                className="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-red-400 hover:bg-red-500/10"
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10"
               >
                 Sign Out
               </button>
-            </>
+            </div>
           ) : (
-            <div className="pt-2 flex flex-col gap-2">
+            <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">
               <Link
                 href="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200"
+                className="w-full text-center px-4 py-2 rounded-lg bg-[#141029] border border-slate-800 text-slate-200 text-xs font-semibold"
               >
                 Sign In
               </Link>
               <Link
                 href="/register"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center px-4 py-2 rounded-xl bg-cyan-500 text-white font-semibold"
+                className="w-full text-center px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold"
               >
-                Register
+                Create Account
               </Link>
             </div>
           )}

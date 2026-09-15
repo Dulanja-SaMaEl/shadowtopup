@@ -40,7 +40,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-md">
+      <div className="w-full max-w-md bg-[#110e24] border border-white/[0.08] rounded-xl p-8 shadow-2xl">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-3">
             <Image
@@ -52,19 +52,19 @@ export default function RegisterPage() {
               priority
             />
           </Link>
-          <h1 className="text-2xl font-extrabold text-white">Create Account</h1>
-          <p className="text-xs text-slate-400 mt-1">Get instant top-ups & reseller tier pricing</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Create Account</h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">Get instant top-ups & reseller tier pricing</p>
         </div>
 
         {success ? (
-          <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-center space-y-4">
-            <h3 className="font-bold text-lg text-white">Registration Successful!</h3>
-            <p className="text-xs text-emerald-400">
+          <div className="p-6 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-center space-y-4">
+            <h3 className="font-bold text-base text-white">Registration Successful!</h3>
+            <p className="text-xs sm:text-sm text-emerald-400 leading-relaxed">
               Check your email inbox to verify your account, then sign in to access your dashboard.
             </p>
             <Link
               href="/login"
-              className="inline-block w-full py-3 bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm"
+              className="inline-block w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg text-sm transition-colors"
             >
               Go to Sign In
             </Link>
@@ -81,7 +81,7 @@ export default function RegisterPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#080711] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm transition-colors"
                 />
               </div>
             </div>
@@ -96,7 +96,7 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#080711] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm transition-colors"
                 />
               </div>
             </div>
@@ -111,12 +111,12 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-12 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 text-sm"
+                  className="w-full pl-10 pr-12 py-2.5 bg-[#080711] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition-colors"
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-white transition-colors"
                   title={showPassword ? 'Hide Password' : 'Show Password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -125,7 +125,7 @@ export default function RegisterPage() {
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -134,7 +134,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-sm"
+              className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-colors text-sm"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Register Account <ArrowRight className="w-4 h-4" /></>}
             </button>
@@ -143,7 +143,7 @@ export default function RegisterPage() {
 
         <div className="mt-6 text-center text-xs text-slate-400">
           Already have an account?{' '}
-          <Link href="/login" className="text-cyan-400 hover:underline font-semibold">
+          <Link href="/login" className="text-purple-400 hover:underline font-medium">
             Sign In
           </Link>
         </div>

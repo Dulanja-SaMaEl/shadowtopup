@@ -146,105 +146,120 @@ export default function ResellerProgramPage() {
         </nav>
 
         {/* Hero Header */}
-        <div className="relative overflow-hidden p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-[#141229] via-[#0c0a1a] to-[#120f26] border border-purple-950/50 shadow-2xl text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider">
-            <Award className="w-4 h-4" /> WHOLESALE GAMING TOP-UP PARTNER PROGRAM
+        <div className="p-8 sm:p-12 rounded-xl bg-[#110e24] border border-white/[0.08] text-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium">
+            <Award className="w-3.5 h-3.5 text-purple-400" /> Wholesale Gaming Partner Program
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight">
-            START YOUR <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-300 to-yellow-400">GAMING TOP-UP BUSINESS</span> IN SRI LANKA
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
+            Wholesale Gaming Top-Up Platform for Sri Lanka
           </h1>
 
-          <p className="max-w-2xl mx-auto text-slate-300 text-xs sm:text-sm leading-relaxed">
-            ShadowTopUp provides Sri Lanka&apos;s leading wholesale gaming recharge infrastructure. Reload Free Fire diamonds and memberships for your clients with automatic Player UID validation and tiered wholesale discounts.
+          <p className="max-w-2xl mx-auto text-slate-300 text-sm sm:text-base leading-relaxed">
+            Reliable recharge infrastructure for gaming shops, digital merchants, and independent resellers. Top up Free Fire diamonds and passes with instant UID validation and tiered wholesale discounts.
           </p>
 
-          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
             <Link
               href="/register"
-              className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all hover:scale-105"
+              className="px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm"
             >
-              CREATE RESELLER ACCOUNT <ArrowRight className="w-4 h-4" />
+              Create Reseller Account <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/login"
-              className="px-8 py-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500/40 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all"
+              className="px-6 py-3 rounded-lg bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] text-slate-200 font-semibold text-sm transition-colors"
             >
-              LOGIN TO DASHBOARD
+              Login to Reseller Dashboard
             </Link>
           </div>
         </div>
 
-        {/* 5 Wholesale Tiers */}
+        {/* Wholesale Tiers */}
         <section className="space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wide">
-              RESELLER DISCOUNT TIERS
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              Wholesale Discount Tiers
             </h2>
-            <p className="text-xs text-slate-400 max-w-xl mx-auto">
-              Discounts are automatically calculated at checkout based on your approved membership tier.
+            <p className="text-sm text-slate-400 max-w-xl mx-auto">
+              Discounts are automatically calculated at checkout according to your active partner tier.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {tiers.map((tier, idx) => (
-              <div
-                key={idx}
-                className={`p-6 rounded-3xl bg-gradient-to-b border flex flex-col justify-between space-y-4 ${tier.color}`}
-              >
-                <div className="space-y-3 text-center">
-                  <Trophy className="w-8 h-8 mx-auto opacity-90" />
-                  <div>
-                    <h3 className="font-black text-xs uppercase tracking-wider">{tier.name}</h3>
-                    <span className="inline-block mt-1 px-3 py-1 rounded-full bg-black/50 text-xs font-mono font-bold">
-                      {tier.discount}
-                    </span>
-                  </div>
-                  <p className="text-[10px] font-mono opacity-75">{tier.requirements}</p>
-                </div>
+            {tiers.map((tier, idx) => {
+              const isPopular = tier.name === 'GOLD RESELLER';
+              return (
+                <div
+                  key={idx}
+                  className={`p-5 rounded-xl flex flex-col justify-between space-y-4 border transition-colors ${
+                    isPopular
+                      ? 'bg-[#151230] border-purple-500/50 shadow-lg shadow-purple-950/40 relative'
+                      : 'bg-[#110e24] border-white/[0.08] hover:border-white/20'
+                  }`}
+                >
+                  {isPopular && (
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-purple-600 text-[10px] font-semibold tracking-wide text-white uppercase shadow-sm">
+                      Most Popular
+                    </div>
+                  )}
 
-                <ul className="space-y-2 border-t border-white/10 pt-4 text-left text-[11px]">
-                  {tier.perks.map((perk, pIdx) => (
-                    <li key={pIdx} className="flex items-start gap-1.5 opacity-90">
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                      <span>{perk}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+                  <div className="space-y-3 text-center">
+                    <div className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mx-auto text-purple-400">
+                      <Trophy className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-white">{tier.name}</h3>
+                      <span className="inline-block mt-1.5 px-2.5 py-1 rounded-md bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold">
+                        {tier.discount}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">{tier.requirements}</p>
+                  </div>
+
+                  <ul className="space-y-2 border-t border-white/[0.08] pt-4 text-left text-xs">
+                    {tier.perks.map((perk, pIdx) => (
+                      <li key={pIdx} className="flex items-start gap-2 text-slate-300">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
+                        <span>{perk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         </section>
 
         {/* Reseller Benefits Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <Zap className="w-6 h-6" />
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="p-6 rounded-xl bg-[#110e24] border border-white/[0.08] space-y-3">
+            <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+              <Zap className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-white">Under 30-Second Delivery</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Never make your customers wait. Automated redemption ensures diamonds are delivered to target Free Fire accounts instantly.
+            <h3 className="text-base font-semibold text-white">Under 30-Second Delivery</h3>
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Automated dispatch connects directly to game servers. Diamonds and passes land in your customer&apos;s account within seconds of purchase.
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Wallet className="w-6 h-6" />
+          <div className="p-6 rounded-xl bg-[#110e24] border border-white/[0.08] space-y-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <Wallet className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-white">Prepaid Shadow Wallet</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Deposit via Dialog eZ Cash or bank transfer to keep balance ready. Execute multi-package orders seamlessly with zero checkout delays.
+            <h3 className="text-base font-semibold text-white">Prepaid Shadow Wallet</h3>
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Deposit via Dialog eZ Cash or bank transfer to maintain a float. Fulfill single or batch orders instantly without checkout friction.
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <ShieldCheck className="w-6 h-6" />
+          <div className="p-6 rounded-xl bg-[#110e24] border border-white/[0.08] space-y-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-white">Zero Account Bans</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Fulfillment occurs strictly through verified official Garena Shell top-up channels. Safe for your clients&apos; Free Fire accounts.
+            <h3 className="text-base font-semibold text-white">Official & Ban-Safe</h3>
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Orders are fulfilled exclusively through authorized Garena Shell channels. Zero risk of account penalties or diamond clawbacks for your buyers.
             </p>
           </div>
         </section>
@@ -252,10 +267,10 @@ export default function ResellerProgramPage() {
         {/* Reseller FAQs */}
         <section className="space-y-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider">
-              <HelpCircle className="w-4 h-4" /> RESELLER FAQ
+            <div className="flex items-center gap-2 text-purple-400 text-xs font-semibold">
+              <HelpCircle className="w-4 h-4" /> FAQ
             </div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-wide">
+            <h2 className="text-2xl font-bold text-white tracking-tight">
               Frequently Asked Questions by Resellers
             </h2>
           </div>
@@ -264,13 +279,12 @@ export default function ResellerProgramPage() {
             {resellerFaqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 space-y-2"
+                className="p-5 rounded-xl bg-[#110e24] border border-white/[0.08] space-y-2"
               >
-                <h3 className="text-sm font-bold text-white flex items-start gap-2">
-                  <span className="text-amber-400 font-mono shrink-0">Q:</span>
-                  <span>{faq.question}</span>
+                <h3 className="text-sm font-semibold text-white">
+                  {faq.question}
                 </h3>
-                <p className="text-xs text-slate-400 leading-relaxed pl-5">
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
                   {faq.answer}
                 </p>
               </div>

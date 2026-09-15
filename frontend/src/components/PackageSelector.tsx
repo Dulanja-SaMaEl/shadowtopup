@@ -352,36 +352,36 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 border-b border-slate-800 pb-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 pb-4 border-b border-slate-800">
         <div>
-          <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-            <Diamond className="w-5 h-5 text-cyan-400" /> 2. Select Recharge Package
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <Diamond className="w-4 h-4 text-purple-400" /> Step 2: Select Recharge Package
           </h2>
-          <p className="text-xs text-slate-400">Choose your desired Free Fire Garena SG recharge amount or pass subscription</p>
+          <p className="text-xs text-slate-400">Select Free Fire diamonds, Weekly Pass, or Monthly VIP subscription</p>
         </div>
         {userRole && userRole !== 'normal' && (
-          <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold uppercase shrink-0">
-            {userRole} Tier Unlocked
+          <span className="px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold uppercase shrink-0">
+            {userRole} Tier Active
           </span>
         )}
       </div>
 
       {/* Category Tabs: Memberships -> Level Up Packages -> Diamonds */}
-      <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         {[
-          { id: 'membership', label: `👑 Memberships (${membershipPkgs.length})` },
-          { id: 'levelup', label: `🎯 Level Up Packages (${levelUpPkgs.length})` },
-          { id: 'diamond', label: `💎 Diamonds (${diamondPkgs.length})` },
+          { id: 'membership', label: `Memberships (${membershipPkgs.length})` },
+          { id: 'levelup', label: `Level Up Passes (${levelUpPkgs.length})` },
+          { id: 'diamond', label: `Diamonds (${diamondPkgs.length})` },
         ].map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setSelectedCategory(tab.id as 'membership' | 'levelup' | 'diamond')}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
               selectedCategory === tab.id
-                ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 scale-[1.02]'
-                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-750'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'bg-[#110e24] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
             }`}
           >
             {tab.label}
@@ -389,7 +389,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {packages
           .filter((pkg) => {
             if (selectedCategory === 'membership') {
@@ -407,7 +407,6 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             if (selectedCategory === 'levelup' || selectedCategory === 'diamond') {
               return (a.diamond_amount || 0) - (b.diamond_amount || 0);
             }
-            // For memberships: group weekly/monthly first then evo, sorted by shell_cost
             const aIsEvo = a.package_type === 'evo_access' ? 1 : 0;
             const bIsEvo = b.package_type === 'evo_access' ? 1 : 0;
             if (aIsEvo !== bIsEvo) return aIsEvo - bIsEvo;
@@ -421,90 +420,90 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             const isLevelUp = pkg.package_type === 'levelup_pass';
 
             const subTitle = isMembership
-              ? (pkg.diamond_amount > 0 ? `Pass (${pkg.diamond_amount} 💎)` : 'Subscription Pass')
+              ? (pkg.diamond_amount > 0 ? `Pass (${pkg.diamond_amount} Diamonds)` : 'Subscription Pass')
               : isEvo
               ? 'EVO Gun Access Pass'
               : isLevelUp
-              ? `Level Up Pass (${pkg.diamond_amount} 💎)`
+              ? `Level Up Pass (${pkg.diamond_amount} Diamonds)`
               : `${pkg.diamond_amount} Diamonds`;
 
             return (
               <div
                 key={pkg.id}
                 onClick={() => setSelectedPkg(pkg)}
-                className={`relative cursor-pointer rounded-2xl border p-5 transition-all flex flex-col justify-between space-y-4 ${
+                className={`relative cursor-pointer rounded-xl border p-4 transition-colors flex flex-col justify-between space-y-3.5 ${
                   isSelected
-                    ? 'bg-gradient-to-b from-purple-900/40 via-slate-900 to-slate-950 border-purple-500 shadow-xl shadow-purple-500/20 scale-[1.02]'
-                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                    ? 'bg-[#181335] border-purple-500'
+                    : 'bg-[#110e24] border-slate-800 hover:border-slate-700 hover:bg-[#14102c]'
                 }`}
               >
                 {pkg.badge && (
-                  <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 text-white text-[9px] font-extrabold tracking-wider uppercase shadow-md">
+                  <span className="absolute -top-2 right-3 px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-purple-950/90 text-purple-300 border border-purple-750">
                     {pkg.badge}
                   </span>
                 )}
 
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center p-2 shrink-0">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-[#090714] border border-slate-800 flex items-center justify-center p-1.5 shrink-0">
                     <img src={pkg.image_url} alt={pkg.package_name} className="max-w-full max-h-full object-contain" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-white text-sm">{pkg.package_name}</h3>
-                    <span className="text-xs text-cyan-400 font-mono font-bold block mt-0.5">
+                    <h3 className="font-bold text-white text-xs">{pkg.package_name}</h3>
+                    <span className="text-[11px] text-slate-400 font-mono block mt-0.5">
                       {subTitle}
                     </span>
                   </div>
                 </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
-                <div>
-                  <span className="text-[10px] text-slate-500 font-mono block">Price</span>
-                  <span className="text-sm font-extrabold text-emerald-400 font-mono">
-                    {formatCurrency(finalPrice)}
-                  </span>
-                </div>
+                <div className="flex items-center justify-between pt-2.5 border-t border-slate-800/80">
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-mono uppercase block">Price</span>
+                    <span className="text-sm font-bold text-emerald-400 font-mono">
+                      {formatCurrency(finalPrice)}
+                    </span>
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => handleAddToCart(pkg, e)}
-                    className="p-2 rounded-xl bg-purple-950/80 border border-purple-800/60 text-cyan-400 hover:bg-purple-900 hover:text-white transition-all shadow-md"
-                    title="Add to Cart"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                  </button>
-                  <div
-                    className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${
-                      isSelected ? 'bg-purple-600 border-purple-400 text-white' : 'border-slate-700'
-                    }`}
-                  >
-                    {isSelected && <Check className="w-3.5 h-3.5" />}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => handleAddToCart(pkg, e)}
+                      className="p-1.5 rounded-lg bg-[#090714] border border-slate-800 text-slate-300 hover:text-white hover:border-purple-500 transition-colors"
+                      title="Add to Cart"
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5" />
+                    </button>
+                    <div
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                        isSelected ? 'bg-purple-600 border-purple-400 text-white' : 'border-slate-700'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3 h-3" />}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       {selectedPkg && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md space-y-6">
-          <h3 className="text-lg font-bold text-white">3. Select Payment Method & Checkout</h3>
+        <div className="bg-[#110e24] border border-slate-800 rounded-xl p-6 space-y-5">
+          <h3 className="text-base font-bold text-white">Step 3: Select Payment Method</h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <button
               type="button"
               onClick={() => setPaymentMethod('shadow_wallet')}
-              className={`p-4 rounded-xl border flex items-center gap-3 transition-all text-left ${
+              className={`p-3.5 rounded-lg border flex items-center gap-3 transition-colors text-left ${
                 paymentMethod === 'shadow_wallet'
-                  ? 'bg-purple-500/10 border-purple-500 text-white'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                  ? 'bg-[#181335] border-purple-500 text-white'
+                  : 'bg-[#090714] border-slate-800 text-slate-400 hover:border-slate-700'
               }`}
             >
-              <Wallet className="w-6 h-6 text-purple-400 shrink-0" />
+              <Wallet className="w-5 h-5 text-purple-400 shrink-0" />
               <div>
-                <span className="font-bold text-white block text-xs uppercase">Shadow Wallet</span>
-                <span className="text-[10px] text-emerald-400 font-mono block font-bold">
+                <span className="font-semibold text-white block text-xs">Shadow Wallet</span>
+                <span className="text-[10px] text-emerald-400 font-mono block">
                   {walletBalance !== null ? `Bal: LKR ${walletBalance.toLocaleString()}` : 'Check Balance'}
                 </span>
               </div>
@@ -513,170 +512,146 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             <button
               type="button"
               onClick={() => setPaymentMethod('ez_cash')}
-              className={`p-4 rounded-xl border flex items-center gap-3 transition-all text-left ${
+              className={`p-3.5 rounded-lg border flex items-center gap-3 transition-colors text-left ${
                 paymentMethod === 'ez_cash'
-                  ? 'bg-emerald-500/15 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                  ? 'bg-[#181335] border-purple-500 text-white'
+                  : 'bg-[#090714] border-slate-800 text-slate-400 hover:border-slate-700'
               }`}
             >
-              <Smartphone className="w-6 h-6 text-emerald-400 shrink-0" />
+              <Smartphone className="w-5 h-5 text-emerald-400 shrink-0" />
               <div>
-                <span className="font-bold text-white block text-xs uppercase flex items-center gap-1">
-                  eZ Cash <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-bold">INSTANT</span>
+                <span className="font-semibold text-white block text-xs flex items-center gap-1">
+                  Dialog eZ Cash
                 </span>
-                <span className="text-[10px] text-slate-400 block font-mono">Auto SMS Verify</span>
+                <span className="text-[10px] text-slate-400 block font-mono">Instant SMS verify</span>
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setPaymentMethod('paypal')}
-              className={`p-4 rounded-xl border flex items-center gap-3 transition-all text-left ${
+              className={`p-3.5 rounded-lg border flex items-center gap-3 transition-colors text-left ${
                 paymentMethod === 'paypal'
-                  ? 'bg-cyan-500/10 border-cyan-500 text-white'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                  ? 'bg-[#181335] border-purple-500 text-white'
+                  : 'bg-[#090714] border-slate-800 text-slate-400 hover:border-slate-700'
               }`}
             >
-              <CreditCard className="w-6 h-6 text-cyan-400 shrink-0" />
+              <CreditCard className="w-5 h-5 text-slate-300 shrink-0" />
               <div>
-                <span className="font-bold text-white block text-xs uppercase">PayPal Express</span>
-                <span className="text-[10px] text-slate-400 block">Instant Gateway</span>
+                <span className="font-semibold text-white block text-xs">PayPal Express</span>
+                <span className="text-[10px] text-slate-400 block">International</span>
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setPaymentMethod('bank_transfer')}
-              className={`p-4 rounded-xl border flex items-center gap-3 transition-all text-left ${
+              className={`p-3.5 rounded-lg border flex items-center gap-3 transition-colors text-left ${
                 paymentMethod === 'bank_transfer'
-                  ? 'bg-cyan-500/10 border-cyan-500 text-white'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                  ? 'bg-[#181335] border-purple-500 text-white'
+                  : 'bg-[#090714] border-slate-800 text-slate-400 hover:border-slate-700'
               }`}
             >
-              <Landmark className="w-6 h-6 text-slate-400 shrink-0" />
+              <Landmark className="w-5 h-5 text-slate-400 shrink-0" />
               <div>
-                <span className="font-bold text-white block text-xs uppercase">Bank Transfer</span>
-                <span className="text-[10px] text-slate-400 block">Manual Slip Upload</span>
+                <span className="font-semibold text-white block text-xs">Bank Transfer</span>
+                <span className="text-[10px] text-slate-400 block">Slip upload</span>
               </div>
             </button>
           </div>
 
           {paymentMethod === 'ez_cash' && (
-            <div className="space-y-4 bg-slate-950/90 p-5 rounded-2xl border border-emerald-950/70">
+            <div className="space-y-3 bg-[#090714] p-4 rounded-lg border border-slate-800">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold block flex items-center gap-1.5">
-                    <Smartphone className="w-3.5 h-3.5" /> Dialog eZ Cash Recipient
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">
+                    Dialog eZ Cash Merchant Number
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-base font-mono font-extrabold text-white tracking-wider">
+                    <span className="text-sm font-mono font-bold text-white">
                       {ezCashReceiverNumber}
                     </span>
                     <button
                       type="button"
                       onClick={handleCopyEzNumber}
-                      className="px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center gap-1 border border-emerald-500/30 transition-all"
+                      className="px-2 py-0.5 rounded bg-[#181335] hover:bg-[#201b44] text-purple-300 text-xs font-mono flex items-center gap-1 border border-slate-700 transition-colors"
                     >
                       {copiedEzNumber ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                       <span>{copiedEzNumber ? 'Copied' : 'Copy'}</span>
                     </button>
                   </div>
-                  <span className="text-[11px] text-slate-400 block">Account: <strong className="text-slate-200">{ezCashReceiverName}</strong></span>
+                  <span className="text-[11px] text-slate-400 block">Account: {ezCashReceiverName}</span>
                 </div>
 
-                <div className="bg-emerald-950/40 border border-emerald-500/30 px-4 py-2 rounded-xl text-left sm:text-right">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Transfer Exact Amount</span>
-                  <span className="text-base font-black text-emerald-400 font-mono">
+                <div className="bg-[#110e24] border border-slate-800 px-3 py-1.5 rounded-lg text-left sm:text-right">
+                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">Exact Amount</span>
+                  <span className="text-sm font-bold text-emerald-400 font-mono">
                     LKR {calculatePackagePrice(selectedPkg, userRole).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-slate-300">
                   Enter Dialog eZ Cash Transaction ID (TxID)
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. DAL3CHJ361 (from your Dialog confirmation SMS)"
+                  placeholder="e.g. DAL3CHJ361 (from Dialog confirmation SMS)"
                   value={ezCashTrxId}
                   onChange={(e) => setEzCashTrxId(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-emerald-950/80 rounded-xl text-white font-mono uppercase placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-400 tracking-wider"
+                  className="w-full px-3 py-2 bg-[#110e24] border border-slate-800 rounded-lg text-white font-mono uppercase placeholder-slate-500 text-xs focus:outline-none focus:border-purple-500"
                 />
-                <p className="text-[11px] text-slate-400">
-                  1. Send <strong>LKR {calculatePackagePrice(selectedPkg, userRole).toLocaleString()}</strong> to <strong>{ezCashReceiverNumber}</strong> via eZ Cash.<br />
-                  2. Enter the <strong>TxID</strong> above and click the button below for instant automated delivery!
-                </p>
               </div>
             </div>
           )}
 
           {paymentMethod === 'bank_transfer' && (
-            <div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div className="space-y-2 bg-[#090714] p-4 rounded-lg border border-slate-800">
               <label className="block text-xs font-semibold text-slate-300">
-                Upload Payment Receipt (ImgBB Free Storage API)
+                Upload Payment Receipt Slip
               </label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-cyan-400 hover:file:bg-slate-700 cursor-pointer"
+                className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#181335] file:text-purple-300 hover:file:bg-[#201b44] cursor-pointer"
               />
             </div>
           )}
 
           {message && (
             <div
-              className={`p-4 rounded-2xl border flex flex-col gap-2 transition-all shadow-xl ${
+              className={`p-3.5 rounded-lg border text-xs leading-relaxed ${
                 message.type === 'success'
-                  ? 'bg-gradient-to-r from-emerald-950/80 to-slate-900 border-emerald-500/50 text-emerald-200'
-                  : 'bg-gradient-to-r from-red-950/80 to-slate-900 border-red-500/50 text-red-200'
+                  ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
+                  : 'bg-rose-950/20 border-rose-500/40 text-rose-300'
               }`}
             >
-              <div className="flex items-center gap-2 font-bold text-sm">
-                {message.type === 'success' ? (
-                  <>
-                    <Zap className="w-5 h-5 text-emerald-400 shrink-0 fill-emerald-400/20" />
-                    <span className="uppercase tracking-wider text-emerald-300">Top-Up Delivered Instantly!</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-5 h-5 text-red-400 shrink-0" />
-                    <span className="uppercase tracking-wider text-red-300">Top-Up Delivery Failed</span>
-                  </>
-                )}
-              </div>
-              <p className="text-xs font-mono leading-relaxed pl-7">
-                {message.text}
-              </p>
-              {message.type === 'error' && (
-                <div className="mt-1 ml-7 px-3 py-1.5 rounded-lg bg-red-900/30 border border-red-700/40 text-[11px] font-sans text-red-300 font-medium">
-                  🛡️ <strong>Wallet Protection:</strong> Your Shadow Wallet balance was <u>NOT</u> charged. You can retry or contact support.
-                </div>
-              )}
+              <p>{message.text}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
               onClick={(e) => selectedPkg && handleAddToCart(selectedPkg, e)}
-              className="py-4 bg-[#141229] border border-purple-800 hover:border-purple-500 text-purple-300 hover:text-white font-extrabold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all text-sm uppercase"
+              className="py-3 bg-[#090714] border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors text-xs uppercase tracking-wider"
             >
-              <ShoppingCart className="w-5 h-5 text-cyan-400" />
+              <ShoppingCart className="w-4 h-4 text-purple-400" />
               <span>Add to Cart</span>
             </button>
 
             <button
               onClick={handleCheckout}
               disabled={loading}
-              className="py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold rounded-xl shadow-xl shadow-purple-600/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-sm uppercase"
+              className="py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-colors text-xs uppercase tracking-wider"
             >
               {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-white" />
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : paymentMethod === 'ez_cash' ? (
-                <>⚡ Verify eZ Cash ({formatCurrency(calculatePackagePrice(selectedPkg, userRole))}) & Top-Up Now</>
+                <>Verify eZ Cash ({formatCurrency(calculatePackagePrice(selectedPkg, userRole))}) & Top-Up</>
               ) : (
                 <>Pay {formatCurrency(calculatePackagePrice(selectedPkg, userRole))} & Recharge Now</>
               )}
