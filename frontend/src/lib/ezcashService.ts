@@ -35,7 +35,7 @@ export async function verifyEZCashTransaction(rawTrxId: string): Promise<EZCashV
     return {
       success: false,
       status: 'error',
-      message: 'Transaction ID is required. Please enter the TxID from your Dialog eZ Cash SMS.',
+      message: 'RN number is required. Please enter the RN number from your Dialog eZ Cash SMS.',
     };
   }
 
@@ -114,7 +114,7 @@ export async function verifyEZCashTransaction(rawTrxId: string): Promise<EZCashV
     return {
       success: false,
       status: 'error',
-      message: data.message || 'Transaction verification failed. Please verify your TxID.',
+      message: data.message || 'Transaction verification failed. Please verify your RN number.',
       raw: data,
     };
   } catch (err: any) {

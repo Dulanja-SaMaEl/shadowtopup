@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     if (!rawTrxId || typeof rawTrxId !== 'string') {
       return NextResponse.json(
-        { success: false, message: 'A valid Transaction ID (TxID) is required.' },
+        { success: false, message: 'A valid RN number is required.' },
         { status: 400 }
       );
     }

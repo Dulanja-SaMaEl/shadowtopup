@@ -88,7 +88,7 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
         setEzCashTrxId('');
         await fetchWallet();
       } else {
-        setMsg({ type: 'error', text: data.message || 'Verification failed. Please check your Transaction ID.' });
+        setMsg({ type: 'error', text: data.message || 'Verification failed. Please check your RN number.' });
       }
     } catch (err: any) {
       setMsg({ type: 'error', text: 'Network connection error. Please try again.' });
@@ -210,7 +210,7 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
               </span>
               <p className="text-[11px] text-slate-400 leading-relaxed">
                 1. Transfer any amount to <strong>{ezCashNumber}</strong> via eZ Cash.<br />
-                2. Enter the <strong>TxID</strong> from the Dialog SMS below. Funds will be added instantly!
+                2. Enter the <strong>RN number</strong> from the Dialog SMS below. Funds will be added instantly!
               </p>
             </div>
           </div>
@@ -220,7 +220,7 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
               <input
                 type="text"
                 required
-                placeholder="Enter eZ Cash TxID (e.g. DAL3CHJ361)"
+                placeholder="Enter eZ Cash RN Number (from Dialog SMS)"
                 value={ezCashTrxId}
                 onChange={(e) => setEzCashTrxId(e.target.value)}
                 className="flex-1 px-4 py-3 bg-[#0e0c1f] border border-emerald-950/80 rounded-xl text-white font-mono uppercase placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-400 tracking-wider"
@@ -228,10 +228,10 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
               <button
                 type="submit"
                 disabled={submittingEzCash}
-                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 disabled:opacity-50 transition-all font-gaming"
               >
                 {submittingEzCash ? (
-                  'Verifying TxID...'
+                  'Verifying RN Number...'
                 ) : (
                   <>
                     <Zap className="w-3.5 h-3.5 fill-white" /> Verify & Credit Wallet

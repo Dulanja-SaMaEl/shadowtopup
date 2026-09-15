@@ -124,7 +124,7 @@ const homepageFaqs = [
   {
     question: 'How does Dialog eZ Cash payment work?',
     answer:
-      'Transfer the exact order amount to our verified eZ Cash number (0765604635). Enter the TxID from your Dialog SMS receipt into our verification form for instant automated fulfillment.',
+      'Transfer the exact order amount to our verified eZ Cash number (0765604635). Enter the RN number from your Dialog SMS receipt into our verification form for instant automated fulfillment.',
   },
   {
     question: 'How do Sri Lankan game resellers earn profit with ShadowTopUp?',

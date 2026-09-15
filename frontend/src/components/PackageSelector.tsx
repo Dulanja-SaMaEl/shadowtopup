@@ -192,7 +192,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
     if (paymentMethod === 'ez_cash') {
       const cleanTrx = ezCashTrxId.trim();
       if (!cleanTrx) {
-        setMessage({ type: 'error', text: 'Please enter the Dialog eZ Cash Transaction ID (TxID) from your SMS receipt.' });
+        setMessage({ type: 'error', text: 'Please enter the Dialog eZ Cash RN Number from your SMS receipt.' });
         setLoading(false);
         return;
       }
@@ -596,12 +596,12 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-slate-300">
-                  Enter Dialog eZ Cash Transaction ID (TxID)
+                  Enter Dialog eZ Cash RN Number
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. DAL3CHJ361 (from Dialog confirmation SMS)"
+                  placeholder="Enter RN number from Dialog SMS (e.g. 260315...)"
                   value={ezCashTrxId}
                   onChange={(e) => setEzCashTrxId(e.target.value)}
                   className="w-full px-3 py-2 bg-[#110e24] border border-purple-950/80 rounded-lg text-white font-mono uppercase placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_12px_rgba(6,182,212,0.3)]"
