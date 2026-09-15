@@ -70,20 +70,33 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0b0918] border-b border-slate-800/80 text-white">
+    <header className="sticky top-0 z-50 bg-[#0b0918]/95 backdrop-blur-md border-b border-purple-950/40 text-white">
+      {/* Top Neon Laser Edge Line */}
+      <div className="laser-line w-full" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 py-1">
-            <Image
-              src="/logo.png"
-              alt="ShadowTopUp - Gaming Top-Up Platform"
-              width={170}
-              height={48}
-              className="h-9 w-auto object-contain"
-              priority
-            />
-          </Link>
+          {/* Logo & Tactical Live Status */}
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-3 py-1">
+              <Image
+                src="/logo.png"
+                alt="ShadowTopUp - Gaming Top-Up Platform"
+                width={170}
+                height={48}
+                className="h-9 w-auto object-contain"
+                priority
+              />
+            </Link>
+
+            {/* Tactical Live Ping Beacon */}
+            <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-full bg-purple-950/40 border border-purple-800/40 text-[10px] font-mono text-purple-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span className="tracking-wide">DISPATCH: LIVE</span>
+              <span className="text-slate-600">|</span>
+              <span className="text-cyan-400 font-bold">&lt;30s</span>
+            </div>
+          </div>
 
           {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-7">
@@ -93,9 +106,9 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-xs uppercase tracking-wider font-semibold transition-colors ${
+                  className={`text-xs uppercase tracking-wider font-semibold transition-all relative py-1 ${
                     isActive
-                      ? 'text-purple-400'
+                      ? 'text-white font-bold after:absolute after:bottom-[-16px] after:left-0 after:right-0 after:h-[2px] after:bg-purple-500 after:shadow-[0_0_10px_rgba(168,85,247,0.8)]'
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
@@ -107,7 +120,7 @@ export default function Navbar() {
             {profile?.role === 'admin' && (
               <Link
                 href="/admin/dashboard"
-                className="text-xs font-semibold text-purple-300 bg-purple-950/40 border border-purple-800/60 px-3 py-1.5 rounded-lg hover:bg-purple-900/60 flex items-center gap-1.5 transition-colors"
+                className="text-xs font-semibold text-purple-300 bg-purple-950/50 border border-purple-700/60 px-3 py-1.5 rounded-lg hover:bg-purple-900/60 flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(168,85,247,0.2)]"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> Admin
               </Link>
@@ -118,13 +131,13 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             <Link
               href="/cart"
-              className="relative p-2 rounded-lg bg-[#141029] border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-colors flex items-center justify-center"
+              className="relative p-2 rounded-lg bg-[#141029] border border-purple-950/60 text-slate-300 hover:text-white hover:border-purple-500/50 hover:shadow-[0_0_12px_rgba(168,85,247,0.25)] transition-all flex items-center justify-center"
               title="Shopping Cart"
               aria-label="Shopping Cart"
             >
               <ShoppingCart className="w-4 h-4" />
               {totalCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white font-mono font-bold text-[9px] flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white font-mono font-bold text-[9px] flex items-center justify-center shadow-[0_0_8px_rgba(225,29,72,0.8)]">
                   {totalCount}
                 </span>
               )}
@@ -135,10 +148,10 @@ export default function Navbar() {
                 {profile.role !== 'normal' && (
                   <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider ${
                     profile.role === 'admin'
-                      ? 'bg-purple-500/10 border border-purple-500/30 text-purple-300'
+                      ? 'bg-purple-500/10 border border-purple-500/30 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.2)]'
                       : profile.role === 'gold'
-                      ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
-                      : 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-300'
+                      ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                      : 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.2)]'
                   }`}>
                     {profile.role}
                   </span>
@@ -146,7 +159,7 @@ export default function Navbar() {
 
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161230] hover:bg-[#1d183f] border border-slate-700/80 text-white text-xs font-semibold transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161230] hover:bg-[#1d183f] border border-purple-900/60 text-white text-xs font-semibold hover:shadow-[0_0_12px_rgba(168,85,247,0.2)] transition-all"
                 >
                   <User className="w-3.5 h-3.5 text-purple-400" />
                   <span>Dashboard</span>
@@ -170,7 +183,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                   href="/register"
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition-colors"
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition-all neon-glow-btn"
                 >
                   Create Account
                 </Link>

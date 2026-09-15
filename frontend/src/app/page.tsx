@@ -207,108 +207,123 @@ export default async function HomePage() {
           </span>
         </div>
 
-        {/* 1. Hero Section: Clean, Confident, Content-First */}
+        {/* 1. Hero Section: Esports Cyber-Dark Gaming Hero */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl bg-[#0f0c22] border border-slate-800/90 p-6 sm:p-10 lg:p-12">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              {/* Left Column: Clear Value Prop */}
+          <div className="relative rounded-2xl bg-[#0f0c22] border border-purple-900/40 p-6 sm:p-10 lg:p-12 overflow-hidden shadow-2xl">
+            {/* Ambient Cyber Grid Backdrop */}
+            <div className="absolute inset-0 cyber-grid opacity-60 pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" />
+            
+            {/* Top Laser Accent Rim */}
+            <div className="laser-line w-full absolute top-0 left-0" />
+
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              {/* Left Column: Clear Value Prop with Tactical HUD */}
               <div className="lg:col-span-7 space-y-5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-purple-950/40 border border-purple-800/50 text-purple-300 text-xs font-mono font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Free Fire Singapore & Malaysia Region
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/60 border border-purple-500/40 text-purple-300 text-xs font-mono font-semibold shadow-[0_0_12px_rgba(168,85,247,0.25)]">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+                  <span>// GARENA SERVER: SG & MY</span>
+                  <span className="text-purple-600">|</span>
+                  <span className="text-cyan-400 font-bold">&lt;30s DISPATCH</span>
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
-                  Instant Free Fire Diamonds & Weekly Passes in Sri Lanka
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                  Instant Free Fire Diamonds & Weekly Passes in{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-300 to-purple-300">
+                    Sri Lanka
+                  </span>
                 </h1>
 
                 <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
-                  Reload your Free Fire account in under 30 seconds with automatic Player UID nickname verification. Pay conveniently via Dialog eZ Cash, bank transfer, or prepaid wallet.
+                  Reload your Free Fire account in under 30 seconds with automatic Player UID nickname verification. Pay securely via Dialog eZ Cash, Sri Lankan bank transfer, or prepaid wallet.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                   <Link
                     href="/games/free-fire"
-                    className="px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs uppercase tracking-wider text-center transition-colors shadow-sm"
+                    className="px-6 py-3.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider text-center transition-all neon-glow-btn flex items-center justify-center gap-2"
                   >
-                    Top-Up Diamonds Now
+                    <Zap className="w-4 h-4 text-cyan-300 fill-cyan-300" />
+                    <span>Top-Up Diamonds Now</span>
+                    <ArrowRight className="w-4 h-4" />
                   </Link>
 
                   <Link
                     href="/reseller"
-                    className="px-6 py-3 rounded-lg bg-[#181434] hover:bg-[#201b44] border border-slate-700/80 text-slate-200 font-semibold text-xs uppercase tracking-wider text-center transition-colors"
+                    className="px-6 py-3.5 rounded-lg bg-[#181434] hover:bg-[#201b44] border border-purple-800/60 hover:border-purple-500/50 text-slate-200 font-semibold text-xs uppercase tracking-wider text-center transition-all hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]"
                   >
                     Wholesale Reseller Program
                   </Link>
                 </div>
 
-                {/* Trust Highlights */}
-                <div className="pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-5 text-xs text-slate-400">
-                  <span className="flex items-center gap-1.5 text-slate-300">
+                {/* Trust Highlights with Tactical Badges */}
+                <div className="pt-4 border-t border-purple-950/60 flex flex-wrap items-center gap-5 text-xs text-slate-400">
+                  <span className="flex items-center gap-1.5 text-slate-300 font-mono">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Fast Delivery (&lt;30s)
                   </span>
-                  <span className="flex items-center gap-1.5 text-slate-300">
-                    <ShieldCheck className="w-4 h-4 text-purple-400" /> Real-Time Nickname Check
+                  <span className="flex items-center gap-1.5 text-slate-300 font-mono">
+                    <ShieldCheck className="w-4 h-4 text-purple-400" /> Live Nickname Check
                   </span>
-                  <span className="flex items-center gap-1.5 text-slate-300">
+                  <span className="flex items-center gap-1.5 text-slate-300 font-mono">
                     <Lock className="w-4 h-4 text-cyan-400" /> Dialog eZ Cash Verified
                   </span>
                 </div>
               </div>
 
-              {/* Right Column: Live Package Rates Preview Card */}
+              {/* Right Column: Live Package Rates Preview Card with Neon Rim */}
               <div className="lg:col-span-5">
-                <div className="rounded-xl bg-[#15112e] border border-slate-800 p-5 space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="rounded-xl bg-[#15112e] neon-border-purple p-5 space-y-4 relative overflow-hidden">
+                  <div className="flex items-center justify-between pb-3 border-b border-purple-950/60">
                     <div>
-                      <span className="text-[10px] font-mono uppercase text-slate-400 block">Popular Recharges</span>
-                      <h3 className="text-sm font-bold text-white">Live LKR Pricing</h3>
+                      <span className="text-[10px] font-mono uppercase text-purple-400 font-semibold block">POPULAR PACKAGES</span>
+                      <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" /> Live LKR Rates
+                      </h3>
                     </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                      In Stock
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)] flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> IN STOCK
                     </span>
                   </div>
 
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-slate-800/80 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
                         <span className="font-semibold text-white block">Weekly Membership Pass</span>
-                        <span className="text-[10px] text-slate-400">450 Diamonds value</span>
+                        <span className="text-[10px] text-purple-300/80 font-mono">450 Diamonds value</span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-400">LKR 650.00</span>
+                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 650.00</span>
                     </div>
 
-                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-slate-800/80 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
                         <span className="font-semibold text-white block">100 Diamonds</span>
-                        <span className="text-[10px] text-slate-400">Instant direct UID delivery</span>
+                        <span className="text-[10px] text-purple-300/80 font-mono">Instant UID delivery</span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-400">LKR 350.00</span>
+                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 350.00</span>
                     </div>
 
-                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-slate-800/80 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
                         <span className="font-semibold text-white block">Monthly VIP Pass</span>
-                        <span className="text-[10px] text-slate-400">2,600 Diamonds value</span>
+                        <span className="text-[10px] text-purple-300/80 font-mono">2,600 Diamonds value</span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-400">LKR 3,200.00</span>
+                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 3,200.00</span>
                     </div>
 
-                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-slate-800/80 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
                         <span className="font-semibold text-white block">Weekly Lite Pass</span>
-                        <span className="text-[10px] text-slate-400">120 Diamonds value</span>
+                        <span className="text-[10px] text-purple-300/80 font-mono">120 Diamonds value</span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-400">LKR 280.00</span>
+                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 280.00</span>
                     </div>
                   </div>
 
                   <Link
                     href="/games/free-fire"
-                    className="w-full py-2.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    className="w-full py-2.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/50 text-purple-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all hover:shadow-[0_0_15px_rgba(168,85,247,0.3)]"
                   >
                     <span>View All 20+ Packages</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
                   </Link>
                 </div>
               </div>
@@ -336,20 +351,20 @@ export default async function HomePage() {
             {games.map((game, idx) => (
               <div
                 key={idx}
-                className="rounded-xl bg-[#110e24] border border-slate-800 flex flex-col justify-between p-5 space-y-4 hover:border-slate-700 transition-colors"
+                className="group rounded-xl bg-[#110e24] border border-purple-950/60 flex flex-col justify-between p-5 space-y-4 hover:border-purple-500/60 hover:shadow-[0_0_22px_rgba(168,85,247,0.25)] transition-all"
               >
                 <div className="space-y-3">
-                  <div className="relative h-44 rounded-lg overflow-hidden bg-slate-950 border border-slate-800">
+                  <div className="relative h-44 rounded-lg overflow-hidden bg-slate-950 border border-purple-950/40">
                     <img
                       src={game.image}
                       alt={game.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                     />
                     <span
                       className={`absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
                         game.available
-                          ? 'bg-emerald-950/80 border border-emerald-500/40 text-emerald-300'
-                          : 'bg-slate-900/80 border border-slate-700 text-slate-400'
+                          ? 'bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.35)]'
+                          : 'bg-slate-900/90 border border-slate-700 text-slate-400'
                       }`}
                     >
                       {game.badge}
@@ -357,8 +372,8 @@ export default async function HomePage() {
                   </div>
 
                   <div>
-                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">{game.category}</span>
-                    <h3 className="text-base font-bold text-white mt-0.5">{game.title}</h3>
+                    <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider font-semibold">{game.category}</span>
+                    <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors mt-0.5">{game.title}</h3>
                     <p className="text-xs text-slate-400 mt-1 font-mono">{game.discount}</p>
                   </div>
                 </div>
@@ -367,9 +382,10 @@ export default async function HomePage() {
                   {game.available ? (
                     <Link
                       href={`/games/${game.slug}`}
-                      className="w-full py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
+                      className="w-full py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all neon-glow-btn"
                     >
-                      Top-Up Now <ArrowRight className="w-3.5 h-3.5" />
+                      <span>Top-Up Now</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-cyan-300" />
                     </Link>
                   ) : (
                     <button
@@ -387,22 +403,28 @@ export default async function HomePage() {
 
         {/* 3. Why Choose ShadowTopUp: Structured, Factual Guarantees */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          <div className="pb-4 border-b border-slate-800">
-            <span className="text-xs font-mono font-semibold uppercase text-purple-400 tracking-wider">Infrastructure</span>
-            <h2 className="text-xl sm:text-2xl font-bold text-white mt-0.5">Why Players & Resellers Choose Us</h2>
+          <div className="pb-4 border-b border-purple-950/60 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-mono font-semibold uppercase text-purple-400 tracking-wider">Infrastructure</span>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mt-0.5">Why Players & Resellers Choose Us</h2>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span>99.9% Automated Fulfillment</span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {platformGuarantees.map((item, idx) => (
               <div
                 key={idx}
-                className="rounded-xl bg-[#110e24] border border-slate-800 p-5 space-y-2.5"
+                className="rounded-xl bg-[#110e24] border border-purple-950/60 p-5 space-y-3 hover:border-purple-500/40 hover:shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-all"
               >
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-950/50 text-purple-300 border border-purple-800/40">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-950/60 text-purple-300 border border-purple-800/50 shadow-[0_0_8px_rgba(168,85,247,0.2)]">
                     {item.badge}
                   </span>
-                  <span className="text-xs font-mono text-slate-500">0{idx + 1}</span>
+                  <span className="text-xs font-mono text-cyan-400 font-bold">0{idx + 1}</span>
                 </div>
                 <h3 className="text-sm font-bold text-white">{item.title}</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
@@ -413,7 +435,7 @@ export default async function HomePage() {
 
         {/* 4. Wholesale Reseller Program: Clean, Clear Comparison */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 pb-4 border-b border-slate-800">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 pb-4 border-b border-purple-950/60">
             <div>
               <span className="text-xs font-mono font-semibold uppercase text-purple-400 tracking-wider">Business Partner Program</span>
               <h2 className="text-xl sm:text-2xl font-bold text-white mt-0.5">Wholesale Reseller Tiers</h2>
@@ -422,7 +444,7 @@ export default async function HomePage() {
 
             <Link
               href="/reseller"
-              className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold text-purple-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
             >
               Full Reseller Guide &rarr;
             </Link>
@@ -432,22 +454,22 @@ export default async function HomePage() {
             {resellerTiers.map((tier, idx) => (
               <div
                 key={idx}
-                className="rounded-xl bg-[#110e24] border border-slate-800 p-6 flex flex-col justify-between space-y-4"
+                className="rounded-xl bg-[#110e24] border border-purple-950/60 p-6 flex flex-col justify-between space-y-4 hover:border-purple-500/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.2)] transition-all"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-bold text-white">{tier.name}</h3>
-                    <span className="px-2.5 py-0.5 rounded-md font-mono font-bold text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    <span className="px-2.5 py-0.5 rounded-md font-mono font-bold text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)]">
                       {tier.discount}
                     </span>
                   </div>
 
                   <p className="text-xs text-slate-300">{tier.sampleProfit}</p>
-                  <p className="text-[11px] text-slate-400 font-mono">Requirement: {tier.minDeposit}</p>
+                  <p className="text-[11px] text-purple-300/80 font-mono">Requirement: {tier.minDeposit}</p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400">
-                  Best for: <strong className="text-slate-200">{tier.idealFor}</strong>
+                <div className="pt-3 border-t border-purple-950/60 text-[11px] text-slate-400">
+                  Best for: <strong className="text-white font-medium">{tier.idealFor}</strong>
                 </div>
               </div>
             ))}

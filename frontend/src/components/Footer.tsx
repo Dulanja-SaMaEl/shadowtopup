@@ -4,7 +4,10 @@ import { AlertTriangle } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-[#07060f] border-t border-slate-800/80 text-slate-400 py-12">
+    <footer className="bg-[#07060f] border-t border-purple-950/40 text-slate-400 py-12 relative overflow-hidden">
+      {/* Top Neon Laser Accent */}
+      <div className="laser-line-cyan w-full absolute top-0 left-0" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Col */}
@@ -21,6 +24,10 @@ export default function Footer() {
             <p className="text-xs text-slate-400 leading-relaxed">
               Third-party gaming top-up platform and wholesale reseller service in Sri Lanka. Instant Free Fire diamond recharge with verified Player ID dispatch.
             </p>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-purple-950/40 border border-purple-800/40 text-[10px] font-mono text-purple-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span>Garena API Online</span>
+            </div>
           </div>
 
           {/* Quick Recharge */}

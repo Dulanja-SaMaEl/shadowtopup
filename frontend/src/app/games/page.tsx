@@ -140,20 +140,23 @@ export default async function GamesCatalogPage() {
           <span className="text-cyan-400 font-bold">Games Catalog</span>
         </nav>
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800/80 pb-6">
-          <div>
+        {/* Header with Cyber Grid */}
+        <div className="relative overflow-hidden bg-[#110e24] border border-purple-950/60 rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl">
+          <div className="absolute inset-0 cyber-grid opacity-30 pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" />
+          <div className="laser-line w-full absolute top-0 left-0" />
+
+          <div className="relative z-10 space-y-1">
             <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
-              <Gamepad2 className="w-4 h-4" /> RECHARGE CATALOG
+              <Gamepad2 className="w-4 h-4" /> [ RECHARGE CATALOG ]
             </div>
-            <h1 className="text-3xl font-extrabold text-white">Supported Games Catalog</h1>
-            <p className="text-slate-400 text-sm mt-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Supported Games Catalog</h1>
+            <p className="text-slate-300 text-xs sm:text-sm max-w-xl leading-relaxed">
               Select an active game to check available diamond packages, pass bundles, and live reseller prices in Sri Lanka.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> Automated Garena Shell Sync
+          <div className="relative z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-950/60 border border-purple-700/50 text-purple-300 text-xs font-mono font-semibold shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> Automated Garena Sync
           </div>
         </div>
 
@@ -167,7 +170,7 @@ export default async function GamesCatalogPage() {
                 <Link
                   key={game.slug}
                   href={`/games/${game.slug}`}
-                  className="group rounded-xl bg-[#110e24] border border-white/[0.08] hover:border-purple-500/50 transition-colors shadow-sm flex flex-col justify-between overflow-hidden"
+                  className="group rounded-xl bg-[#110e24] border border-purple-950/60 hover:border-purple-500/60 hover:shadow-[0_0_22px_rgba(168,85,247,0.25)] transition-all shadow-sm flex flex-col justify-between overflow-hidden"
                 >
                   <div>
                     {/* Game Image Banner */}

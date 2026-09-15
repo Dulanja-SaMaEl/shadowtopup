@@ -146,29 +146,32 @@ export default function ResellerProgramPage() {
         </nav>
 
         {/* Hero Header */}
-        <div className="p-8 sm:p-12 rounded-xl bg-[#110e24] border border-white/[0.08] text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium">
-            <Award className="w-3.5 h-3.5 text-purple-400" /> Wholesale Gaming Partner Program
+        <div className="relative overflow-hidden p-8 sm:p-12 rounded-xl bg-[#110e24] border border-purple-950/60 text-center space-y-6 shadow-2xl">
+          <div className="absolute inset-0 cyber-grid opacity-35 pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" />
+          <div className="laser-line w-full absolute top-0 left-0" />
+
+          <div className="relative z-10 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/60 border border-purple-600/50 text-purple-300 text-xs font-mono font-semibold shadow-[0_0_10px_rgba(168,85,247,0.25)]">
+            <Award className="w-3.5 h-3.5 text-cyan-300" /> [ WHOLESALE PARTNER PROGRAM ]
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
-            Wholesale Gaming Top-Up Platform for Sri Lanka
+          <h1 className="relative z-10 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
+            Wholesale Gaming Top-Up Platform for <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-300 to-purple-400">Sri Lanka</span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-slate-300 text-sm sm:text-base leading-relaxed">
+          <p className="relative z-10 max-w-2xl mx-auto text-slate-300 text-sm sm:text-base leading-relaxed">
             Reliable recharge infrastructure for gaming shops, digital merchants, and independent resellers. Top up Free Fire diamonds and passes with instant UID validation and tiered wholesale discounts.
           </p>
 
-          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+          <div className="relative z-10 flex flex-col sm:flex-row justify-center gap-3 pt-2">
             <Link
               href="/register"
-              className="px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm"
+              className="px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all neon-glow-btn"
             >
-              Create Reseller Account <ArrowRight className="w-4 h-4" />
+              Create Reseller Account <ArrowRight className="w-4 h-4 text-cyan-300" />
             </Link>
             <Link
               href="/login"
-              className="px-6 py-3 rounded-lg bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] text-slate-200 font-semibold text-sm transition-colors"
+              className="px-6 py-3 rounded-lg bg-[#181434] border border-purple-950/80 hover:border-purple-500/50 text-slate-200 font-semibold text-xs uppercase tracking-wider transition-all hover:shadow-[0_0_12px_rgba(168,85,247,0.2)]"
             >
               Login to Reseller Dashboard
             </Link>
@@ -192,14 +195,14 @@ export default function ResellerProgramPage() {
               return (
                 <div
                   key={idx}
-                  className={`p-5 rounded-xl flex flex-col justify-between space-y-4 border transition-colors ${
+                  className={`p-5 rounded-xl flex flex-col justify-between space-y-4 border transition-all ${
                     isPopular
-                      ? 'bg-[#151230] border-purple-500/50 shadow-lg shadow-purple-950/40 relative'
-                      : 'bg-[#110e24] border-white/[0.08] hover:border-white/20'
+                      ? 'bg-[#151230] border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.3)] relative ring-1 ring-purple-400/40'
+                      : 'bg-[#110e24] border-purple-950/60 hover:border-purple-500/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]'
                   }`}
                 >
                   {isPopular && (
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-purple-600 text-[10px] font-semibold tracking-wide text-white uppercase shadow-sm">
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-purple-600 text-[10px] font-semibold tracking-wide text-white uppercase shadow-[0_0_10px_rgba(168,85,247,0.6)]">
                       Most Popular
                     </div>
                   )}
