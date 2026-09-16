@@ -13,7 +13,7 @@ export const DEFAULT_SITE_DESCRIPTION =
  */
 export function getSiteUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
-  if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0 && !envUrl.includes('shadowtopup.com')) {
     return envUrl.trim().replace(/\/+$/, '');
   }
   return 'https://www.shadowstorelk.com';

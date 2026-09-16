@@ -21,8 +21,16 @@ function getFromAddress(): string {
   }
   return cleaned;
 }
+
+function getSiteUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0 && !envUrl.includes('shadowtopup.com')) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  return 'https://www.shadowstorelk.com';
+}
+
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || 'adminshadowstorelk.com@gmail.com';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://shadowtopup.com';
 
 /**
  * Base Responsive Cyberpunk / Esports Email Shell
@@ -82,9 +90,11 @@ function renderEmailShell({
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td align="left">
-                    <span style="font-size: 20px; font-weight: 900; letter-spacing: 1.5px; color: #ffffff; text-transform: uppercase;">
-                      SHADOW<span style="color: #a855f7;">STORE</span>
-                    </span>
+                    <a href="${getSiteUrl()}" style="text-decoration: none; color: inherit; display: inline-block;">
+                      <span style="font-size: 20px; font-weight: 900; letter-spacing: 1.5px; color: #ffffff; text-transform: uppercase;">
+                        SHADOW<span style="color: #a855f7;">STORE</span>
+                      </span>
+                    </a>
                     <span style="display: block; font-size: 10px; font-family: monospace; color: #94a3b8; letter-spacing: 1px; margin-top: 2px;">
                       // GARENA FREE FIRE OFFICIAL DISPATCH
                     </span>
@@ -115,6 +125,9 @@ function renderEmailShell({
                 Our Sri Lankan support desk is live 24/7 on WhatsApp &amp; Email.
               </p>
               <div style="margin-bottom: 16px;">
+                <a href="${getSiteUrl()}" style="display: inline-block; padding: 6px 14px; margin: 0 4px; background-color: #191433; border: 1px solid #2d2358; border-radius: 6px; color: #06b6d4; font-size: 11px; font-family: monospace; text-decoration: none; font-weight: bold;">
+                  SHADOWSTORELK.COM
+                </a>
                 <a href="https://wa.me/94765604635" style="display: inline-block; padding: 6px 14px; margin: 0 4px; background-color: #191433; border: 1px solid #2d2358; border-radius: 6px; color: #10b981; font-size: 11px; font-family: monospace; text-decoration: none; font-weight: bold;">
                   WHATSAPP: 076 560 4635
                 </a>
@@ -265,7 +278,7 @@ export async function sendWelcomeEmail(
       <table border="0" cellpadding="0" cellspacing="0" width="100%">
         <tr>
           <td align="center" style="padding-bottom: 12px;">
-            <a href="${SITE_URL}/games/free-fire" style="display: inline-block; padding: 14px 28px; background: linear-gradient(90deg, #7c3aed, #a855f7); color: #ffffff; font-size: 13px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);">
+            <a href="${getSiteUrl()}/games/free-fire" style="display: inline-block; padding: 14px 28px; background: linear-gradient(90deg, #7c3aed, #a855f7); color: #ffffff; font-size: 13px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);">
               Explore Packages &amp; Top-Up Now &rarr;
             </a>
           </td>
@@ -424,7 +437,7 @@ export async function sendPurchaseReceiptEmail(
       <table border="0" cellpadding="0" cellspacing="0" width="100%">
         <tr>
           <td align="center" style="padding-top: 8px;">
-            <a href="${SITE_URL}/dashboard" style="display: inline-block; padding: 12px 24px; background-color: #1a1538; border: 1px solid #a855f7; color: #ffffff; font-size: 12px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; border-radius: 8px;">
+            <a href="${getSiteUrl()}/dashboard" style="display: inline-block; padding: 12px 24px; background-color: #1a1538; border: 1px solid #a855f7; color: #ffffff; font-size: 12px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; border-radius: 8px;">
               View in Customer Dashboard &rarr;
             </a>
           </td>
@@ -508,7 +521,7 @@ export async function sendResellerPromotedEmail(
       <table border="0" cellpadding="0" cellspacing="0" width="100%">
         <tr>
           <td align="center" style="padding-top: 8px;">
-            <a href="${SITE_URL}/dashboard" style="display: inline-block; padding: 14px 28px; background: linear-gradient(90deg, #7c3aed, #a855f7); color: #ffffff; font-size: 13px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);">
+            <a href="${getSiteUrl()}/dashboard" style="display: inline-block; padding: 14px 28px; background: linear-gradient(90deg, #7c3aed, #a855f7); color: #ffffff; font-size: 13px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);">
               Access Reseller Dashboard &rarr;
             </a>
           </td>
@@ -715,7 +728,7 @@ export async function sendLowStockAlertEmail(stockData: {
       <table border="0" cellpadding="0" cellspacing="0" width="100%">
         <tr>
           <td align="center">
-            <a href="${SITE_URL}/admin/shell-accounts" style="display: inline-block; padding: 14px 28px; background: linear-gradient(90deg, #ef4444, #dc2626); color: #ffffff; font-size: 13px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">
+            <a href="${getSiteUrl()}/admin/shell-accounts" style="display: inline-block; padding: 14px 28px; background: linear-gradient(90deg, #ef4444, #dc2626); color: #ffffff; font-size: 13px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">
               Reload Garena Shells in Admin Suite &rarr;
             </a>
           </td>
