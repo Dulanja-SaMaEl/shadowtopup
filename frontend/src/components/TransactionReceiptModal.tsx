@@ -121,14 +121,14 @@ export default function TransactionReceiptModal({ receipt, onClose }: Props) {
       canvas.toBlob(async (blob) => {
         if (!blob) {
           const link = document.createElement('a');
-          link.download = `ShadowTopUp_Receipt_${receipt.orderId || 'Order'}.png`;
+          link.download = `ShadowStore_Receipt_${receipt.orderId || 'Order'}.png`;
           link.href = canvas.toDataURL('image/png');
           link.click();
           setDownloading(false);
           return;
         }
 
-        const fileName = `ShadowTopUp_Receipt_${receipt.orderId || 'Order'}.png`;
+        const fileName = `ShadowStore_Receipt_${receipt.orderId || 'Order'}.png`;
         const file = new File([blob], fileName, { type: 'image/png' });
 
         if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {

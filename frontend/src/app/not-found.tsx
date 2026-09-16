@@ -3,8 +3,8 @@ import { Gamepad2, ArrowLeft, Zap, HelpCircle } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '404 - Page Not Found',
-  description: 'The requested page could not be found on ShadowTopUp. Return to our game catalog or instant Free Fire recharge.',
+  title: '404 - Page Not Found | Shadow Store',
+  description: 'The requested page could not be found on Shadow Store. Return to our game catalog or instant Free Fire recharge.',
   robots: {
     index: false,
     follow: false,

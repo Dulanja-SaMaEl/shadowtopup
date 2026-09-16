@@ -45,7 +45,7 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
 
     // Primary admin account check as fallback
     const userEmail = (user.email || '').toLowerCase().trim();
-    if (userEmail === 'admin@shadowtopup.com') {
+    if (userEmail === 'admin@shadowtopup.com' || userEmail === 'adminshadowstorelk.com@gmail.com') {
       role = 'admin';
     }
 

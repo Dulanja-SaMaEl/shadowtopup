@@ -27,12 +27,12 @@ const SUPPORTED_GAMES_METADATA: Record<
   }
 > = {
   'free-fire': {
-    title: 'Free Fire Diamonds Sri Lanka | Fast Diamond Recharge',
+    title: 'Free Fire Diamonds Sri Lanka | Instant Top-Up & Passes | Shadow Store',
     h1: 'Garena Free Fire Diamonds Top Up (Sri Lanka)',
     description:
       'Recharge Free Fire diamonds and passes in Sri Lanka with instant Player UID nickname verification. Fast automated delivery in 30 seconds via Dialog eZ Cash, Bank Transfer, and Shadow Wallet.',
-    minPrice: 140,
-    maxPrice: 11500,
+    minPrice: 100,
+    maxPrice: 28804,
     faqs: [
       {
         question: 'How long does a Free Fire diamond top-up take to deliver?',
@@ -42,7 +42,7 @@ const SUPPORTED_GAMES_METADATA: Record<
       {
         question: 'Do I need my Free Fire account password to recharge?',
         answer:
-          'No! Never share your game password. ShadowTopUp only requires your numeric Player Game UID. Our system verifies your in-game nickname live before you pay to ensure safe delivery.',
+          'No! Never share your game password. Shadow Store only requires your numeric Player Game UID. Our system verifies your in-game nickname live before you pay to ensure safe delivery.',
       },
       {
         question: 'What payment methods are supported in Sri Lanka?',
@@ -57,15 +57,15 @@ const SUPPORTED_GAMES_METADATA: Record<
       {
         question: 'How do reseller discounts work for Free Fire diamonds?',
         answer:
-          'Registered resellers unlock tiered wholesale pricing from Standard Reseller (8% off) to Elite Reseller (15% off) and Diamond (20% off) automatically on all diamond packs and subscriptions.',
+          'Registered resellers unlock tiered wholesale pricing from Standard Reseller (8% off) to Elite Reseller (15% off) automatically on all diamond packs and subscriptions.',
       },
     ],
   },
   'pubg-mobile': {
-    title: 'PUBG Mobile UC Recharge Sri Lanka | ShadowTopUp',
+    title: 'PUBG Mobile UC Recharge Sri Lanka | Shadow Store',
     h1: 'PUBG Mobile Unknown Cash (UC) Top Up',
     description:
-      'PUBG Mobile UC top-up service in Sri Lanka with Character ID verification. Coming soon on ShadowTopUp.',
+      'PUBG Mobile UC top-up service in Sri Lanka with Character ID verification. Coming soon on Shadow Store.',
     minPrice: 350,
     maxPrice: 15000,
     faqs: [
@@ -77,10 +77,10 @@ const SUPPORTED_GAMES_METADATA: Record<
     ],
   },
   'mobile-legends': {
-    title: 'Mobile Legends Diamonds Sri Lanka | ShadowTopUp',
+    title: 'Mobile Legends Diamonds Sri Lanka | Shadow Store',
     h1: 'Mobile Legends: Bang Bang Diamonds Top Up',
     description:
-      'Direct top-up for Mobile Legends Diamonds and Weekly Diamond Pass in Sri Lanka via User ID and Zone ID. Coming soon on ShadowTopUp.',
+      'Direct top-up for Mobile Legends Diamonds and Weekly Diamond Pass in Sri Lanka via User ID and Zone ID. Coming soon on Shadow Store.',
     minPrice: 280,
     maxPrice: 12000,
     faqs: [
@@ -100,11 +100,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const gameData = SUPPORTED_GAMES_METADATA[slug] || {
-    title: `${slug.toUpperCase().replace(/-/g, ' ')} Top Up Sri Lanka`,
+    title: `${slug.toUpperCase().replace(/-/g, ' ')} Top Up Sri Lanka | Shadow Store`,
     h1: `${slug.toUpperCase().replace(/-/g, ' ')} Recharge`,
-    description: `Instant ${slug.toUpperCase().replace(/-/g, ' ')} recharge service in Sri Lanka with automated player UID verification on ShadowTopUp.`,
-    minPrice: 140,
-    maxPrice: 11500,
+    description: `Instant ${slug.toUpperCase().replace(/-/g, ' ')} recharge service in Sri Lanka with automated player UID verification on Shadow Store.`,
+    minPrice: 100,
+    maxPrice: 28804,
     faqs: [],
   };
 
@@ -124,7 +124,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       siteName: SITE_NAME,
       images: [
         {
-          url: '/logo-wide.png',
+          url: '/og-image.png',
           width: 1200,
           height: 630,
           alt: `${gameData.h1} - ${SITE_NAME}`,
@@ -135,7 +135,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: 'summary_large_image',
       title: `${gameData.title} | ${SITE_NAME}`,
       description: gameData.description,
-      images: ['/logo-wide.png'],
+      images: ['/og-image.png'],
     },
   };
 }
@@ -213,7 +213,7 @@ export default async function GameDetailPage({ params }: PageProps) {
               --- HOW IT WORKS ---
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wide">
-              How to Top Up Free Fire Diamonds on ShadowTopUp
+              How to Top Up Free Fire Diamonds on Shadow Store
             </h2>
           </div>
 

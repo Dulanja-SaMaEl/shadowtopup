@@ -59,7 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         if (prof?.name) setUserName(prof.name);
 
-        const isUserAdmin = prof?.role === 'admin' || user.email === 'admin@shadowtopup.com' || (user.email && user.email.includes('admin'));
+        const isUserAdmin = prof?.role === 'admin' || user.email === 'admin@shadowtopup.com' || user.email === 'adminshadowstorelk.com@gmail.com' || (user.email && user.email.includes('admin'));
         if (!isUserAdmin) {
           window.location.href = '/dashboard';
           return;

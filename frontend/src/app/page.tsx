@@ -127,9 +127,9 @@ const homepageFaqs = [
       'Transfer the exact order amount to our verified eZ Cash number (0765604635). Enter the RN number from your Dialog SMS receipt into our verification form for instant automated fulfillment.',
   },
   {
-    question: 'How do Sri Lankan game resellers earn profit with ShadowTopUp?',
+    question: 'How do Sri Lankan game resellers earn profit with Shadow Store?',
     answer:
-      'Registered resellers get wholesale discounts of 8% to 20% below standard retail prices. You buy at wholesale and sell to your customers at standard retail, pocketing the margin instantly.',
+      'Registered resellers get wholesale discounts of 8% to 15% below standard retail prices. You buy at wholesale and sell to your customers at standard retail, pocketing the margin instantly.',
   },
   {
     question: 'Can I generate branded receipts for my own customers?',
@@ -139,11 +139,34 @@ const homepageFaqs = [
 ];
 
 export const metadata: Metadata = {
-  title: 'Free Fire Diamonds Sri Lanka | Fast Recharge & Reseller Platform | ShadowTopUp',
+  title: 'Free Fire Diamonds Sri Lanka | Instant Top-Up & Wholesale Reseller | Shadow Store',
   description:
-    'Instant Free Fire diamonds, Weekly Passes, and Monthly Passes in Sri Lanka. Automated Player UID verification, low LKR rates, Dialog eZ Cash, and wholesale reseller discounts.',
+    'Instant Free Fire diamonds, Weekly Passes, and Monthly VIP in Sri Lanka. Automated Player UID verification, low LKR rates, Dialog eZ Cash, and wholesale reseller discounts.',
   alternates: {
     canonical: createCanonicalUrl('/'),
+  },
+  openGraph: {
+    title: 'Free Fire Diamonds Sri Lanka | Instant Top-Up & Wholesale Reseller | Shadow Store',
+    description:
+      'Instant Free Fire diamonds, Weekly Passes, and Monthly VIP in Sri Lanka. Automated Player UID verification, low LKR rates, Dialog eZ Cash, and wholesale reseller discounts.',
+    url: createCanonicalUrl('/'),
+    type: 'website',
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Shadow Store - Free Fire Diamonds Sri Lanka Top-Up',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Free Fire Diamonds Sri Lanka | Instant Top-Up & Wholesale Reseller | Shadow Store',
+    description:
+      'Instant Free Fire diamonds, Weekly Passes, and Monthly VIP in Sri Lanka. Automated Player UID verification, low LKR rates, Dialog eZ Cash, and wholesale reseller discounts.',
+    images: ['/og-image.png'],
   },
 };
 
@@ -350,7 +373,11 @@ export default async function HomePage() {
                   <div className="relative h-44 rounded-lg overflow-hidden bg-slate-950 border border-purple-950/40">
                     <img
                       src={game.image}
-                      alt={game.title}
+                      alt={`${game.title} - Sri Lanka Gaming Recharge`}
+                      width={400}
+                      height={176}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                     />
                     <span
@@ -394,7 +421,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 3. Why Choose ShadowTopUp: Structured, Factual Guarantees */}
+        {/* 3. Why Choose Shadow Store: Structured, Factual Guarantees */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           <div className="pb-4 border-b border-purple-950/60 flex items-center justify-between">
             <div>

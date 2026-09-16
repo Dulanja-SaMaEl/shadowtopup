@@ -23,14 +23,14 @@ const comprehensiveFaqs = [
     category: 'Top-Up & Delivery',
     items: [
       {
-        question: 'How fast is diamond delivery on ShadowTopUp?',
+        question: 'How fast is diamond delivery on Shadow Store?',
         answer:
           'Orders are fulfilled automatically via direct game API integration. Delivery takes under 30 seconds once payment is verified.',
       },
       {
         question: 'Do I need to give my account password or login credentials?',
         answer:
-          'Never! ShadowTopUp only requires your numeric Player UID. We will never ask for your Google, Facebook, Apple, or game account password.',
+          'Never! Shadow Store only requires your numeric Player UID. We will never ask for your Google, Facebook, Apple, or game account password.',
       },
       {
         question: 'What Free Fire servers and regions are supported?',
@@ -38,7 +38,7 @@ const comprehensiveFaqs = [
           'We currently support Free Fire Singapore (SG) and Malaysia (MY) servers, which include Sri Lankan players.',
       },
       {
-        question: 'Can I top up Free Fire MAX with ShadowTopUp?',
+        question: 'Can I top up Free Fire MAX with Shadow Store?',
         answer:
           'Yes! Free Fire and Free Fire MAX share the exact same game servers, player accounts, and Player UIDs. Diamonds purchased here appear in both versions.',
       },
@@ -70,12 +70,12 @@ const comprehensiveFaqs = [
       {
         question: 'How much can I earn as a top-up reseller?',
         answer:
-          'Our reseller program offers tiered wholesale discounts up to 20% off retail pricing, allowing gaming shops and top-up vendors in Sri Lanka to maximize profit margins.',
+          'Our reseller program offers tiered wholesale discounts up to 15% off retail pricing, allowing gaming shops and top-up vendors in Sri Lanka to maximize profit margins.',
       },
       {
         question: 'How do I upgrade to Silver or Gold reseller status?',
         answer:
-          'Sign in to your ShadowTopUp dashboard, deposit funds into your Shadow Wallet, and request your desired tier. Upgrades are evaluated and approved quickly.',
+          'Sign in to your Shadow Store dashboard, deposit funds into your Shadow Wallet, and request your desired tier. Upgrades are evaluated and approved quickly.',
       },
       {
         question: 'Can I generate customized receipts for my customers?',
@@ -100,16 +100,16 @@ const comprehensiveFaqs = [
       {
         question: 'How do I contact customer support?',
         answer:
-          'You can reach our team via WhatsApp, Telegram, email at support@shadowstore.com, or through our Contact page.',
+          'You can reach our team via WhatsApp (+94 77 692 9070), email at adminshadowstorelk.com@gmail.com, or through our Contact page.',
       },
     ],
   },
 ];
 
 export const metadata: Metadata = {
-  title: 'Frequently Asked Questions (FAQ) | ShadowTopUp',
+  title: 'Frequently Asked Questions (FAQ) | Shadow Store',
   description:
-    'Find answers to common questions about Free Fire diamond top-ups in Sri Lanka, Player UID verification, Dialog eZ Cash payments, reseller discounts, and order safety on ShadowTopUp.',
+    'Find answers to common questions about Free Fire diamond top-ups in Sri Lanka, Player UID verification, Dialog eZ Cash payments, reseller discounts, and order safety on Shadow Store.',
   alternates: {
     canonical: createCanonicalUrl('/faq'),
   },
@@ -122,7 +122,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     images: [
       {
-        url: '/logo-wide.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: `${SITE_NAME} Frequently Asked Questions`,
@@ -134,7 +134,7 @@ export const metadata: Metadata = {
     title: `Frequently Asked Questions (FAQ) | ${SITE_NAME}`,
     description:
       'Answers to common questions regarding Free Fire top-ups, payments, and reseller pricing.',
-    images: ['/logo-wide.png'],
+    images: ['/og-image.png'],
   },
 };
 

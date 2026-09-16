@@ -9,14 +9,14 @@ import {
 } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'About ShadowTopUp | Gaming Top Up Platform Sri Lanka',
+  title: 'About Shadow Store | Gaming Top Up Platform Sri Lanka',
   description:
-    'Learn about ShadowTopUp, Sri Lanka’s premier automated gaming recharge and wholesale reseller platform for Garena Free Fire diamonds and passes.',
+    'Learn about Shadow Store, Sri Lanka’s premier automated gaming recharge and wholesale reseller platform for Garena Free Fire diamonds and passes.',
   alternates: {
     canonical: createCanonicalUrl('/about'),
   },
   openGraph: {
-    title: `About ${SITE_NAME} | Gaming Top Up Platform`,
+    title: `About ${SITE_NAME} | Gaming Top Up Platform Sri Lanka`,
     description:
       'Sri Lanka’s premier automated gaming recharge and wholesale reseller platform.',
     url: createCanonicalUrl('/about'),
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     images: [
       {
-        url: '/logo-wide.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: `About ${SITE_NAME}`,
@@ -33,10 +33,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `About ${SITE_NAME}`,
+    title: `About ${SITE_NAME} | Gaming Top Up Platform Sri Lanka`,
     description:
       'Sri Lanka’s premier automated gaming recharge and wholesale reseller platform.',
-    images: ['/logo-wide.png'],
+    images: ['/og-image.png'],
   },
 };
 
@@ -75,13 +75,13 @@ export default function AboutPage() {
         {/* Hero Header */}
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider">
-            <Zap className="w-4 h-4 fill-cyan-400" /> About ShadowTopUp
+            <Zap className="w-4 h-4 fill-cyan-400" /> About Shadow Store
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white">
             The Next-Gen Game Top-Up & Reseller Platform
           </h1>
           <p className="max-w-2xl mx-auto text-slate-400 text-sm sm:text-base leading-relaxed">
-            Designed and built by <span className="text-cyan-400 font-semibold">Dulanja Abeysinghe</span>, ShadowTopUp provides high-speed automated Garena Free Fire shell redemptions, instant player UID verification, and structured bulk pricing tiers for commercial resellers in Sri Lanka.
+            Designed and built by <span className="text-cyan-400 font-semibold">Dulanja Abeysinghe</span>, Shadow Store provides high-speed automated Garena Free Fire shell redemptions, instant player UID verification, and structured bulk pricing tiers for commercial resellers in Sri Lanka.
           </p>
         </div>
 
@@ -122,7 +122,7 @@ export default function AboutPage() {
         <section className="p-8 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4 shadow-xl">
           <h2 className="text-xl font-bold text-white">Our Mission & Security Standards</h2>
           <p className="text-xs text-slate-300 leading-relaxed">
-            ShadowTopUp was created to eliminate top-up scams and delays in the Sri Lankan gaming ecosystem. By requiring only the numeric Player UID and performing real-time account name verification, gamers and parents never risk sharing private account passwords or login credentials.
+            Shadow Store was created to eliminate top-up scams and delays in the Sri Lankan gaming ecosystem. By requiring only the numeric Player UID and performing real-time account name verification, gamers and parents never risk sharing private account passwords or login credentials.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 text-xs font-mono text-slate-400">
             <span className="flex items-center gap-1.5 text-emerald-400">

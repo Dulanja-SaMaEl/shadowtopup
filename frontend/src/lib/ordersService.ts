@@ -58,7 +58,7 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
 
         const userProf = row.user_id ? profileMap.get(row.user_id) : null;
         const cName = userProf?.name || 'Customer Account';
-        const cEmail = userProf?.email || 'user@shadowtopup.com';
+        const cEmail = userProf?.email || 'user@shadowstorelk.com';
 
         return {
           id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,

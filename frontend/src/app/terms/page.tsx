@@ -8,9 +8,9 @@ import {
 } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | ShadowTopUp',
+  title: 'Terms of Service | Shadow Store',
   description:
-    'Terms of Service and legal disclosures for ShadowTopUp gaming recharge and reseller platform. Read our digital fulfillment and account verification terms.',
+    'Terms of Service and legal disclosures for Shadow Store gaming recharge and reseller platform. Read our digital fulfillment and account verification terms.',
   alternates: {
     canonical: createCanonicalUrl('/terms'),
   },
@@ -20,13 +20,13 @@ export const metadata: Metadata = {
     url: createCanonicalUrl('/terms'),
     type: 'website',
     siteName: SITE_NAME,
-    images: ['/logo-wide.png'],
+    images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',
     title: `Terms of Service | ${SITE_NAME}`,
     description: 'Terms of service and digital fulfillment policy.',
-    images: ['/logo-wide.png'],
+    images: ['/og-image.png'],
   },
 };
 
@@ -67,7 +67,7 @@ export default function TermsPage() {
           <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400 mt-0.5" />
           <div>
             <strong className="text-white block mb-1">Independent Third-Party Service Disclaimer:</strong>
-            ShadowTopUp is an independent third-party recharge and reseller platform. ShadowTopUp is NOT affiliated with, sponsored by, or endorsed by Garena, Sea Limited, or any of their respective titles. All game titles, logos, and trademarks belong to their respective copyright holders.
+            Shadow Store is an independent third-party recharge and reseller platform. Shadow Store is NOT affiliated with, sponsored by, or endorsed by Garena, Sea Limited, or any of their respective titles. All game titles, logos, and trademarks belong to their respective copyright holders.
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export default function TermsPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-white">1. Service Scope & Digital Fulfillment</h2>
             <p>
-              ShadowTopUp facilitates top-ups for digital gaming credits and memberships via automated systems and official channel redemptions. By submitting an order, you warrant that you are the authorized holder of the target Player UID or have explicit permission to purchase top-ups on behalf of the account owner.
+              Shadow Store facilitates top-ups for digital gaming credits and memberships via automated systems and official channel redemptions. By submitting an order, you warrant that you are the authorized holder of the target Player UID or have explicit permission to purchase top-ups on behalf of the account owner.
             </p>
           </section>
 

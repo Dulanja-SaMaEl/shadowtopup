@@ -13,9 +13,11 @@ import {
 } from 'lucide-react';
 import {
   SITE_NAME,
+  SITE_URL,
   createCanonicalUrl,
   generateBreadcrumbSchema,
   generateFAQSchema,
+  generateHowToSchema,
 } from '@/lib/seo';
 
 const guideFaqs = [
@@ -25,7 +27,7 @@ const guideFaqs = [
       'Open Free Fire, tap on your avatar or profile banner in the top-left corner of the main lobby. Your numeric Player ID (8 to 11 digits) is displayed underneath your nickname. Tap the copy icon next to it.',
   },
   {
-    question: 'Is it safe to share my Player UID with ShadowTopUp?',
+    question: 'Is it safe to share my Player UID with Shadow Store?',
     answer:
       'Yes, 100% safe. Your Player UID is public in-game information used solely to send diamonds. We never ask for your account password, email, or social media login.',
   },
@@ -42,9 +44,9 @@ const guideFaqs = [
 ];
 
 export const metadata: Metadata = {
-  title: 'How It Works | Free Fire Top Up Guide | ShadowTopUp',
+  title: 'How It Works | Free Fire Top Up Guide | Shadow Store',
   description:
-    'Learn how to recharge Free Fire diamonds and passes on ShadowTopUp in 3 simple steps. Automated Player UID verification, secure payment, and instant delivery.',
+    'Learn how to recharge Free Fire diamonds and passes on Shadow Store in simple steps. Automated Player UID verification, secure payment, and instant delivery.',
   alternates: {
     canonical: createCanonicalUrl('/how-it-works'),
   },
@@ -57,7 +59,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     images: [
       {
-        url: '/logo-wide.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: `${SITE_NAME} How It Works Guide`,
@@ -69,7 +71,7 @@ export const metadata: Metadata = {
     title: `How It Works | Free Fire Top Up Guide | ${SITE_NAME}`,
     description:
       'Step-by-step guide to recharging Free Fire diamonds safely in Sri Lanka.',
-    images: ['/logo-wide.png'],
+    images: ['/og-image.png'],
   },
 };
 
@@ -91,7 +93,7 @@ export default function HowItWorksPage() {
     {
       num: '02',
       title: 'Automatic Live Nickname Verification',
-      desc: 'Paste your UID into ShadowTopUp and press "Check". Our live API connects to game servers and verifies your in-game nickname so you never top up the wrong account.',
+      desc: 'Paste your UID into Shadow Store and press "Check". Our live API connects to game servers and verifies your in-game nickname so you never top up the wrong account.',
       badge: 'Step 2',
     },
     {
@@ -114,6 +116,14 @@ export default function HowItWorksPage() {
     },
   ];
 
+  const howToSchema = generateHowToSchema(
+    steps.map((s) => ({
+      name: s.title,
+      text: s.desc,
+      url: `${SITE_URL}/how-it-works#step-${s.num}`,
+    }))
+  );
+
   return (
     <>
       <script
@@ -123,6 +133,10 @@ export default function HowItWorksPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
       />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">

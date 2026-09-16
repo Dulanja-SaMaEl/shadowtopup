@@ -8,9 +8,9 @@ import {
 } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | ShadowTopUp',
+  title: 'Privacy Policy | Shadow Store',
   description:
-    'Privacy Policy and user data protection details for ShadowTopUp. Learn how we handle Player UIDs, transaction records, and account data securely.',
+    'Privacy Policy and user data protection details for Shadow Store. Learn how we handle Player UIDs, transaction records, and account data securely.',
   alternates: {
     canonical: createCanonicalUrl('/privacy'),
   },
@@ -20,13 +20,13 @@ export const metadata: Metadata = {
     url: createCanonicalUrl('/privacy'),
     type: 'website',
     siteName: SITE_NAME,
-    images: ['/logo-wide.png'],
+    images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',
     title: `Privacy Policy | ${SITE_NAME}`,
     description: 'Privacy policy and user data protection details.',
-    images: ['/logo-wide.png'],
+    images: ['/og-image.png'],
   },
 };
 
@@ -67,7 +67,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-white">1. Information We Collect</h2>
             <p>
-              When using ShadowTopUp, we collect information necessary to process your digital orders, including your email address, target Player Game UID (for delivery verification), order receipts, and transaction history.
+              When using Shadow Store, we collect information necessary to process your digital orders, including your email address, target Player Game UID (for delivery verification), order receipts, and transaction history.
             </p>
           </section>
 

@@ -9,22 +9,22 @@ import {
 } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Contact ShadowTopUp | Customer Support Desk',
+  title: 'Contact Shadow Store | Customer Support Desk',
   description:
-    'Contact the ShadowTopUp gaming support desk. Inquiries regarding Free Fire diamond top-ups, Dialog eZ Cash verification, order status, or reseller upgrades.',
+    'Contact the Shadow Store gaming support desk in Sri Lanka. Inquiries regarding Free Fire diamond top-ups, Dialog eZ Cash verification, order status, or reseller upgrades.',
   alternates: {
     canonical: createCanonicalUrl('/contact'),
   },
   openGraph: {
     title: `Contact ${SITE_NAME} | Customer Support Desk`,
     description:
-      'Contact ShadowTopUp support desk for top-up assistance, eZ Cash verification, and reseller accounts.',
+      'Contact Shadow Store support desk for top-up assistance, eZ Cash verification, and reseller accounts.',
     url: createCanonicalUrl('/contact'),
     type: 'website',
     siteName: SITE_NAME,
     images: [
       {
-        url: '/logo-wide.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: `Contact ${SITE_NAME}`,
@@ -34,8 +34,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: `Contact ${SITE_NAME} | Customer Support Desk`,
-    description: 'Contact ShadowTopUp support desk for top-up assistance.',
-    images: ['/logo-wide.png'],
+    description: 'Contact Shadow Store support desk for top-up assistance.',
+    images: ['/og-image.png'],
   },
 };
 

@@ -72,6 +72,30 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/free-fire',
+        destination: '/games/free-fire',
+        permanent: true,
+      },
+      {
+        source: '/freefire',
+        destination: '/games/free-fire',
+        permanent: true,
+      },
+      {
+        source: '/topup',
+        destination: '/games/free-fire',
+        permanent: true,
+      },
+      {
+        source: '/diamonds',
+        destination: '/games/free-fire',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

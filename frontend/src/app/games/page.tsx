@@ -58,22 +58,22 @@ const fallbackGames: GameItem[] = [
 ];
 
 export const metadata: Metadata = {
-  title: 'Games Catalog | ShadowTopUp',
+  title: 'Games Catalog | Instant Top-Up & Diamond Recharge | Shadow Store',
   description:
-    'Browse supported gaming top-up titles on ShadowTopUp. Recharge Free Fire diamonds, passes, and upcoming mobile titles with instant UID delivery in Sri Lanka.',
+    'Browse supported gaming top-up titles on Shadow Store Sri Lanka. Recharge Free Fire diamonds, passes, and upcoming mobile titles with instant UID delivery.',
   alternates: {
     canonical: createCanonicalUrl('/games'),
   },
   openGraph: {
     title: `Games Catalog | ${SITE_NAME}`,
     description:
-      'Browse supported gaming top-up titles on ShadowTopUp. Recharge Free Fire diamonds, passes, and upcoming mobile titles.',
+      'Browse supported gaming top-up titles on Shadow Store Sri Lanka. Recharge Free Fire diamonds, passes, and upcoming mobile titles.',
     url: createCanonicalUrl('/games'),
     type: 'website',
     siteName: SITE_NAME,
     images: [
       {
-        url: '/logo-wide.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: `${SITE_NAME} Games Catalog`,
@@ -83,8 +83,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: `Games Catalog | ${SITE_NAME}`,
-    description: 'Browse supported gaming top-up titles on ShadowTopUp.',
-    images: ['/logo-wide.png'],
+    description: 'Browse supported gaming top-up titles on Shadow Store Sri Lanka.',
+    images: ['/og-image.png'],
   },
 };
 

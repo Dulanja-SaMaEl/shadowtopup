@@ -81,7 +81,7 @@ export default function Navbar() {
             <Link href="/" className="flex items-center gap-3 py-1">
               <Image
                 src="/logo.png"
-                alt="ShadowTopUp - Gaming Top-Up Platform"
+                alt="Shadow Store - Gaming Top-Up Platform"
                 width={170}
                 height={48}
                 className="h-9 w-auto object-contain"

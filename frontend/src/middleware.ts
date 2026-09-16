@@ -61,7 +61,9 @@ export async function middleware(request: NextRequest) {
       .maybeSingle();
 
     const isUserAdmin =
-      profile?.role === 'admin' || user.email === 'admin@shadowtopup.com';
+      profile?.role === 'admin' ||
+      user.email === 'admin@shadowtopup.com' ||
+      user.email === 'adminshadowstorelk.com@gmail.com';
 
     if (!isUserAdmin) {
       return NextResponse.json(
@@ -91,7 +93,9 @@ export async function middleware(request: NextRequest) {
       .maybeSingle();
 
     const isUserAdmin =
-      profile?.role === 'admin' || user.email === 'admin@shadowtopup.com';
+      profile?.role === 'admin' ||
+      user.email === 'admin@shadowtopup.com' ||
+      user.email === 'adminshadowstorelk.com@gmail.com';
 
     if (!isUserAdmin) {
       return NextResponse.redirect(new URL('/dashboard', request.url));

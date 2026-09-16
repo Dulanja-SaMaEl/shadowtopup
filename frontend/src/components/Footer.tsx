@@ -15,14 +15,14 @@ export default function Footer() {
             <Link href="/" className="inline-block">
               <Image
                 src="/logo.png"
-                alt="ShadowTopUp"
+                alt="Shadow Store"
                 width={160}
                 height={48}
                 className="h-9 w-auto object-contain"
               />
             </Link>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Third-party gaming top-up platform and wholesale reseller service in Sri Lanka. Instant Free Fire diamond recharge with verified Player ID dispatch.
+              Sri Lanka's leading third-party gaming top-up platform and wholesale reseller service. Instant Free Fire diamond recharge with verified Player ID dispatch.
             </p>
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-purple-950/40 border border-purple-800/40 text-[10px] font-mono text-purple-300">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
@@ -55,9 +55,10 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-slate-200 mb-3 text-xs uppercase tracking-wider">Company</h4>
+            <h4 className="font-semibold text-slate-200 mb-3 text-xs uppercase tracking-wider">Company & Legal</h4>
             <ul className="space-y-2 text-xs">
-              <li><Link href="/about" className="hover:text-purple-400 transition-colors">About ShadowTopUp</Link></li>
+              <li><Link href="/about" className="hover:text-purple-400 transition-colors">About Shadow Store</Link></li>
+              <li><Link href="/refund-policy" className="hover:text-purple-400 transition-colors">Refund & Cancellation Policy</Link></li>
               <li><Link href="/terms" className="hover:text-purple-400 transition-colors">Terms of Service</Link></li>
               <li><Link href="/privacy" className="hover:text-purple-400 transition-colors">Privacy Policy</Link></li>
             </ul>
@@ -71,12 +72,12 @@ export default function Footer() {
             <span>Trademark & Third-Party Notice</span>
           </div>
           <p>
-            ShadowTopUp is an independent third-party recharge platform. We are not affiliated with, endorsed by, or officially associated with Garena, Free Fire, or Sea Limited. All trademarks and game logos belong to their respective copyright holders.
+            Shadow Store is an independent third-party recharge platform. We are not affiliated with, endorsed by, or officially associated with Garena, Free Fire, or Sea Limited. All trademarks and game logos belong to their respective copyright holders.
           </p>
         </div>
 
         <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} ShadowTopUp. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Shadow Store. All rights reserved.</p>
           <p className="text-slate-400 text-[11px]">Sri Lanka Gaming Recharge Services</p>
         </div>
       </div>

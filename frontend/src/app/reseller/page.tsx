@@ -24,7 +24,7 @@ const resellerFaqs = [
   {
     question: 'How do I become a Free Fire top-up reseller in Sri Lanka?',
     answer:
-      'Create an account on ShadowTopUp, top up your Shadow Wallet balance via Dialog eZ Cash or Bank Transfer, and request a reseller tier upgrade directly from your user dashboard.',
+      'Create an account on Shadow Store, top up your Shadow Wallet balance via Dialog eZ Cash or Bank Transfer, and request a reseller tier upgrade directly from your user dashboard.',
   },
   {
     question: 'What discounts do resellers get on Free Fire diamonds?',
@@ -39,14 +39,14 @@ const resellerFaqs = [
   {
     question: 'Can resellers generate branded receipts for their customers?',
     answer:
-      'Yes! ShadowTopUp allows resellers to input their custom store name and generate branded customer receipts with player nickname and transaction ID.',
+      'Yes! Shadow Store allows resellers to input their custom store name and generate branded customer receipts with player nickname and transaction ID.',
   },
 ];
 
 export const metadata: Metadata = {
-  title: 'Gaming Top Up Reseller Program | ShadowTopUp',
+  title: 'Gaming Top Up Reseller Program | Shadow Store Sri Lanka',
   description:
-    'Join the ShadowTopUp wholesale gaming reseller program in Sri Lanka. Unlock automated wholesale discounts on Free Fire diamonds, passes, instant UID delivery, and prepaid wallet orders.',
+    'Join the Shadow Store wholesale gaming reseller program in Sri Lanka. Unlock automated wholesale discounts on Free Fire diamonds, passes, instant UID delivery, and prepaid wallet orders.',
   alternates: {
     canonical: createCanonicalUrl('/reseller'),
   },
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     images: [
       {
-        url: '/logo-wide.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: `${SITE_NAME} Wholesale Reseller Program`,
@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     title: `Gaming Top Up Reseller Program | ${SITE_NAME}`,
     description:
       'Wholesale reseller discounts on Free Fire diamonds and passes for Sri Lankan top-up shops.',
-    images: ['/logo-wide.png'],
+    images: ['/og-image.png'],
   },
 };
 
