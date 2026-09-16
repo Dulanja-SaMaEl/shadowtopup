@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/authGuard';
+import { sendResellerPromotedEmail } from '@/lib/emailService';
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -82,6 +83,20 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    // Send promotion celebration email if tier is elevated to silver or gold
+    if (
+      updatedProfile &&
+      updatedProfile.email &&
+      (action === 'approve' || action === 'promote' || action === 'update_role') &&
+      (sanitizedTargetRole === 'silver' || sanitizedTargetRole === 'gold')
+    ) {
+      sendResellerPromotedEmail(
+        updatedProfile.email,
+        updatedProfile.name || updatedProfile.full_name || 'Valued Partner',
+        sanitizedTargetRole
+      ).catch((e) => console.warn('[EmailReseller] Promotion email error:', e));
+    }
 
     return NextResponse.json({ success: true, profile: updatedProfile, message: `User tier successfully updated!` });
   } catch (err: any) {

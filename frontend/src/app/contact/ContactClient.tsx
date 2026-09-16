@@ -9,14 +9,31 @@ export default function ContactClient() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to submit message.');
+      }
+
       setSubmitted(true);
-    }, 1000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Network error sending inquiry. Please retry.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,6 +85,11 @@ export default function ContactClient() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errorMsg && (
+              <div className="p-3 bg-red-950/60 border border-red-500/50 rounded-xl text-red-300 text-xs font-mono">
+                {errorMsg}
+              </div>
+            )}
             <div>
               <label htmlFor="contact-name" className="block text-xs font-semibold text-slate-300 mb-1.5">
                 Your Name

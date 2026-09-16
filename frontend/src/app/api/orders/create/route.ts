@@ -4,6 +4,8 @@ import { executeUCBotTopup } from '@/lib/ucbotService';
 import { getAuthenticatedUser } from '@/lib/authGuard';
 import { verifyEZCashTransaction } from '@/lib/ezcashService';
 import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
+import { sendPurchaseReceiptEmail } from '@/lib/emailService';
+import { checkAndNotifyLowStock } from '@/lib/stockMonitor';
 
 export async function POST(request: NextRequest) {
   try {
@@ -254,6 +256,24 @@ export async function POST(request: NextRequest) {
           }).eq('id', targetShellAcc.id);
         }
 
+        // Asynchronously send purchase receipt email and check low stock
+        if (authUser.email) {
+          sendPurchaseReceiptEmail(authUser.email, {
+            orderId: createdOrders[0]?.id ? String(createdOrders[0].id).slice(0, 8).toUpperCase() : `W_${Date.now().toString().slice(-8)}`,
+            transactionId: lastTxId || `W_${Date.now().toString().slice(-8)}`,
+            packageName: expandedItems.length === 1 ? expandedItems[0].packageName : `Batch Top-Up (${expandedItems.length} Items)`,
+            itemsDelivered: expandedItems.map((i) => i.packageName).join(', '),
+            playerUid: expandedItems[0]?.playerUid,
+            playerNickname: lastPlayerNickname,
+            amount: totalAmount,
+            paymentMethod: 'Shadow Wallet',
+            status: 'COMPLETED & DELIVERED',
+            resellerRole: userRole,
+          }).catch((e) => console.warn('[EmailReceipt] Wallet batch error:', e));
+        }
+
+        checkAndNotifyLowStock(adminSupabase).catch((e) => console.warn('[StockMonitor] Wallet check error:', e));
+
         return NextResponse.json({
           success: true,
           status: 'completed',
@@ -384,6 +404,24 @@ export async function POST(request: NextRequest) {
           }]);
         } catch {}
 
+        // Asynchronously send purchase receipt email and check low stock
+        if (authUser.email) {
+          sendPurchaseReceiptEmail(authUser.email, {
+            orderId: createdOrders[0]?.id ? String(createdOrders[0].id).slice(0, 8).toUpperCase() : cleanEzTrxId,
+            transactionId: lastTxId || cleanEzTrxId,
+            packageName: expandedItems.length === 1 ? expandedItems[0].packageName : `Batch Top-Up (${expandedItems.length} Items)`,
+            itemsDelivered: expandedItems.map((i) => i.packageName).join(', '),
+            playerUid: expandedItems[0]?.playerUid,
+            playerNickname: lastPlayerNickname,
+            amount: totalAmount,
+            paymentMethod: 'Dialog eZ Cash',
+            status: 'COMPLETED & DELIVERED',
+            resellerRole: userRole,
+          }).catch((e) => console.warn('[EmailReceipt] eZ Cash batch error:', e));
+        }
+
+        checkAndNotifyLowStock(adminSupabase).catch((e) => console.warn('[StockMonitor] eZ Cash check error:', e));
+
         return NextResponse.json({
           success: true,
           status: 'completed',
@@ -424,6 +462,20 @@ export async function POST(request: NextRequest) {
           payment_method: 'bank_transfer',
           receipt_path: receiptUrl,
         }]);
+      }
+
+      if (authUser.email) {
+        sendPurchaseReceiptEmail(authUser.email, {
+          orderId: createdOrders[0]?.id ? String(createdOrders[0].id).slice(0, 8).toUpperCase() : `BT_${Date.now().toString().slice(-6)}`,
+          transactionId: receiptUrl ? 'BANK_SLIP_SUBMITTED' : 'AWAITING_SLIP',
+          packageName: expandedItems.length === 1 ? expandedItems[0].packageName : `Batch Top-Up (${expandedItems.length} Items)`,
+          itemsDelivered: expandedItems.map((i) => i.packageName).join(', '),
+          playerUid: expandedItems[0]?.playerUid,
+          amount: totalAmount,
+          paymentMethod: 'Bank Transfer (Slip Review)',
+          status: receiptUrl ? 'PROOF SUBMITTED (UNDER REVIEW)' : 'PENDING PAYMENT',
+          resellerRole: userRole,
+        }).catch((e) => console.warn('[EmailReceipt] Bank transfer batch error:', e));
       }
 
       return NextResponse.json({
@@ -962,6 +1014,39 @@ export async function POST(request: NextRequest) {
         success: false,
         message: `Failed to insert order: ${orderErr.message}`,
       }, { status: 500 });
+    }
+
+    // Asynchronously send purchase receipt email and check low stock
+    if (authUser.email) {
+      const isInstant = paymentMethod === 'shadow_wallet' || (paymentMethod === 'ez_cash' && initialStatus === 'completed');
+      const readableMethod = paymentMethod === 'shadow_wallet' 
+        ? 'Shadow Wallet' 
+        : paymentMethod === 'ez_cash' 
+        ? 'Dialog eZ Cash' 
+        : 'Direct Bank Transfer';
+
+      const readableStatus = isInstant 
+        ? 'COMPLETED & DELIVERED' 
+        : receiptUrl 
+        ? 'PROOF SUBMITTED (UNDER REVIEW)' 
+        : 'PENDING VERIFICATION';
+
+      sendPurchaseReceiptEmail(authUser.email, {
+        orderId: insertedOrder?.id ? String(insertedOrder.id).slice(0, 8).toUpperCase() : `ORD_${Date.now().toString().slice(-6)}`,
+        transactionId: ucBotSuccessData?.transactionId || (ezCashTrxId ? String(ezCashTrxId) : undefined),
+        packageName: verifiedPackageName,
+        itemsDelivered: ucBotSuccessData?.items || verifiedPackageName,
+        playerUid: sanitizedPlayerUid,
+        playerNickname: ucBotSuccessData?.playerNickname,
+        amount: amountToDeduct,
+        paymentMethod: readableMethod,
+        status: readableStatus,
+        resellerRole: userRole,
+      }).catch((e) => console.warn('[EmailReceipt] Single checkout error:', e));
+    }
+
+    if (paymentMethod === 'shadow_wallet' || paymentMethod === 'ez_cash') {
+      checkAndNotifyLowStock(adminSupabase).catch((e) => console.warn('[StockMonitor] Single checkout error:', e));
     }
 
     return NextResponse.json({

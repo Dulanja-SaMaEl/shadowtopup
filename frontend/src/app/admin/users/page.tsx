@@ -90,7 +90,26 @@ export default function AdminUsersPage() {
       role: role.toUpperCase(),
     };
 
-    await supabase.from('profiles').update({ role: role.toLowerCase() }).eq('id', selectedUser.id);
+    const lowerRole = role.toLowerCase();
+    const sanitizedRole = lowerRole === 'user' ? 'normal' : lowerRole;
+
+    try {
+      const res = await fetch('/api/admin/resellers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: selectedUser.id,
+          action: 'update_role',
+          target_role: sanitizedRole,
+        }),
+      });
+      if (!res.ok) {
+        await supabase.from('profiles').update({ role: sanitizedRole }).eq('id', selectedUser.id);
+      }
+    } catch {
+      await supabase.from('profiles').update({ role: sanitizedRole }).eq('id', selectedUser.id);
+    }
+
     setUsers(users.map((u) => (u.id === selectedUser.id ? { ...u, ...updated } : u)));
     setIsEditModalOpen(false);
     setSelectedUser(null);
