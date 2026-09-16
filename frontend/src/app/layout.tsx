@@ -75,6 +75,7 @@ export const metadata: Metadata = {
     icon: [
       { url: '/favicon.png', type: 'image/png' },
       { url: '/logo-icon.png', type: 'image/png' },
+      { url: '/logo-square.png', type: 'image/png' },
     ],
     apple: '/logo-icon.png',
   },
@@ -87,10 +88,16 @@ export const metadata: Metadata = {
     description: DEFAULT_SITE_DESCRIPTION,
     images: [
       {
-        url: '/logo-wide.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: `${SITE_NAME} - Instant Gaming Top-Up & Wholesale Reseller Portal`,
+      },
+      {
+        url: '/logo-square.png',
+        width: 1024,
+        height: 1024,
+        alt: `${SITE_NAME} Official Logo`,
       },
     ],
   },
@@ -98,8 +105,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: DEFAULT_SITE_TITLE,
     description: DEFAULT_SITE_DESCRIPTION,
-    images: ['/logo-wide.png'],
-    creator: '@ShadowTopUp',
+    images: ['/og-image.png'],
+    creator: '@ShadowStoreLK',
   },
   robots: {
     index: true,

@@ -2,21 +2,21 @@
  * Centralized SEO & Structured Data Utility for ShadowTopUp
  */
 
-export const SITE_NAME = 'ShadowTopUp';
-export const DEFAULT_SITE_TITLE = 'ShadowTopUp | Instant Gaming Top-Up & Wholesale Reseller Portal';
+export const SITE_NAME = 'Shadow Store';
+export const DEFAULT_SITE_TITLE = 'Shadow Store | Instant Gaming Top-Up & Wholesale Reseller Portal';
 export const DEFAULT_SITE_DESCRIPTION =
   'Fast, automated Garena Free Fire diamond top-ups, Free Fire MAX passes, instant player UID verification, and wholesale reseller rates for Sri Lankan gamers.';
 
 /**
  * Resolves official production canonical URL
- * Honors NEXT_PUBLIC_SITE_URL or NEXT_PUBLIC_APP_URL, falling back to https://shadowtopup.com
+ * Honors NEXT_PUBLIC_SITE_URL or NEXT_PUBLIC_APP_URL, falling back to https://www.shadowstorelk.com
  */
 export function getSiteUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
   if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  return 'https://shadowtopup.com';
+  return 'https://www.shadowstorelk.com';
 }
 
 /**
@@ -39,8 +39,8 @@ export function generateOrganizationSchema() {
     '@type': 'OnlineStore',
     name: SITE_NAME,
     url: siteUrl,
-    logo: `${siteUrl}/logo.png`,
-    image: `${siteUrl}/logo-wide.png`,
+    logo: `${siteUrl}/logo-square.png`,
+    image: `${siteUrl}/og-image.png`,
     description: DEFAULT_SITE_DESCRIPTION,
     priceRange: 'LKR',
     currenciesAccepted: 'LKR',
