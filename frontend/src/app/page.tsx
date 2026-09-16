@@ -219,13 +219,6 @@ export default async function HomePage() {
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Column: Clear Value Prop with Tactical HUD */}
               <div className="lg:col-span-7 space-y-5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/60 border border-purple-500/40 text-purple-300 text-xs font-mono font-semibold shadow-[0_0_12px_rgba(168,85,247,0.25)]">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
-                  <span>// GARENA SERVER: SG & MY</span>
-                  <span className="text-purple-600">|</span>
-                  <span className="text-cyan-400 font-bold">&lt;30s DISPATCH</span>
-                </div>
-
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
                   Instant Free Fire Diamonds & Weekly Passes in{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-300 to-purple-300">
