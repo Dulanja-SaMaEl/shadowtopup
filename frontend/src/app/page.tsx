@@ -40,7 +40,7 @@ const defaultFeaturedGames: FeaturedGame[] = [
     category: 'Battle Royale',
     image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000',
     badge: 'Instant Delivery',
-    discount: 'Starting from LKR 280.00',
+    discount: 'Starting from LKR 100.00',
     available: true,
   },
   {
@@ -175,7 +175,7 @@ async function getFeaturedGames(): Promise<FeaturedGame[]> {
               : 'Coming Soon',
           discount:
             g.is_active || g.slug === 'free-fire'
-              ? 'Starting from LKR 280.00'
+              ? 'Starting from LKR 100.00'
               : 'In Development',
           available: Boolean(g.is_active || g.slug === 'free-fire'),
         }));
@@ -307,7 +307,7 @@ export default async function HomePage() {
                         <span className="font-semibold text-white block">Weekly Lite Pass</span>
                         <span className="text-[10px] text-purple-300/80 font-mono">120 Diamonds value</span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 280.00</span>
+                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 140.00</span>
                     </div>
                   </div>
 
