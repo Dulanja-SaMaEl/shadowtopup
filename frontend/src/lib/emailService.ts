@@ -12,9 +12,15 @@ function getResend(): Resend {
   return resendInstance;
 }
 
-// For Resend free tier, use their verified domain as the from address
-// Your custom sender name will still show as "Shadow Store"
-const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL || 'Shadow Store <onboarding@resend.dev>';
+// Clean and format From address safely (strips accidental quotes from Vercel env vars)
+function getFromAddress(): string {
+  const raw = process.env.RESEND_FROM_EMAIL || 'Shadow Store <onboarding@resend.dev>';
+  const cleaned = String(raw).trim().replace(/^["']+|["']+$/g, '').trim();
+  if (!cleaned.includes('@')) {
+    return 'Shadow Store <onboarding@resend.dev>';
+  }
+  return cleaned;
+}
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || 'adminshadowstorelk.com@gmail.com';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://shadowtopup.com';
 
@@ -181,7 +187,7 @@ export async function sendRegistrationOtpEmail(
     });
 
     const { data, error } = await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: getFromAddress(),
       to: [toEmail],
       subject: `🔐 ${otpCode} - Shadow Store Account Verification Code`,
       html,
@@ -276,7 +282,7 @@ export async function sendWelcomeEmail(
     });
 
     const { data, error } = await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: getFromAddress(),
       to: [toEmail],
       subject: `⚡ Welcome to Shadow Store, ${name || 'Player'}! Account Activated`,
       html,
@@ -435,7 +441,7 @@ export async function sendPurchaseReceiptEmail(
     });
 
     const { data, error } = await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: getFromAddress(),
       to: [toEmail],
       subject: `💎 Order Receipt #${receipt.orderId} - Free Fire Top-Up (${isCompleted ? 'Delivered' : 'Pending'})`,
       html,
@@ -519,7 +525,7 @@ export async function sendResellerPromotedEmail(
     });
 
     const { data, error } = await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: getFromAddress(),
       to: [toEmail],
       subject: `🏆 Congratulations! You are now an Official ${tierTitle} on Shadow Store`,
       html,
@@ -584,7 +590,7 @@ export async function sendContactInquiryEmail(inquiry: {
     });
 
     await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: getFromAddress(),
       to: [ADMIN_EMAIL],
       replyTo: inquiry.email,
       subject: `📩 Support Ticket from ${inquiry.name} (${inquiry.email})`,
@@ -622,7 +628,7 @@ export async function sendContactInquiryEmail(inquiry: {
     });
 
     await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: getFromAddress(),
       to: [inquiry.email],
       subject: `🛡️ We Received Your Inquiry - Shadow Store Support Desk`,
       html: customerHtml,
@@ -726,7 +732,7 @@ export async function sendLowStockAlertEmail(stockData: {
     });
 
     const { data, error } = await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: getFromAddress(),
       to: [ADMIN_EMAIL],
       subject: `⚠️ [ALERT] Low Garena Shell Stock Warning: ${stockData.totalShells} Shells Remaining`,
       html,
