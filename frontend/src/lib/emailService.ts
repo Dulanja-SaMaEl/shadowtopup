@@ -1,33 +1,20 @@
-import nodemailer, { type Transporter } from 'nodemailer';
+import { Resend } from 'resend';
 
-// Transporter singleton
-let transporterInstance: Transporter | null = null;
+// Resend singleton
+let resendInstance: Resend | null = null;
 
-export function getMailTransporter(): Transporter {
-  if (!transporterInstance) {
-    const user = process.env.SMTP_USER || 'adminshadowstorelk.com@gmail.com';
-    const pass = (process.env.SMTP_PASS || 'kocflshfvzotawkb').replace(/\s+/g, '');
-    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const port = Number(process.env.SMTP_PORT) || 465;
-    const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-
-    transporterInstance = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: {
-        user,
-        pass,
-      },
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 100,
-    });
+function getResend(): Resend {
+  if (!resendInstance) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) throw new Error('RESEND_API_KEY environment variable is not set');
+    resendInstance = new Resend(apiKey);
   }
-  return transporterInstance;
+  return resendInstance;
 }
 
-const FROM_SENDER = `"${process.env.SMTP_FROM_NAME || 'Shadow Store'}" <${process.env.SMTP_FROM_EMAIL || 'adminshadowstorelk.com@gmail.com'}>`;
+// For Resend free tier, use their verified domain as the from address
+// Your custom sender name will still show as "Shadow Store"
+const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL || 'Shadow Store <onboarding@resend.dev>';
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || 'adminshadowstorelk.com@gmail.com';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://shadowtopup.com';
 
@@ -119,7 +106,7 @@ function renderEmailShell({
             <td style="padding: 24px; background-color: #090714; border-top: 1px solid #1e173a; text-align: center;">
               <p style="margin: 0 0 12px 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
                 Need help or have questions regarding your order?<br />
-                Our Sri Lankan support desk is live 24/7 on WhatsApp & Email.
+                Our Sri Lankan support desk is live 24/7 on WhatsApp &amp; Email.
               </p>
               <div style="margin-bottom: 16px;">
                 <a href="https://wa.me/94765604635" style="display: inline-block; padding: 6px 14px; margin: 0 4px; background-color: #191433; border: 1px solid #2d2358; border-radius: 6px; color: #10b981; font-size: 11px; font-family: monospace; text-decoration: none; font-weight: bold;">
@@ -153,7 +140,7 @@ export async function sendRegistrationOtpEmail(
   expiresMinutes: number = 10
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const transporter = getMailTransporter();
+    const resend = getResend();
 
     const contentHtml = `
       <h2 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
@@ -193,14 +180,15 @@ export async function sendRegistrationOtpEmail(
       badgeColor: '#06b6d4',
     });
 
-    const info = await transporter.sendMail({
-      from: FROM_SENDER,
-      to: toEmail,
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: [toEmail],
       subject: `🔐 ${otpCode} - Shadow Store Account Verification Code`,
       html,
     });
 
-    return { success: true, messageId: info.messageId };
+    if (error) throw new Error(error.message);
+    return { success: true, messageId: data?.id };
   } catch (err: any) {
     console.error('[EmailService] Error sending Registration OTP email:', err);
     return { success: false, error: err.message };
@@ -215,7 +203,7 @@ export async function sendWelcomeEmail(
   name: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const transporter = getMailTransporter();
+    const resend = getResend();
 
     const contentHtml = `
       <div style="text-align: center; margin-bottom: 24px;">
@@ -224,7 +212,7 @@ export async function sendWelcomeEmail(
           Welcome to Shadow Store!
         </h2>
         <p style="margin: 0; font-size: 14px; color: #a855f7; font-family: monospace; font-weight: bold; letter-spacing: 1px;">
-          YOUR ACCOUNT IS ACTIVATED & READY
+          YOUR ACCOUNT IS ACTIVATED &amp; READY
         </p>
       </div>
 
@@ -248,7 +236,7 @@ export async function sendWelcomeEmail(
         <tr>
           <td style="padding: 12px; border-top: 1px solid #1a1633;">
             <div style="font-size: 13px; font-weight: bold; color: #ffffff; margin-bottom: 4px;">
-              ⚡ Shadow Wallet & Dialog eZ Cash
+              ⚡ Shadow Wallet &amp; Dialog eZ Cash
             </div>
             <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
               Preload your wallet or verify payments in seconds using Dialog eZ Cash SMS RN numbers.
@@ -258,7 +246,7 @@ export async function sendWelcomeEmail(
         <tr>
           <td style="padding: 12px; border-top: 1px solid #1a1633;">
             <div style="font-size: 13px; font-weight: bold; color: #ffffff; margin-bottom: 4px;">
-              🏆 Standard & Elite Wholesale Reseller Tiers
+              🏆 Standard &amp; Elite Wholesale Reseller Tiers
             </div>
             <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
               Upgrade to Standard Reseller (8% discount) or Elite Reseller (15% discount) to build your own gaming business.
@@ -272,7 +260,7 @@ export async function sendWelcomeEmail(
         <tr>
           <td align="center" style="padding-bottom: 12px;">
             <a href="${SITE_URL}/games/free-fire" style="display: inline-block; padding: 14px 28px; background: linear-gradient(90deg, #7c3aed, #a855f7); color: #ffffff; font-size: 13px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);">
-              Explore Packages & Top-Up Now &rarr;
+              Explore Packages &amp; Top-Up Now &rarr;
             </a>
           </td>
         </tr>
@@ -287,14 +275,15 @@ export async function sendWelcomeEmail(
       badgeColor: '#10b981',
     });
 
-    const info = await transporter.sendMail({
-      from: FROM_SENDER,
-      to: toEmail,
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: [toEmail],
       subject: `⚡ Welcome to Shadow Store, ${name || 'Player'}! Account Activated`,
       html,
     });
 
-    return { success: true, messageId: info.messageId };
+    if (error) throw new Error(error.message);
+    return { success: true, messageId: data?.id };
   } catch (err: any) {
     console.error('[EmailService] Error sending Welcome email:', err);
     return { success: false, error: err.message };
@@ -324,7 +313,7 @@ export async function sendPurchaseReceiptEmail(
   receipt: PurchaseReceiptEmailData
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const transporter = getMailTransporter();
+    const resend = getResend();
 
     const isCompleted = receipt.status?.toLowerCase().includes('completed') || receipt.status?.toLowerCase().includes('delivered');
     const statusColor = isCompleted ? '#10b981' : '#f59e0b';
@@ -445,14 +434,15 @@ export async function sendPurchaseReceiptEmail(
       badgeColor: statusColor,
     });
 
-    const info = await transporter.sendMail({
-      from: FROM_SENDER,
-      to: toEmail,
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: [toEmail],
       subject: `💎 Order Receipt #${receipt.orderId} - Free Fire Top-Up (${isCompleted ? 'Delivered' : 'Pending'})`,
       html,
     });
 
-    return { success: true, messageId: info.messageId };
+    if (error) throw new Error(error.message);
+    return { success: true, messageId: data?.id };
   } catch (err: any) {
     console.error('[EmailService] Error sending Purchase Receipt email:', err);
     return { success: false, error: err.message };
@@ -468,7 +458,7 @@ export async function sendResellerPromotedEmail(
   tier: 'silver' | 'gold' | string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const transporter = getMailTransporter();
+    const resend = getResend();
 
     const normalizedTier = tier.toLowerCase();
     const isElite = normalizedTier === 'gold';
@@ -499,9 +489,9 @@ export async function sendResellerPromotedEmail(
               YOUR ACTIVE WHOLESALE PRIVILEGES:
             </div>
             <ul style="margin: 10px 0 0 0; padding-left: 20px; font-size: 13px; color: #e2e8f0; line-height: 1.8;">
-              <li><strong style="color: ${tierColor};">${discountRate} Wholesale Rate</strong> across all Free Fire Diamond packages & passes.</li>
+              <li><strong style="color: ${tierColor};">${discountRate} Wholesale Rate</strong> across all Free Fire Diamond packages &amp; passes.</li>
               <li><strong>High-Speed Automated Queue</strong> with Garena API dispatch under 30 seconds.</li>
-              <li><strong>Batch Shopping Cart & Reseller Dashboard</strong> with sales analytics and profit tracking.</li>
+              <li><strong>Batch Shopping Cart &amp; Reseller Dashboard</strong> with sales analytics and profit tracking.</li>
               <li><strong>Priority WhatsApp Support Desk</strong> for fast balance reloads and custom requests.</li>
             </ul>
           </td>
@@ -528,14 +518,15 @@ export async function sendResellerPromotedEmail(
       badgeColor: tierColor,
     });
 
-    const info = await transporter.sendMail({
-      from: FROM_SENDER,
-      to: toEmail,
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: [toEmail],
       subject: `🏆 Congratulations! You are now an Official ${tierTitle} on Shadow Store`,
       html,
     });
 
-    return { success: true, messageId: info.messageId };
+    if (error) throw new Error(error.message);
+    return { success: true, messageId: data?.id };
   } catch (err: any) {
     console.error('[EmailService] Error sending Reseller Promotion email:', err);
     return { success: false, error: err.message };
@@ -551,7 +542,7 @@ export async function sendContactInquiryEmail(inquiry: {
   message: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = getMailTransporter();
+    const resend = getResend();
 
     // 1. Email to Admin
     const adminContentHtml = `
@@ -580,7 +571,7 @@ export async function sendContactInquiryEmail(inquiry: {
       </table>
 
       <p style="font-size: 12px; color: #64748b; margin: 0;">
-        Tip: Hit "Reply" in your email client to respond directly to <strong style="color: #cbd5e1;">${inquiry.email}</strong>.
+        Tip: Reply to this email to respond directly to <strong style="color: #cbd5e1;">${inquiry.email}</strong>.
       </p>
     `;
 
@@ -592,9 +583,9 @@ export async function sendContactInquiryEmail(inquiry: {
       badgeColor: '#06b6d4',
     });
 
-    await transporter.sendMail({
-      from: FROM_SENDER,
-      to: ADMIN_EMAIL,
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: [ADMIN_EMAIL],
       replyTo: inquiry.email,
       subject: `📩 Support Ticket from ${inquiry.name} (${inquiry.email})`,
       html: adminHtml,
@@ -630,9 +621,9 @@ export async function sendContactInquiryEmail(inquiry: {
       badgeColor: '#10b981',
     });
 
-    await transporter.sendMail({
-      from: FROM_SENDER,
-      to: inquiry.email,
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: [inquiry.email],
       subject: `🛡️ We Received Your Inquiry - Shadow Store Support Desk`,
       html: customerHtml,
     });
@@ -653,7 +644,7 @@ export async function sendLowStockAlertEmail(stockData: {
   enduranceHours?: string | number;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const transporter = getMailTransporter();
+    const resend = getResend();
 
     const accountsListHtml = stockData.accounts.map((acc) => `
       <tr>
@@ -734,14 +725,15 @@ export async function sendLowStockAlertEmail(stockData: {
       badgeColor: '#ef4444',
     });
 
-    const info = await transporter.sendMail({
-      from: FROM_SENDER,
-      to: ADMIN_EMAIL,
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: [ADMIN_EMAIL],
       subject: `⚠️ [ALERT] Low Garena Shell Stock Warning: ${stockData.totalShells} Shells Remaining`,
       html,
     });
 
-    return { success: true, messageId: info.messageId };
+    if (error) throw new Error(error.message);
+    return { success: true, messageId: data?.id };
   } catch (err: any) {
     console.error('[EmailService] Error sending Low Stock Alert email:', err);
     return { success: false, error: err.message };
