@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, MessageSquare, Phone, Send, CheckCircle2, Loader2 } from 'lucide-react';
+import { Mail, MessageSquare, Phone, Send, CheckCircle2, Loader2, Code } from 'lucide-react';
 
 export default function ContactClient() {
   const [name, setName] = useState('');
@@ -43,8 +43,8 @@ export default function ContactClient() {
           <Mail className="w-6 h-6 text-cyan-400 shrink-0" />
           <div>
             <span className="text-xs text-slate-500 font-mono block">Email Support</span>
-            <a href="mailto:support@shadowstore.com" className="text-sm font-bold text-white hover:text-cyan-400">
-              support@shadowstore.com
+            <a href="mailto:adminshadowstorelk.com@gmail.com" className="text-sm font-bold text-white hover:text-cyan-400">
+              adminshadowstorelk.com@gmail.com
             </a>
           </div>
         </div>
@@ -70,6 +70,20 @@ export default function ContactClient() {
           <div>
             <span className="text-xs text-slate-500 font-mono block">Telegram Reseller Desk</span>
             <span className="text-sm font-bold text-white">@ShadowStoreSupport</span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#141229] border border-cyan-500/30 flex items-center gap-4">
+          <Code className="w-6 h-6 text-cyan-400 shrink-0" />
+          <div>
+            <span className="text-xs text-slate-500 font-mono block">Developer & Technical Inquiries</span>
+            <span className="text-sm font-bold text-white block">Dulanja Abeysinghe</span>
+            <a
+              href="mailto:dulanja150abeysinghe@gmail.com"
+              className="text-xs text-cyan-400 hover:text-cyan-300 font-mono transition-colors block"
+            >
+              dulanja150abeysinghe@gmail.com
+            </a>
           </div>
         </div>
       </div>

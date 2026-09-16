@@ -63,6 +63,8 @@ export function generateOrganizationSchema() {
     founder: {
       '@type': 'Person',
       name: 'Dulanja Abeysinghe',
+      jobTitle: 'Lead Developer & Founder',
+      email: 'dulanja150abeysinghe@gmail.com',
     },
     contactPoint: [
       {

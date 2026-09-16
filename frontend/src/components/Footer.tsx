@@ -78,7 +78,19 @@ export default function Footer() {
 
         <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
           <p>© {new Date().getFullYear()} Shadow Store. All rights reserved.</p>
-          <p className="text-slate-400 text-[11px]">Sri Lanka Gaming Recharge Services</p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-[11px] text-slate-400">
+            <span>Sri Lanka Gaming Recharge Services</span>
+            <span className="hidden sm:inline text-slate-700">•</span>
+            <span>
+              Developer:{' '}
+              <a
+                href="mailto:dulanja150abeysinghe@gmail.com"
+                className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+              >
+                Dulanja Abeysinghe
+              </a>
+            </span>
+          </div>
         </div>
       </div>
     </footer>

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Zap, ShieldCheck, Award, Cpu, Home, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Zap, ShieldCheck, Award, Cpu, Home, ChevronRight, CheckCircle2, Mail, Code } from 'lucide-react';
 import {
   SITE_NAME,
   createCanonicalUrl,
@@ -117,6 +117,28 @@ export default function AboutPage() {
             </p>
           </div>
         </div>
+
+        {/* Developer & Technical Leadership */}
+        <section className="p-6 sm:p-8 rounded-3xl bg-[#141229] border border-cyan-500/30 space-y-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
+                <Code className="w-4 h-4" /> Platform Engineering & Architecture
+              </div>
+              <h2 className="text-2xl font-black text-white">Lead Developer</h2>
+              <p className="text-base font-bold text-slate-200">Dulanja Abeysinghe</p>
+            </div>
+            <a
+              href="mailto:dulanja150abeysinghe@gmail.com"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold transition-all w-fit"
+            >
+              <Mail className="w-4 h-4" /> dulanja150abeysinghe@gmail.com
+            </a>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
+            Architected and engineered the Shadow Store platform from the ground up, implementing high-speed Garena API integrations, automated Dialog eZ Cash verification, real-time Player UID verification, and high-performance serverless edge deployment.
+          </p>
+        </section>
 
         {/* Commitment to Transparency */}
         <section className="p-8 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4 shadow-xl">
