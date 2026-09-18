@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { fetchDatabaseOrders, updateDatabaseOrderReceipt, DatabaseOrder } from '@/lib/ordersService';
 import { Profile } from '@/types/database';
@@ -32,6 +33,7 @@ import {
   FileText,
   Printer,
   Download,
+  Sparkles,
 } from 'lucide-react';
 import ShadowWalletWidget from '@/components/ShadowWalletWidget';
 import TransactionReceiptModal, { ReceiptData } from '@/components/TransactionReceiptModal';
@@ -308,20 +310,61 @@ export default function UserDashboardPage() {
   return (
     <div className="min-h-screen bg-[#0a0814] pb-20 space-y-8 print:bg-transparent">
       <div className="print:hidden space-y-8">
-        {/* Top Banner Header */}
-      <div className="relative h-48 bg-[#120f26] border-b border-purple-950/40 overflow-hidden flex flex-col items-center justify-center text-center">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/20 via-purple-950/30 to-transparent" />
-        <div className="relative z-10 space-y-2">
-          <h1 className="text-3xl font-black text-white uppercase tracking-widest drop-shadow-lg">
-            MY DASHBOARD
-          </h1>
-          <div className="flex items-center justify-center gap-2 text-[10px] font-mono font-bold uppercase text-slate-400">
-            <Link href="/" className="hover:text-cyan-400">HOME</Link>
-            <span>:</span>
-            <span className="text-red-500 font-black">DASHBOARD</span>
+        {/* Top Banner Header with Cinematic Esports Gaming Artwork */}
+        <div className="relative min-h-[280px] sm:min-h-[320px] md:min-h-[360px] w-full border-b border-purple-900/50 overflow-hidden flex flex-col items-center justify-center text-center group">
+          {/* Cinematic Gaming Background Image */}
+          <Image
+            src="/dashboard-banner.jpg"
+            alt="Shadow Store Free Fire Gaming Dashboard Banner"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center md:object-[center_30%] scale-100 group-hover:scale-105 transition-transform duration-1000 ease-out"
+          />
+
+          {/* Tactical Dark Scrims & Radial Vignette Gradients for Maximum Legibility & Glow */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/70 to-[#0a0814]/85 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0814]/90 via-[#0a0814]/40 to-[#0a0814]/90 pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(168,85,247,0.25)_0%,_rgba(6,182,212,0.18)_40%,_transparent_75%)] pointer-events-none" />
+          <div className="absolute inset-0 cyber-grid opacity-15 pointer-events-none" />
+
+          {/* Top & Bottom Neon Laser Accent Lines */}
+          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_14px_rgba(6,182,212,0.8)] z-10" />
+          <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-purple-500 to-transparent shadow-[0_0_14px_rgba(168,85,247,0.8)] z-10" />
+
+          {/* Foreground Content & Tactical Gaming HUD Elements */}
+          <div className="relative z-10 space-y-3 px-4 max-w-4xl mx-auto py-10">
+            {/* Tactical Status Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-black/60 border border-cyan-400/40 backdrop-blur-md text-[10px] font-mono font-bold tracking-widest text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.25)]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <Zap className="w-3 h-3 text-cyan-400" />
+              <span>SHADOW GAMING HUB • CUSTOMER COMMAND CENTER</span>
+            </div>
+
+            {/* Main Title */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-[0.2em] font-gaming text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]">
+              MY <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-white to-purple-300">DASHBOARD</span>
+            </h1>
+
+            {/* Breadcrumb Navigation Pill */}
+            <div className="flex items-center justify-center gap-2 text-xs font-mono font-bold uppercase">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/70 border border-purple-500/40 backdrop-blur-md text-slate-300 shadow-lg">
+                <Link href="/" className="hover:text-cyan-400 transition-colors flex items-center gap-1">
+                  HOME
+                </Link>
+                <ChevronRight className="w-3 h-3 text-purple-400" />
+                <span className="text-cyan-400 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-cyan-400" /> DASHBOARD
+                </span>
+              </div>
+            </div>
+
+            {/* Player Welcome / Hub Subtext */}
+            <p className="text-xs sm:text-sm text-slate-300/90 font-mono max-w-lg mx-auto drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] pt-1">
+              Welcome, <span className="text-cyan-300 font-bold">{profile?.name || 'Gamer'}</span> • Manage your Free Fire diamond orders, receipts & wallet perks
+            </p>
           </div>
         </div>
-      </div>
 
       <div className="max-w-6xl mx-auto px-4 space-y-8">
         {/* Admin Quick Access Bar */}
