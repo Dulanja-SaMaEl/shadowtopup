@@ -758,3 +758,156 @@ export async function sendLowStockAlertEmail(stockData: {
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * 7. Send Password Reset OTP Verification Email
+ */
+export async function sendPasswordResetOtpEmail(
+  toEmail: string,
+  name: string,
+  otpCode: string,
+  expiresMinutes: number = 10
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    const resend = getResend();
+
+    const contentHtml = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="display: inline-block; font-size: 36px; margin-bottom: 6px;">🔐</span>
+        <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
+          Password Reset Request
+        </h2>
+        <p style="margin: 0; font-size: 13px; color: #a855f7; font-family: monospace; font-weight: bold; letter-spacing: 1px;">
+          SECURITY VERIFICATION REQUIRED
+        </p>
+      </div>
+
+      <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+        Hi <strong style="color: #ffffff;">${name || 'Player'}</strong>,<br />
+        We received a request to reset the password for your <strong style="color: #a855f7;">Shadow Store</strong> account (<span style="color: #06b6d4;">${toEmail}</span>). Enter the 6-digit code below to set your new password:
+      </p>
+
+      <!-- OTP Box -->
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0 24px 0;">
+        <tr>
+          <td align="center" style="padding: 24px 16px; background-color: #0a0817; border: 1px dashed #a855f7; border-radius: 12px; box-shadow: inset 0 0 20px rgba(168, 85, 247, 0.15);">
+            <span style="font-size: 11px; font-family: monospace; text-transform: uppercase; color: #94a3b8; letter-spacing: 2px; display: block; margin-bottom: 8px;">
+              YOUR 6-DIGIT RESET CODE
+            </span>
+            <div class="otp-box" style="font-size: 38px; font-weight: 900; letter-spacing: 10px; color: #06b6d4; font-family: 'Courier New', Courier, monospace; text-shadow: 0 0 16px rgba(6, 182, 212, 0.5);">
+              ${otpCode}
+            </div>
+            <span style="font-size: 11px; font-family: monospace; color: #f59e0b; display: block; margin-top: 10px;">
+              ⏱ Valid for ${expiresMinutes} minutes &bull; Do not share this code with anyone
+            </span>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Security Notice -->
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 16px 0; background-color: #0a0817; border: 1px solid #1f1a3a; border-radius: 10px; padding: 14px;">
+        <tr>
+          <td>
+            <div style="font-size: 12px; color: #94a3b8; line-height: 1.5;">
+              <strong style="color: #f87171;">⚠️ Did not request this?</strong><br />
+              If you didn't ask to reset your password, you can safely ignore this email. Your current password remains completely secure and unchanged.
+            </div>
+          </td>
+        </tr>
+      </table>
+    `;
+
+    const html = renderEmailShell({
+      title: `${otpCode} is your Password Reset Code`,
+      preheader: `Your 6-digit password reset code is ${otpCode}. Valid for ${expiresMinutes} minutes.`,
+      contentHtml,
+      badgeText: 'PASSWORD RESET',
+      badgeColor: '#a855f7',
+    });
+
+    const { data, error } = await resend.emails.send({
+      from: getFromAddress(),
+      to: [toEmail],
+      subject: `🔐 ${otpCode} - Shadow Store Password Reset Code`,
+      html,
+    });
+
+    if (error) throw new Error(error.message);
+    return { success: true, messageId: data?.id };
+  } catch (err: any) {
+    console.error('[EmailService] Error sending Password Reset OTP email:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * 8. Send Password Changed Security Notification Email
+ */
+export async function sendPasswordChangedNotificationEmail(
+  toEmail: string,
+  name: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    const resend = getResend();
+
+    const contentHtml = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="display: inline-block; font-size: 36px; margin-bottom: 6px;">🛡️</span>
+        <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 800; color: #ffffff;">
+          Password Changed Successfully
+        </h2>
+        <p style="margin: 0; font-size: 13px; color: #10b981; font-family: monospace; font-weight: bold; letter-spacing: 1px;">
+          SECURITY CONFIRMATION
+        </p>
+      </div>
+
+      <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+        Hi <strong style="color: #ffffff;">${name || 'Player'}</strong>,<br />
+        This is a confirmation that the password for your Shadow Store account (<span style="color: #06b6d4;">${toEmail}</span>) has been updated successfully.
+      </p>
+
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0; background-color: #0a0817; border: 1px solid #1f1a3a; border-radius: 10px; padding: 14px;">
+        <tr>
+          <td>
+            <div style="font-size: 12px; color: #94a3b8; line-height: 1.5;">
+              <strong style="color: #ffffff;">Timestamp:</strong> ${new Date().toUTCString()}<br />
+              <strong style="color: #ffffff;">Status:</strong> Updated &amp; Active
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Action Button -->
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 24px;">
+        <tr>
+          <td align="center">
+            <a href="${getSiteUrl()}/login" style="display: inline-block; padding: 14px 28px; background: linear-gradient(90deg, #7c3aed, #a855f7); color: #ffffff; font-size: 13px; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);">
+              Sign In to Your Account &rarr;
+            </a>
+          </td>
+        </tr>
+      </table>
+    `;
+
+    const html = renderEmailShell({
+      title: 'Your Shadow Store Password Was Changed',
+      preheader: 'Security Notice: Your Shadow Store password was successfully updated.',
+      contentHtml,
+      badgeText: 'SECURITY NOTICE',
+      badgeColor: '#10b981',
+    });
+
+    const { data, error } = await resend.emails.send({
+      from: getFromAddress(),
+      to: [toEmail],
+      subject: `🛡️ Security Notice: Your Shadow Store Password Was Changed`,
+      html,
+    });
+
+    if (error) throw new Error(error.message);
+    return { success: true, messageId: data?.id };
+  } catch (err: any) {
+    console.error('[EmailService] Error sending Password Changed notification email:', err);
+    return { success: false, error: err.message };
+  }
+}
