@@ -194,6 +194,9 @@ export async function POST(request: NextRequest) {
         let lastTxId = '';
         let lastPlayerNickname = '';
         let shellsUsedTotal = 0;
+        const deliveredItems: any[] = [];
+        const failedItems: { item: any; reason: string }[] = [];
+        let failedRefundTotal = 0;
 
         for (const it of expandedItems) {
           let ucBotRes: any = null;
@@ -217,38 +220,89 @@ export async function POST(request: NextRequest) {
             ucBotRes = { success: false, message: e.message };
           }
 
-          const isDelivered = ucBotRes && ucBotRes.success;
+          const isDelivered = Boolean(ucBotRes && ucBotRes.success);
           if (isDelivered) {
             shellsUsedTotal += it.shellCost;
             if (ucBotRes.transactionId) lastTxId = ucBotRes.transactionId;
             if (ucBotRes.playerNickname) lastPlayerNickname = ucBotRes.playerNickname;
+            deliveredItems.push(it);
+
+            const { data: ord } = await adminSupabase.from('orders').insert([{
+              user_id: authUser.id,
+              total_amount: it.unitPrice,
+              status: 'completed',
+              free_fire_player_id: it.playerUid,
+              package_name: it.packageName,
+              payment_method: 'shadow_wallet',
+              admin_note: `Delivered via UCBot TxID: ${ucBotRes.transactionId || ''}`,
+            }]).select();
+
+            if (ord && ord[0]) createdOrders.push(ord[0]);
+
+            await adminSupabase.from('purchase_transactions').insert([{
+              user_id: authUser.id,
+              package_id: it.packageId,
+              package_name: it.packageName,
+              free_fire_player_id: it.playerUid,
+              shells_deducted: it.shellCost,
+              price_paid: it.unitPrice,
+              price_tier: userRole,
+              status: 'completed',
+              payment_method: 'shadow_wallet',
+            }]);
+          } else {
+            const failReason = ucBotRes?.message || 'Topup delivery failed';
+            failedItems.push({ item: it, reason: failReason });
+            failedRefundTotal += it.unitPrice;
+
+            const { data: ord } = await adminSupabase.from('orders').insert([{
+              user_id: authUser.id,
+              total_amount: it.unitPrice,
+              status: 'refunded',
+              free_fire_player_id: it.playerUid,
+              package_name: it.packageName,
+              payment_method: 'shadow_wallet',
+              admin_note: `Delivery failed & refunded to wallet: ${failReason}`,
+            }]).select();
+
+            if (ord && ord[0]) createdOrders.push(ord[0]);
+
+            await adminSupabase.from('purchase_transactions').insert([{
+              user_id: authUser.id,
+              package_id: it.packageId,
+              package_name: it.packageName,
+              free_fire_player_id: it.playerUid,
+              shells_deducted: 0,
+              price_paid: it.unitPrice,
+              price_tier: userRole,
+              status: 'refunded',
+              payment_method: 'shadow_wallet',
+            }]);
           }
+        }
 
-          const { data: ord } = await adminSupabase.from('orders').insert([{
+        // 1. Instant Wallet Refund for any failed items
+        if (failedRefundTotal > 0) {
+          const refundedBalance = newWalletBalance + failedRefundTotal;
+          await adminSupabase
+            .from('profiles')
+            .update({
+              wallet_balance: refundedBalance,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', authUser.id);
+
+          await adminSupabase.from('wallet_transactions').insert([{
             user_id: authUser.id,
-            total_amount: it.unitPrice,
-            status: isDelivered ? 'completed' : 'pending',
-            free_fire_player_id: it.playerUid,
-            package_name: it.packageName,
-            payment_method: 'shadow_wallet',
-            admin_note: isDelivered ? `Delivered via UCBot TxID: ${ucBotRes.transactionId || ''}` : `UCBot note: ${ucBotRes?.message || 'Queued'}`,
-          }]).select();
-
-          if (ord && ord[0]) createdOrders.push(ord[0]);
-
-          await adminSupabase.from('purchase_transactions').insert([{
-            user_id: authUser.id,
-            package_id: it.packageId,
-            package_name: it.packageName,
-            free_fire_player_id: it.playerUid,
-            shells_deducted: isDelivered ? it.shellCost : 0,
-            price_paid: it.unitPrice,
-            price_tier: userRole,
-            status: isDelivered ? 'completed' : 'pending',
-            payment_method: 'shadow_wallet',
+            type: 'ORDER_REFUND',
+            amount: failedRefundTotal,
+            balance_after: refundedBalance,
+            description: `Auto-refund for failed item(s): ${failedItems.map((f) => `${f.item.packageName} (${f.reason})`).join(', ')}. Refunded to Shadow Wallet.`,
+            created_at: new Date().toISOString(),
           }]);
         }
 
+        // 2. Deduct shells only for successfully delivered items
         if (shellsUsedTotal > 0 && targetShellAcc?.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
           await adminSupabase.from('shell_accounts').update({
             available_balance: Math.max(0, (targetShellAcc.available_balance || 0) - shellsUsedTotal),
@@ -256,7 +310,49 @@ export async function POST(request: NextRequest) {
           }).eq('id', targetShellAcc.id);
         }
 
-        // Asynchronously send purchase receipt email and check low stock
+        // 3. If ALL items failed delivery -> Fail clearly, NO completed receipt
+        if (deliveredItems.length === 0) {
+          const firstErr = failedItems[0]?.reason || 'Provider delivery failed';
+          return NextResponse.json({
+            success: false,
+            refunded_to_wallet: true,
+            message: `Topup delivery failed (${firstErr}). Your payment of LKR ${failedRefundTotal.toLocaleString()} has been safely refunded to your Shadow Wallet balance!`,
+            orders: createdOrders,
+          }, { status: 400 });
+        }
+
+        // 4. If PARTIAL delivery
+        if (failedItems.length > 0) {
+          if (authUser.email) {
+            sendPurchaseReceiptEmail(authUser.email, {
+              orderId: createdOrders[0]?.id ? String(createdOrders[0].id).slice(0, 8).toUpperCase() : `W_${Date.now().toString().slice(-8)}`,
+              transactionId: lastTxId || `W_${Date.now().toString().slice(-8)}`,
+              packageName: `Partial Delivery (${deliveredItems.length} Delivered, ${failedItems.length} Refunded)`,
+              itemsDelivered: deliveredItems.map((i) => i.packageName).join(', '),
+              playerUid: deliveredItems[0]?.playerUid,
+              playerNickname: lastPlayerNickname,
+              amount: totalAmount - failedRefundTotal,
+              paymentMethod: 'Shadow Wallet',
+              status: 'PARTIAL COMPLETED',
+              resellerRole: userRole,
+            }).catch((e) => console.warn('[EmailReceipt] Wallet batch partial error:', e));
+          }
+
+          checkAndNotifyLowStock(adminSupabase).catch((e) => console.warn('[StockMonitor] Wallet check error:', e));
+
+          return NextResponse.json({
+            success: true,
+            status: 'partial',
+            message: `⚡ Partial Top-Up Delivered! ${deliveredItems.length} package(s) delivered instantly. ${failedItems.length} item(s) failed and LKR ${failedRefundTotal.toLocaleString()} was automatically refunded to your Shadow Wallet.`,
+            orders: createdOrders,
+            transactionId: lastTxId || `W_${Date.now().toString().slice(-8)}`,
+            playerNickname: lastPlayerNickname,
+            totalAmount: totalAmount - failedRefundTotal,
+            refundedAmount: failedRefundTotal,
+          });
+        }
+
+        // 5. ALL items delivered successfully
         if (authUser.email) {
           sendPurchaseReceiptEmail(authUser.email, {
             orderId: createdOrders[0]?.id ? String(createdOrders[0].id).slice(0, 8).toUpperCase() : `W_${Date.now().toString().slice(-8)}`,
@@ -328,6 +424,9 @@ export async function POST(request: NextRequest) {
         let lastTxId = cleanEzTrxId;
         let lastPlayerNickname = '';
         let shellsUsedTotal = 0;
+        const deliveredItems: any[] = [];
+        const failedItems: { item: any; reason: string }[] = [];
+        let failedRefundTotal = 0;
 
         for (const it of expandedItems) {
           let ucBotRes: any = null;
@@ -351,38 +450,88 @@ export async function POST(request: NextRequest) {
             ucBotRes = { success: false, message: e.message };
           }
 
-          const isDelivered = ucBotRes && ucBotRes.success;
+          const isDelivered = Boolean(ucBotRes && ucBotRes.success);
           if (isDelivered) {
             shellsUsedTotal += it.shellCost;
             if (ucBotRes.transactionId) lastTxId = ucBotRes.transactionId;
             if (ucBotRes.playerNickname) lastPlayerNickname = ucBotRes.playerNickname;
+            deliveredItems.push(it);
+
+            const { data: ord } = await adminSupabase.from('orders').insert([{
+              user_id: authUser.id,
+              total_amount: it.unitPrice,
+              status: 'completed',
+              free_fire_player_id: it.playerUid,
+              package_name: it.packageName,
+              payment_method: 'ez_cash',
+              admin_note: `eZ Cash TxID: ${cleanEzTrxId} | Delivered via UCBot TxID: ${ucBotRes.transactionId || ''}`,
+            }]).select();
+
+            if (ord && ord[0]) createdOrders.push(ord[0]);
+
+            await adminSupabase.from('purchase_transactions').insert([{
+              user_id: authUser.id,
+              package_id: it.packageId,
+              package_name: it.packageName,
+              free_fire_player_id: it.playerUid,
+              shells_deducted: it.shellCost,
+              price_paid: it.unitPrice,
+              price_tier: userRole,
+              status: 'completed',
+              payment_method: 'ez_cash',
+            }]);
+          } else {
+            const failReason = ucBotRes?.message || 'Topup delivery failed';
+            failedItems.push({ item: it, reason: failReason });
+            failedRefundTotal += it.unitPrice;
+
+            const { data: ord } = await adminSupabase.from('orders').insert([{
+              user_id: authUser.id,
+              total_amount: it.unitPrice,
+              status: 'refunded',
+              free_fire_player_id: it.playerUid,
+              package_name: it.packageName,
+              payment_method: 'ez_cash',
+              admin_note: `eZ Cash TxID: ${cleanEzTrxId} | Delivery failed & credited to wallet: ${failReason}`,
+            }]).select();
+
+            if (ord && ord[0]) createdOrders.push(ord[0]);
+
+            await adminSupabase.from('purchase_transactions').insert([{
+              user_id: authUser.id,
+              package_id: it.packageId,
+              package_name: it.packageName,
+              free_fire_player_id: it.playerUid,
+              shells_deducted: 0,
+              price_paid: it.unitPrice,
+              price_tier: userRole,
+              status: 'refunded',
+              payment_method: 'ez_cash',
+            }]);
           }
+        }
 
-          const { data: ord } = await adminSupabase.from('orders').insert([{
+        // 1. Credit failed amounts to customer's Shadow Wallet
+        if (failedRefundTotal > 0) {
+          const { data: profData } = await adminSupabase
+            .from('profiles')
+            .select('wallet_balance')
+            .eq('id', authUser.id)
+            .single();
+          const curBal = parseFloat(profData?.wallet_balance || 0);
+          const newBal = curBal + failedRefundTotal;
+          await adminSupabase.from('profiles').update({ wallet_balance: newBal }).eq('id', authUser.id);
+          await adminSupabase.from('wallet_transactions').insert([{
             user_id: authUser.id,
-            total_amount: it.unitPrice,
-            status: isDelivered ? 'completed' : 'pending',
-            free_fire_player_id: it.playerUid,
-            package_name: it.packageName,
-            payment_method: 'ez_cash',
-            admin_note: `eZ Cash TxID: ${cleanEzTrxId} | Delivery: ${isDelivered ? 'Delivered' : (ucBotRes?.message || 'Queued')}`,
-          }]).select();
-
-          if (ord && ord[0]) createdOrders.push(ord[0]);
-
-          await adminSupabase.from('purchase_transactions').insert([{
-            user_id: authUser.id,
-            package_id: it.packageId,
-            package_name: it.packageName,
-            free_fire_player_id: it.playerUid,
-            shells_deducted: isDelivered ? it.shellCost : 0,
-            price_paid: it.unitPrice,
-            price_tier: userRole,
-            status: isDelivered ? 'completed' : 'pending',
-            payment_method: 'ez_cash',
+            type: 'WALLET_REFUND',
+            amount: failedRefundTotal,
+            balance_after: newBal,
+            description: `Credit for failed eZ Cash item(s): ${failedItems.map((f) => `${f.item.packageName} (${f.reason})`).join(', ')}. Funds credited to your Shadow Wallet.`,
+            created_at: new Date().toISOString(),
           }]);
         }
 
+        // 2. Deduct shells only for delivered items
         if (shellsUsedTotal > 0 && targetShellAcc?.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
           await adminSupabase.from('shell_accounts').update({
             available_balance: Math.max(0, (targetShellAcc.available_balance || 0) - shellsUsedTotal),
@@ -390,6 +539,7 @@ export async function POST(request: NextRequest) {
           }).eq('id', targetShellAcc.id);
         }
 
+        // 3. Audit claimed eZ Cash payment
         try {
           await adminSupabase.from('ezcash_transactions').insert([{
             trx_id: cleanEzTrxId,
@@ -404,7 +554,49 @@ export async function POST(request: NextRequest) {
           }]);
         } catch {}
 
-        // Asynchronously send purchase receipt email and check low stock
+        // 4. If ALL items failed delivery
+        if (deliveredItems.length === 0) {
+          const firstErr = failedItems[0]?.reason || 'Topup delivery failed';
+          return NextResponse.json({
+            success: false,
+            refunded_to_wallet: true,
+            message: `eZ Cash verified, but Garena delivery failed (${firstErr}). Your payment of LKR ${failedRefundTotal.toLocaleString()} has been safely credited to your Shadow Wallet balance!`,
+            orders: createdOrders,
+          }, { status: 400 });
+        }
+
+        // 5. If PARTIAL items succeeded
+        if (failedItems.length > 0) {
+          if (authUser.email) {
+            sendPurchaseReceiptEmail(authUser.email, {
+              orderId: createdOrders[0]?.id ? String(createdOrders[0].id).slice(0, 8).toUpperCase() : cleanEzTrxId,
+              transactionId: lastTxId || cleanEzTrxId,
+              packageName: `Partial Delivery (${deliveredItems.length} Delivered, ${failedItems.length} Credited to Wallet)`,
+              itemsDelivered: deliveredItems.map((i) => i.packageName).join(', '),
+              playerUid: deliveredItems[0]?.playerUid,
+              playerNickname: lastPlayerNickname,
+              amount: totalAmount - failedRefundTotal,
+              paymentMethod: 'Dialog eZ Cash',
+              status: 'PARTIAL COMPLETED',
+              resellerRole: userRole,
+            }).catch((e) => console.warn('[EmailReceipt] eZ Cash batch partial error:', e));
+          }
+
+          checkAndNotifyLowStock(adminSupabase).catch((e) => console.warn('[StockMonitor] eZ Cash check error:', e));
+
+          return NextResponse.json({
+            success: true,
+            status: 'partial',
+            message: `⚡ Partial Delivery! ${deliveredItems.length} package(s) delivered instantly. ${failedItems.length} item(s) failed and LKR ${failedRefundTotal.toLocaleString()} was credited to your Shadow Wallet balance.`,
+            orders: createdOrders,
+            transactionId: lastTxId,
+            playerNickname: lastPlayerNickname,
+            totalAmount: totalAmount - failedRefundTotal,
+            refundedAmount: failedRefundTotal,
+          });
+        }
+
+        // 6. ALL items delivered successfully
         if (authUser.email) {
           sendPurchaseReceiptEmail(authUser.email, {
             orderId: createdOrders[0]?.id ? String(createdOrders[0].id).slice(0, 8).toUpperCase() : cleanEzTrxId,
