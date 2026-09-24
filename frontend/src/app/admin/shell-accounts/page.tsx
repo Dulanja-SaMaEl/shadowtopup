@@ -562,12 +562,12 @@ export default function AdminShellAccountsPage() {
                   <option value="3D">EVO 3 Days (Code: 3D)</option>
                   <option value="7D">EVO 7 Days (Code: 7D)</option>
                   <option value="30D">EVO 30 Days (Code: 30D)</option>
-                  <option value="lvl6">Level Up 6 (Code: lvl6 / L6)</option>
-                  <option value="lvl10">Level Up 10 (Code: lvl10 / L10)</option>
-                  <option value="lvl15">Level Up 15 (Code: lvl15 / L15)</option>
-                  <option value="lvl20">Level Up 20 (Code: lvl20 / L20)</option>
-                  <option value="lvl25">Level Up 25 (Code: lvl25 / L25)</option>
-                  <option value="lvl30">Level Up 30 (Code: lvl30 / L30)</option>
+                  <option value="L6">Level Up 6 (Code: L6)</option>
+                  <option value="L10">Level Up 10 (Code: L10)</option>
+                  <option value="L15">Level Up 15 (Code: L15)</option>
+                  <option value="L20">Level Up 20 (Code: L20)</option>
+                  <option value="L25">Level Up 25 (Code: L25)</option>
+                  <option value="L30">Level Up 30 (Code: L30)</option>
                 </datalist>
               </div>
 

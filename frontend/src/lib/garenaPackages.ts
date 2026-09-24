@@ -122,7 +122,7 @@ export const OFFICIAL_GARENA_PACKAGES: GarenaPackageItem[] = [
   // ==========================================
   {
     id: '11111111-1111-1111-1111-111111111015',
-    code: 'lvl6',
+    code: 'L6',
     package_name: 'Level Up 6',
     package_type: 'levelup_pass',
     diamond_amount: 200,
@@ -138,7 +138,7 @@ export const OFFICIAL_GARENA_PACKAGES: GarenaPackageItem[] = [
   },
   {
     id: '11111111-1111-1111-1111-111111111016',
-    code: 'lvl10',
+    code: 'L10',
     package_name: 'Level Up 10',
     package_type: 'levelup_pass',
     diamond_amount: 400,
@@ -154,7 +154,7 @@ export const OFFICIAL_GARENA_PACKAGES: GarenaPackageItem[] = [
   },
   {
     id: '11111111-1111-1111-1111-111111111017',
-    code: 'lvl15',
+    code: 'L15',
     package_name: 'Level Up 15',
     package_type: 'levelup_pass',
     diamond_amount: 550,
@@ -170,7 +170,7 @@ export const OFFICIAL_GARENA_PACKAGES: GarenaPackageItem[] = [
   },
   {
     id: '11111111-1111-1111-1111-111111111018',
-    code: 'lvl20',
+    code: 'L20',
     package_name: 'Level Up 20',
     package_type: 'levelup_pass',
     diamond_amount: 700,
@@ -186,7 +186,7 @@ export const OFFICIAL_GARENA_PACKAGES: GarenaPackageItem[] = [
   },
   {
     id: '11111111-1111-1111-1111-111111111019',
-    code: 'lvl25',
+    code: 'L25',
     package_name: 'Level Up 25',
     package_type: 'levelup_pass',
     diamond_amount: 850,
@@ -202,7 +202,7 @@ export const OFFICIAL_GARENA_PACKAGES: GarenaPackageItem[] = [
   },
   {
     id: '11111111-1111-1111-1111-111111111020',
-    code: 'lvl30',
+    code: 'L30',
     package_name: 'Level Up 30',
     package_type: 'levelup_pass',
     diamond_amount: 1000,

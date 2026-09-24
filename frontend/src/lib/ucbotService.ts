@@ -37,12 +37,12 @@ export function resolveUCBotPackId(packageName: string): string {
   if (/^7d$/i.test(raw)) return '7D';
   if (/^30d$/i.test(raw)) return '30D';
 
-  if (/^(lvl6|l6)$/i.test(raw)) return 'lvl6';
-  if (/^(lvl10|l10)$/i.test(raw)) return 'lvl10';
-  if (/^(lvl15|l15)$/i.test(raw)) return 'lvl15';
-  if (/^(lvl20|l20)$/i.test(raw)) return 'lvl20';
-  if (/^(lvl25|l25)$/i.test(raw)) return 'lvl25';
-  if (/^(lvl30|l30)$/i.test(raw)) return 'lvl30';
+  if (/^(lvl6|l6)$/i.test(raw)) return 'L6';
+  if (/^(lvl10|l10)$/i.test(raw)) return 'L10';
+  if (/^(lvl15|l15)$/i.test(raw)) return 'L15';
+  if (/^(lvl20|l20)$/i.test(raw)) return 'L20';
+  if (/^(lvl25|l25)$/i.test(raw)) return 'L25';
+  if (/^(lvl30|l30)$/i.test(raw)) return 'L30';
 
   // 2. EVO Access matches
   if (lower.includes('evo')) {
@@ -53,12 +53,12 @@ export function resolveUCBotPackId(packageName: string): string {
 
   // 3. Level Up Passes (Must check before standard diamond digits!)
   if (lower.includes('level') || lower.includes('lvl') || lower.includes('lv')) {
-    if (lower.includes('30')) return 'lvl30';
-    if (lower.includes('25')) return 'lvl25';
-    if (lower.includes('20')) return 'lvl20';
-    if (lower.includes('15')) return 'lvl15';
-    if (lower.includes('10')) return 'lvl10';
-    if (lower.includes('6')) return 'lvl6';
+    if (lower.includes('30')) return 'L30';
+    if (lower.includes('25')) return 'L25';
+    if (lower.includes('20')) return 'L20';
+    if (lower.includes('15')) return 'L15';
+    if (lower.includes('10')) return 'L10';
+    if (lower.includes('6')) return 'L6';
   }
 
   // 4. Passes & Memberships
