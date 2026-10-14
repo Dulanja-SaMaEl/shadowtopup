@@ -171,6 +171,7 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
         userRole={userRole}
         verifiedPlayerUid={verifiedPlayer?.uid}
         verifiedPlayerNickname={verifiedPlayer?.nickname}
+        isRestocking={isRestocking}
       />
 
       {/* Customer Reviews & Ratings */}

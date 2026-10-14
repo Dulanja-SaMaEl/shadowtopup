@@ -19,6 +19,8 @@ import {
 import CustomerReviewsSection from '@/components/CustomerReviewsSection';
 import { createClient } from '@supabase/supabase-js';
 import { getRestockAlert } from '@/lib/restockAlertService';
+import { formatCurrency } from '@/lib/pricing';
+import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
 import {
   SITE_NAME,
   createCanonicalUrl,
@@ -209,12 +211,63 @@ async function getFeaturedGames(): Promise<FeaturedGame[]> {
   return defaultFeaturedGames;
 }
 
+async function getHeroPackages() {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (supabaseUrl && supabaseServiceKey && !supabaseUrl.includes('your-supabase-project')) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const { data, error } = await supabase
+        .from('packages')
+        .select('*')
+        .eq('is_active', true);
+      if (!error && data && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (err) {
+    // Fall back to offline defaults
+  }
+  return OFFICIAL_GARENA_PACKAGES;
+}
+
 export default async function HomePage() {
-  const [games, restockAlert] = await Promise.all([
+  const [games, restockAlert, heroPackages] = await Promise.all([
     getFeaturedGames(),
     getRestockAlert(),
+    getHeroPackages(),
   ]);
   const faqSchema = generateFAQSchema(homepageFaqs);
+
+  // Match live package pricing
+  const weeklyPkg =
+    heroPackages.find(
+      (p) =>
+        p.id === '11111111-1111-1111-1111-111111111010' ||
+        p.package_name?.toLowerCase().includes('weekly sub') ||
+        p.package_name?.toLowerCase().includes('weekly mem')
+    ) || heroPackages.find((p) => p.shell_cost === 86);
+
+  const d100Pkg =
+    heroPackages.find(
+      (p) =>
+        p.id === '11111111-1111-1111-1111-111111111002' ||
+        (p.diamond_amount === 100 && (p.package_type === 'diamond' || p.package_name?.toLowerCase().includes('100')))
+    );
+
+  const monthlyPkg =
+    heroPackages.find(
+      (p) =>
+        (p.id === '11111111-1111-1111-1111-111111111011' || p.package_name?.toLowerCase().includes('monthly')) &&
+        p.is_active !== false
+    );
+
+  const litePkg =
+    heroPackages.find(
+      (p) =>
+        p.id === '11111111-1111-1111-1111-111111111009' ||
+        p.package_name?.toLowerCase().includes('lite')
+    );
 
   return (
     <>
@@ -245,7 +298,7 @@ export default async function HomePage() {
               {/* Left Column: Clear Value Prop with Tactical HUD */}
               <div className="lg:col-span-7 space-y-5">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-                  Instant Free Fire Diamonds & Weekly Memberships in{' '}
+                  Instant Free Fire Diamonds &amp; Weekly Memberships in{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-300 to-purple-300">
                     Sri Lanka
                   </span>
@@ -269,7 +322,7 @@ export default async function HomePage() {
                     href="/reseller"
                     className="px-6 py-3.5 rounded-lg bg-[#181434] hover:bg-[#201b44] border border-purple-800/60 hover:border-purple-500/50 text-slate-200 font-semibold text-xs uppercase tracking-wider text-center transition-all hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]"
                   >
-                    Wholesale Reseller Program
+                    Apply for Reseller
                   </Link>
                 </div>
 
@@ -306,9 +359,13 @@ export default async function HomePage() {
                     <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
                         <span className="font-semibold text-white block">Weekly Membership</span>
-                        <span className="text-[10px] text-purple-300/80 font-mono">450 Diamonds value</span>
+                        <span className="text-[10px] text-purple-300/80 font-mono">
+                          {weeklyPkg?.diamond_amount ? `${weeklyPkg.diamond_amount} Diamonds value` : '445 Diamonds value'}
+                        </span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 650.00</span>
+                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">
+                        {formatCurrency(weeklyPkg?.normal_price || 562)}
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
@@ -316,23 +373,33 @@ export default async function HomePage() {
                         <span className="font-semibold text-white block">100 Diamonds</span>
                         <span className="text-[10px] text-purple-300/80 font-mono">Instant UID delivery</span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 350.00</span>
+                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">
+                        {formatCurrency(d100Pkg?.normal_price || 325)}
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
                         <span className="font-semibold text-white block">Monthly Membership</span>
-                        <span className="text-[10px] text-purple-300/80 font-mono">2,600 Diamonds value</span>
+                        <span className="text-[10px] text-purple-300/80 font-mono">
+                          {monthlyPkg?.diamond_amount ? `${Number(monthlyPkg.diamond_amount).toLocaleString('en-US')} Diamonds value` : '2,500 Diamonds value'}
+                        </span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 3,200.00</span>
+                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">
+                        {formatCurrency(monthlyPkg?.normal_price || 2862)}
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
                         <span className="font-semibold text-white block">Weekly Lite</span>
-                        <span className="text-[10px] text-purple-300/80 font-mono">120 Diamonds value</span>
+                        <span className="text-[10px] text-purple-300/80 font-mono">
+                          {litePkg?.diamond_amount ? `${litePkg.diamond_amount} Diamonds value` : '90 Diamonds value'}
+                        </span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 140.00</span>
+                      <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">
+                        {formatCurrency(litePkg?.normal_price || 137)}
+                      </span>
                     </div>
                   </div>
 

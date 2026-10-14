@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Package, UserRole } from '@/types/database';
 import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
-import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap, Smartphone, Copy, X } from 'lucide-react';
+import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap, Smartphone, Copy, X, RefreshCw } from 'lucide-react';
 import TransactionReceiptModal from './TransactionReceiptModal';
 import OrderProcessingModal from './OrderProcessingModal';
 import { useCart } from '@/context/CartContext';
@@ -14,10 +14,11 @@ interface Props {
   userRole?: UserRole;
   verifiedPlayerUid?: string | null;
   verifiedPlayerNickname?: string | null;
+  isRestocking?: boolean;
   onCheckoutComplete?: () => void;
 }
 
-export default function PackageSelector({ packages, userRole, verifiedPlayerUid, verifiedPlayerNickname, onCheckoutComplete }: Props) {
+export default function PackageSelector({ packages, userRole, verifiedPlayerUid, verifiedPlayerNickname, isRestocking = false, onCheckoutComplete }: Props) {
   const { addToCart, totalCount } = useCart();
   const [cartToast, setCartToast] = useState<{ show: boolean; packageName: string; quantity: number } | null>(null);
   const [effectiveRole, setEffectiveRole] = useState<UserRole | undefined>(userRole);
@@ -64,6 +65,13 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
   const handleAddToCart = (pkg: Package, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (isRestocking) {
+      setMessage({
+        type: 'error',
+        text: 'Checkout paused during restock — please check back shortly.',
+      });
+      return;
+    }
     const targetUid = (verifiedPlayerUid || '').trim();
     const price = calculatePackagePrice(pkg, effectiveRole);
     addToCart({
@@ -134,6 +142,10 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   }, []);
 
   const handleCheckout = async () => {
+    if (isRestocking) {
+      setMessage({ type: 'error', text: 'Checkout paused during restock — please check back shortly.' });
+      return;
+    }
     if (!selectedPkg) {
       setMessage({ type: 'error', text: 'Please select a top-up package' });
       return;
@@ -527,9 +539,14 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
+                      disabled={isRestocking}
                       onClick={(e) => handleAddToCart(pkg, e)}
-                      className="p-1.5 rounded-lg bg-[#090714] border border-purple-950/80 text-slate-300 hover:text-white hover:border-purple-500/80 hover:shadow-[0_0_10px_rgba(168,85,247,0.25)] transition-all"
-                      title="Add to Cart"
+                      className={`p-1.5 rounded-lg border transition-all ${
+                        isRestocking
+                          ? 'opacity-40 cursor-not-allowed bg-[#090714] border-purple-950/60 text-slate-600'
+                          : 'bg-[#090714] border-purple-950/80 text-slate-300 hover:text-white hover:border-purple-500/80 hover:shadow-[0_0_10px_rgba(168,85,247,0.25)]'
+                      }`}
+                      title={isRestocking ? 'Checkout paused during restock' : 'Add to Cart'}
                     >
                       <ShoppingCart className="w-3.5 h-3.5" />
                     </button>
@@ -696,23 +713,54 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             </div>
           )}
 
+          {isRestocking && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/60 via-[#19142e] to-amber-950/40 border border-amber-500/60 text-amber-200 text-xs font-semibold flex items-center gap-3 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 text-amber-400">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-mono font-bold text-amber-400 tracking-wider block">
+                  Restock Notice
+                </span>
+                <p className="text-xs text-white">
+                  Checkout paused during restock — please check back shortly.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-gaming">
             <button
               type="button"
-              onClick={(e) => selectedPkg && handleAddToCart(selectedPkg, e)}
-              className="py-3 bg-[#090714] border border-purple-950/80 hover:border-purple-500/60 text-slate-300 hover:text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-wider hover:shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+              disabled={isRestocking}
+              onClick={(e) => selectedPkg && !isRestocking && handleAddToCart(selectedPkg, e)}
+              className={`py-3 rounded-lg flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-wider font-semibold border ${
+                isRestocking
+                  ? 'bg-[#090714] border-purple-950/40 text-slate-600 cursor-not-allowed opacity-50'
+                  : 'bg-[#090714] border-purple-950/80 text-slate-300 hover:text-white hover:border-purple-500/60 hover:shadow-[0_0_12px_rgba(168,85,247,0.2)]'
+              }`}
             >
               <ShoppingCart className="w-4 h-4 text-purple-400" />
               <span>Add to Cart</span>
             </button>
 
             <button
+              type="button"
               onClick={handleCheckout}
-              disabled={loading}
-              className="py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-xs uppercase tracking-wider neon-glow-btn"
+              disabled={loading || isRestocking}
+              className={`py-3 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm ${
+                isRestocking
+                  ? 'bg-slate-800/80 border border-slate-700/60 text-slate-400 cursor-not-allowed opacity-75'
+                  : 'bg-purple-600 hover:bg-purple-500 text-white neon-glow-btn'
+              }`}
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin text-white" />
+              ) : isRestocking ? (
+                <>
+                  <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
+                  <span>Checkout Paused (Restocking)</span>
+                </>
               ) : paymentMethod === 'ez_cash' ? (
                 <>Verify eZ Cash ({formatCurrency(calculatePackagePrice(selectedPkg, effectiveRole))}) & Top-Up</>
               ) : (

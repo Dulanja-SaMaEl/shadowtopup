@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Outfit } from 'next/font/google';
+import { Poppins } from 'next/font/google';
 import { Suspense } from 'react';
 import './globals.css';
 import AppLayout from '@/components/AppLayout';
@@ -13,17 +13,11 @@ import {
   generateWebSiteSchema,
 } from '@/lib/seo';
 
-const inter = Inter({
+const poppins = Poppins({
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
-});
-
-const outfit = Outfit({
-  weight: ['400', '500', '600', '700', '800', '900'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-heading',
+  variable: '--font-poppins',
 });
 
 const siteUrl = getSiteUrl();
@@ -143,7 +137,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
       </head>
-      <body className={`${inter.variable} ${outfit.variable} font-sans`}>
+      <body className={`${poppins.variable} ${poppins.className} font-sans`}>
         <Suspense fallback={null}>
           <PagePreloader />
         </Suspense>

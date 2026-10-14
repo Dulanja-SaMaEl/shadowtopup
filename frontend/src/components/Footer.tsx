@@ -24,10 +24,6 @@ export default function Footer() {
             <p className="text-xs text-slate-400 leading-relaxed">
               Sri Lanka's leading third-party gaming top-up platform and wholesale reseller service. Instant Free Fire diamond recharge with verified Player ID dispatch.
             </p>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-purple-950/40 border border-purple-800/40 text-[10px] font-mono text-purple-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-              <span>Garena API Online</span>
-            </div>
           </div>
 
           {/* Quick Recharge */}

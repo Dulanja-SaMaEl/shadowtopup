@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShieldCheck, Check, Wallet, Landmark, Loader2, Zap, AlertCircle, Smartphone, Copy, Sparkles, Upload } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShieldCheck, Check, Wallet, Landmark, Loader2, Zap, AlertCircle, Smartphone, Copy, Sparkles, Upload, RefreshCw } from 'lucide-react';
 import { formatCurrency, calculatePackagePrice } from '@/lib/pricing';
 import { Package, UserRole } from '@/types/database';
 import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
@@ -15,6 +15,7 @@ export default function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState<'shadow_wallet' | 'ez_cash' | 'bank_transfer'>('shadow_wallet');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isRestocking, setIsRestocking] = useState(false);
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   const [userStoreName, setUserStoreName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -67,6 +68,17 @@ export default function CartPage() {
       } catch (err) {
         console.error('Error loading cart page user data:', err);
       }
+
+      // Check if Free Fire restock alert is active
+      try {
+        const rRes = await fetch('/api/restock-alert');
+        const rData = await rRes.json();
+        if (rData.success && rData.alert?.enabled) {
+          setIsRestocking(true);
+        }
+      } catch (rErr) {
+        console.warn('Restock alert check note:', rErr);
+      }
     }
     loadUserData();
   }, []);
@@ -100,6 +112,10 @@ export default function CartPage() {
   const effectiveCartTotal = cartItems.reduce((acc, item) => acc + getItemPrice(item) * item.quantity, 0);
 
   const handleBatchCheckout = async () => {
+    if (isRestocking) {
+      setErrorMsg('Checkout paused during restock — please check back shortly.');
+      return;
+    }
     if (cartItems.length === 0) return;
 
     // Verify all items have valid Player UIDs (min 5 characters)
@@ -715,13 +731,29 @@ export default function CartPage() {
                   </div>
                 )}
 
+                {isRestocking && (
+                  <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/50 text-amber-200 text-xs font-semibold flex items-center gap-2.5 shadow-lg shadow-amber-950/20">
+                    <RefreshCw className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
+                    <span>Checkout paused during restock — please check back shortly.</span>
+                  </div>
+                )}
+
                 <button
                   onClick={handleBatchCheckout}
-                  disabled={loading}
-                  className="w-full py-3.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-colors text-sm uppercase tracking-wider font-gaming"
+                  disabled={loading || isRestocking}
+                  className={`w-full py-3.5 font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all text-sm uppercase tracking-wider font-gaming ${
+                    isRestocking
+                      ? 'bg-slate-800/80 border border-slate-700/60 text-slate-400 cursor-not-allowed opacity-75'
+                      : 'bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50'
+                  }`}
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  ) : isRestocking ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
+                      <span>Checkout Paused (Restocking)</span>
+                    </>
                   ) : paymentMethod === 'ez_cash' ? (
                     <>
                       <ShieldCheck className="w-4 h-4 text-purple-200" />
