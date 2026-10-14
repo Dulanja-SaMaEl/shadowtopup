@@ -6,6 +6,7 @@ import { verifyEZCashTransaction } from '@/lib/ezcashService';
 import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
 import { sendPurchaseReceiptEmail } from '@/lib/emailService';
 import { checkAndNotifyLowStock } from '@/lib/stockMonitor';
+import { getRestockAlert } from '@/lib/restockAlertService';
 
 // Max packages sent in a single UC Bot request. Bundles never contain the same package code
 // twice (duplicates go to the next request) so a provider-side de-dupe can't silently drop items.
@@ -189,6 +190,15 @@ export async function POST(request: NextRequest) {
             message: `Item #${i + 1} (${it.packageName || 'Top-up'}) requires a valid Free Fire Player UID (min 5 digits).`,
           }, { status: 400 });
         }
+      }
+
+      // Check if inventory restock is active
+      const restockAlert = await getRestockAlert();
+      if (restockAlert?.enabled) {
+        return NextResponse.json({
+          success: false,
+          message: restockAlert.message || 'Free Fire SG/MY is currently restocking! Checkout is paused — please check back shortly.',
+        }, { status: 400 });
       }
 
       const { data: allDbPackages } = await adminSupabase.from('packages').select('*');

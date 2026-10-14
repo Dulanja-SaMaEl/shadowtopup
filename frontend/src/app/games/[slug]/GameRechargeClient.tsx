@@ -72,8 +72,9 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
       try {
         const res = await fetch('/api/restock-alert');
         const data = await res.json();
-        if (data.success && data.restockAlert) {
-          setRestockAlert(data.restockAlert);
+        const alertObj = data.restockAlert || data.alert;
+        if (data.success && alertObj) {
+          setRestockAlert(alertObj);
         }
       } catch {
         // Restock alert fetch fallback
@@ -87,7 +88,10 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
       ? 'Garena Free Fire (SG / MY)'
       : slug.toUpperCase().replace(/-/g, ' ');
 
-  const isRestocking = Boolean(restockAlert?.enabled && (restockAlert?.gameSlug === 'free-fire' || slug === 'free-fire'));
+  const isRestocking = Boolean(
+    restockAlert?.enabled &&
+    (restockAlert.gameSlug === slug || (!restockAlert.gameSlug && slug === 'free-fire'))
+  );
 
   return (
     <div className="space-y-8">

@@ -85,6 +85,7 @@ export async function middleware(request: NextRequest) {
 
     const isUserAdmin =
       profile?.role === 'admin' ||
+      user.email === 'admin@shadowstorelk.com' ||
       user.email === 'admin@shadowtopup.com' ||
       user.email === 'adminshadowstorelk.com@gmail.com';
 
@@ -117,6 +118,7 @@ export async function middleware(request: NextRequest) {
 
     const isUserAdmin =
       profile?.role === 'admin' ||
+      user.email === 'admin@shadowstorelk.com' ||
       user.email === 'admin@shadowtopup.com' ||
       user.email === 'adminshadowstorelk.com@gmail.com';
 

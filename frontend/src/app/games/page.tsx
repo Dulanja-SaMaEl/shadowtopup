@@ -9,6 +9,9 @@ import {
   generateBreadcrumbSchema,
 } from '@/lib/seo';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface GameItem {
   id: string;
   title: string;

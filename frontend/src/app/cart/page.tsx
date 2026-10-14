@@ -73,7 +73,8 @@ export default function CartPage() {
       try {
         const rRes = await fetch('/api/restock-alert');
         const rData = await rRes.json();
-        if (rData.success && rData.alert?.enabled) {
+        const rAlert = rData.restockAlert || rData.alert;
+        if (rData.success && rAlert?.enabled) {
           setIsRestocking(true);
         }
       } catch (rErr) {

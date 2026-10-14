@@ -27,6 +27,9 @@ import {
   generateFAQSchema,
 } from '@/lib/seo';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface FeaturedGame {
   title: string;
   slug: string;

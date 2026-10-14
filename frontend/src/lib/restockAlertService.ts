@@ -27,29 +27,32 @@ function getSupabaseAdmin() {
 }
 
 /**
- * Fetch current restock alert status
+ * Fetch current restock alert status from database
  */
 export async function getRestockAlert(): Promise<RestockAlertConfig> {
   const supabase = getSupabaseAdmin();
   if (supabase) {
     try {
       const { data, error } = await supabase
-        .from('api_quotas')
+        .from('pricing_settings')
         .select('*')
-        .eq('service_name', 'ff_restock_alert')
+        .eq('setting_key', 'restock_alert')
         .maybeSingle();
 
-      if (!error && data && data.metadata) {
-        return {
-          enabled: Boolean(data.metadata.enabled),
-          gameSlug: data.metadata.gameSlug || 'free-fire',
-          gameTitle: data.metadata.gameTitle || 'Free Fire SG/MY',
-          message: data.metadata.message || inMemoryRestockAlert.message,
+      if (!error && data && data.setting_value) {
+        const val = data.setting_value as any;
+        const config: RestockAlertConfig = {
+          enabled: Boolean(val.enabled),
+          gameSlug: val.gameSlug || 'free-fire',
+          gameTitle: val.gameTitle || 'Free Fire SG/MY',
+          message: val.message || inMemoryRestockAlert.message,
           updatedAt: data.updated_at || new Date().toISOString(),
         };
+        inMemoryRestockAlert = config;
+        return config;
       }
-    } catch {
-      // Fallback to in-memory state
+    } catch (e) {
+      console.warn('[RestockAlert] Error fetching from pricing_settings, falling back to memory:', e);
     }
   }
 
@@ -57,37 +60,44 @@ export async function getRestockAlert(): Promise<RestockAlertConfig> {
 }
 
 /**
- * Update restock alert status (admin only)
+ * Update restock alert status (persisted directly in database)
  */
 export async function updateRestockAlert(updates: Partial<RestockAlertConfig>): Promise<RestockAlertConfig> {
-  inMemoryRestockAlert = {
-    ...inMemoryRestockAlert,
+  const current = await getRestockAlert();
+  const nextConfig: RestockAlertConfig = {
+    ...current,
     ...updates,
     updatedAt: new Date().toISOString(),
   };
 
+  inMemoryRestockAlert = nextConfig;
+
   const supabase = getSupabaseAdmin();
   if (supabase) {
     try {
-      await supabase
-        .from('api_quotas')
+      const { error } = await supabase
+        .from('pricing_settings')
         .upsert(
           {
-            service_name: 'ff_restock_alert',
-            metadata: {
-              enabled: inMemoryRestockAlert.enabled,
-              gameSlug: inMemoryRestockAlert.gameSlug,
-              gameTitle: inMemoryRestockAlert.gameTitle,
-              message: inMemoryRestockAlert.message,
+            setting_key: 'restock_alert',
+            setting_value: {
+              enabled: nextConfig.enabled,
+              gameSlug: nextConfig.gameSlug,
+              gameTitle: nextConfig.gameTitle,
+              message: nextConfig.message,
             },
-            updated_at: inMemoryRestockAlert.updatedAt,
+            updated_at: nextConfig.updatedAt,
           },
-          { onConflict: 'service_name' }
+          { onConflict: 'setting_key' }
         );
-    } catch {
-      // Memory state is maintained
+
+      if (error) {
+        console.error('[RestockAlert] Failed to upsert pricing_settings:', error);
+      }
+    } catch (e) {
+      console.error('[RestockAlert] Exception upserting pricing_settings:', e);
     }
   }
 
-  return inMemoryRestockAlert;
+  return nextConfig;
 }

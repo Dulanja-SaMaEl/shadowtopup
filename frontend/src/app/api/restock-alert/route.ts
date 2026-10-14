@@ -10,6 +10,11 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       restockAlert: alert,
+      alert: alert,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      },
     });
   } catch (err: any) {
     return NextResponse.json(
