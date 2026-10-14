@@ -45,6 +45,29 @@ export async function middleware(request: NextRequest) {
   const user = authData?.user;
   const path = request.nextUrl.pathname;
 
+  // Intercept banned users from active sessions
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, is_banned, banned_at')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profile?.is_banned || profile?.banned_at) {
+      if (path.startsWith('/api/')) {
+        return NextResponse.json(
+          { success: false, message: 'Your account has been banned.' },
+          { status: 403 }
+        );
+      }
+      if (path.startsWith('/dashboard') || path.startsWith('/admin')) {
+        const bannedRedirect = NextResponse.redirect(new URL('/login?error=banned', request.url));
+        bannedRedirect.cookies.set('active_session_email', '', { maxAge: 0, path: '/' });
+        return bannedRedirect;
+      }
+    }
+  }
+
   // Protect /api/admin API routes
   if (path.startsWith('/api/admin')) {
     if (!user) {

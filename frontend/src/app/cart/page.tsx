@@ -159,23 +159,50 @@ export default function CartPage() {
           throw new Error(data.message || 'Failed to complete Shadow Wallet batch order.');
         }
 
-        // Deduct from local wallet state
+        const isPartial = data.status === 'partial';
+        const netCharged = typeof data.totalAmount === 'number'
+          ? data.totalAmount
+          : effectiveCartTotal - (Number(data.refundedAmount) || 0);
+
+        // Deduct only net charged amount from local wallet state
         if (walletBalance !== null) {
-          setWalletBalance(walletBalance - effectiveCartTotal);
+          setWalletBalance(Math.max(0, walletBalance - netCharged));
         }
 
-        setSuccessMsg(`⚡ Successfully placed and delivered ${data.itemsCount || totalCount} item(s) using Shadow Wallet balance!`);
+        // Fresh balance sync from server
+        fetch(`/api/wallet/balance?user_id=${encodeURIComponent(authData.user.id)}`)
+          .then((r) => r.json())
+          .then((b) => {
+            if (b.success && typeof b.wallet_balance === 'number') setWalletBalance(b.wallet_balance);
+          })
+          .catch(() => {});
+
+        if (isPartial) {
+          setSuccessMsg(data.message || 'Partial delivery completed. Failed items were automatically refunded to your Shadow Wallet.');
+        } else {
+          setSuccessMsg(`⚡ Successfully placed and delivered ${data.itemsCount || totalCount} item(s) using Shadow Wallet balance!`);
+        }
+
+        const deliveredSummary = Array.isArray(data.deliveredItems) && data.deliveredItems.length > 0
+          ? data.deliveredItems.join(', ')
+          : cartItems.map((i) => `${i.quantity}x ${i.packageName}`).join(', ');
+
+        const refundedSummary = Array.isArray(data.refundedItems) && data.refundedItems.length > 0
+          ? ` (Refunded: ${data.refundedItems.join(', ')})`
+          : '';
 
         setGeneratedReceipt({
           orderId: data.orders?.[0]?.id ? String(data.orders[0].id).slice(0, 8).toUpperCase() : (data.transactionId ? String(data.transactionId).slice(-8) : Math.random().toString(36).slice(2, 10).toUpperCase()),
-          packageName: cartItems.length === 1 ? cartItems[0].packageName : `Batch Top-Up (${totalCount} Items)`,
+          packageName: isPartial
+            ? `Partial Delivery (${data.deliveredItems?.length || 1} Delivered${refundedSummary})`
+            : (cartItems.length === 1 ? cartItems[0].packageName : `Batch Top-Up (${totalCount} Items)`),
           playerUid: cartItems[0].playerUid,
           playerNickname: data.playerNickname,
           transactionId: data.transactionId,
-          itemsDelivered: cartItems.map((i) => `${i.quantity}x ${i.packageName}`).join(', '),
-          amount: effectiveCartTotal,
+          itemsDelivered: deliveredSummary,
+          amount: netCharged,
           paymentMethod: 'Shadow Wallet',
-          status: 'COMPLETED & DELIVERED',
+          status: isPartial ? 'PARTIAL COMPLETED' : 'COMPLETED & DELIVERED',
           date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
           customerName: authData.user?.user_metadata?.name || authData.user?.email?.split('@')[0].toUpperCase(),
@@ -219,18 +246,46 @@ export default function CartPage() {
           throw new Error(data.message || 'Dialog eZ Cash verification failed.');
         }
 
-        setSuccessMsg(`⚡ Dialog eZ Cash verified! Delivered ${data.itemsCount || totalCount} item(s) to Garena Free Fire!`);
+        const isEzPartial = data.status === 'partial';
+        const netEzCharged = typeof data.totalAmount === 'number'
+          ? data.totalAmount
+          : effectiveCartTotal - (Number(data.refundedAmount) || 0);
+
+        if (Number(data.refundedAmount) > 0) {
+          fetch(`/api/wallet/balance?user_id=${encodeURIComponent(authData.user.id)}`)
+            .then((r) => r.json())
+            .then((b) => {
+              if (b.success && typeof b.wallet_balance === 'number') setWalletBalance(b.wallet_balance);
+            })
+            .catch(() => {});
+        }
+
+        if (isEzPartial) {
+          setSuccessMsg(data.message || 'Partial delivery completed. Failed items credited to your Shadow Wallet balance.');
+        } else {
+          setSuccessMsg(`⚡ Dialog eZ Cash verified! Delivered ${data.itemsCount || totalCount} item(s) to Garena Free Fire!`);
+        }
+
+        const ezDeliveredSummary = Array.isArray(data.deliveredItems) && data.deliveredItems.length > 0
+          ? data.deliveredItems.join(', ')
+          : cartItems.map((i) => `${i.quantity}x ${i.packageName}`).join(', ');
+
+        const ezRefundedSummary = Array.isArray(data.refundedItems) && data.refundedItems.length > 0
+          ? ` (Credited to Wallet: ${data.refundedItems.join(', ')})`
+          : '';
 
         setGeneratedReceipt({
           orderId: data.orders?.[0]?.id ? String(data.orders[0].id).slice(0, 8).toUpperCase() : cleanTrx,
-          packageName: cartItems.length === 1 ? cartItems[0].packageName : `Batch Top-Up (${totalCount} Items)`,
+          packageName: isEzPartial
+            ? `Partial Delivery (${data.deliveredItems?.length || 1} Delivered${ezRefundedSummary})`
+            : (cartItems.length === 1 ? cartItems[0].packageName : `Batch Top-Up (${totalCount} Items)`),
           playerUid: cartItems[0].playerUid,
           playerNickname: data.playerNickname,
           transactionId: data.transactionId || cleanTrx,
-          itemsDelivered: cartItems.map((i) => `${i.quantity}x ${i.packageName}`).join(', '),
-          amount: effectiveCartTotal,
+          itemsDelivered: ezDeliveredSummary,
+          amount: netEzCharged,
           paymentMethod: 'Dialog eZ Cash',
-          status: 'COMPLETED & DELIVERED',
+          status: isEzPartial ? 'PARTIAL COMPLETED' : 'COMPLETED & DELIVERED',
           date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
           customerName: authData.user?.user_metadata?.name || authData.user?.email?.split('@')[0].toUpperCase(),

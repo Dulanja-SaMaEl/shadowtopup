@@ -71,10 +71,10 @@ export async function POST(request: NextRequest) {
     const syncRes = await fetchLiveGarenaShellBalance(usernameStr, passwordStr);
     let finalBalance = (syncRes.success && (syncRes as any).isLive && typeof syncRes.balance === 'number')
       ? syncRes.balance
-      : 6523;
+      : (currentBalance > 0 ? currentBalance : 6523);
 
     if (finalBalance === 0 && (usernameStr.toUpperCase() === 'SHADOW_TOPUP1' || !usernameStr)) {
-      finalBalance = 6523;
+      finalBalance = currentBalance > 0 ? currentBalance : 6523;
     }
 
     const nowIso = new Date().toISOString();

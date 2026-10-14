@@ -22,14 +22,17 @@ export const GARENA_MY_OPTION_MAP: Record<string, string> = {
   'pkg-weekly-lite': '67386',
   '11111111-1111-1111-1111-111111111001': '67386',
   'Weekly Lite Pass': '67386',
+  'Weekly Lite': '67386',
 
   'pkg-weekly-membership': '8066',
   '11111111-1111-1111-1111-111111111002': '8066',
   'Weekly Membership Pass': '8066',
+  'Weekly Membership': '8066',
 
   'pkg-monthly-membership': '8067',
   '11111111-1111-1111-1111-111111111003': '8067',
   'Monthly Membership Pass': '8067',
+  'Monthly Membership': '8067',
 
   // Level Up Passes
   'pkg-lvl-6': '93822',
@@ -105,6 +108,7 @@ export async function fetchLiveGarenaShellBalance(
         'Accept': 'application/json',
       },
       cache: 'no-store',
+      signal: AbortSignal.timeout(6000),
     });
 
     if (ssoResponse.ok) {
@@ -120,6 +124,8 @@ export async function fetchLiveGarenaShellBalance(
             'Referer': 'https://shop.garena.my/',
             'Cookie': `sso_key=${ssoKey}`,
           },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(6000),
         });
 
         if (balanceRes.ok) {

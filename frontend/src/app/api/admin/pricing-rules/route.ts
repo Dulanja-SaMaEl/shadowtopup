@@ -203,46 +203,7 @@ export async function POST(request: NextRequest) {
         console.warn('Note on system_settings upsert:', e);
       }
 
-      // 3. Fetch all packages to recalculate prices
-      const costPerShell = basePriceNum / 1300;
-      const isFixed = String(markupType).includes('Fixed');
-
-      const { data: packages } = await adminSupabase.from('packages').select('*');
-
-      if (packages && packages.length > 0) {
-        for (const pkg of packages) {
-          const shells = Number(pkg.shell_cost) || 100;
-          const baseCost = shells * costPerShell;
-
-          let newNormalPrice: number;
-          let newSilverPrice: number;
-          let newGoldPrice: number;
-
-          if (isFixed) {
-            newNormalPrice = Math.round(baseCost + nMarkupNum);
-            newSilverPrice = Math.round(baseCost + sMarkupNum);
-            newGoldPrice = Math.round(baseCost + gMarkupNum);
-          } else {
-            newNormalPrice = Math.round(baseCost * (1 + nMarkupNum / 100));
-            newSilverPrice = Math.round(baseCost * (1 + sMarkupNum / 100));
-            newGoldPrice = Math.round(baseCost * (1 + gMarkupNum / 100));
-          }
-
-          const { error: updateErr } = await adminSupabase
-            .from('packages')
-            .update({
-              normal_price: newNormalPrice,
-              silver_price: newSilverPrice,
-              gold_price: newGoldPrice,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', pkg.id);
-
-          if (!updateErr) {
-            updatedPackagesCount++;
-          }
-        }
-      }
+      // 3. Keep manual package prices intact as set by admin. Do not overwrite catalog prices.
     }
 
     const costPerShell = basePriceNum / 1300;
@@ -250,14 +211,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: dbUpdated
-        ? `Pricing settings saved to database! Recalculated ${updatedPackagesCount} package prices.`
-        : `Pricing settings saved & persisted! (Recalculated ${updatedPackagesCount} packages).`,
-      recalculatedCount: updatedPackagesCount,
+        ? `1,300 Shells Base Price saved to database! (Unit cost: LKR ${costPerShell.toFixed(2)}/shell)`
+        : `1,300 Shells Base Price saved and persisted! (Unit cost: LKR ${costPerShell.toFixed(2)}/shell)`,
       unitShellCost: costPerShell.toFixed(2),
       pricingRules: updatedRules,
     });
   } catch (err: any) {
-    console.error('Error recalculating pricing rules:', err);
+    console.error('Error saving base pricing rule:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }

@@ -86,9 +86,25 @@ export default function AdminResellersPage() {
     loadResellers();
   }, []);
 
-  // Action Handlers
+  // Action Handlers with Instant Optimistic Updates
   const handleApproveApplication = async (app: ResellerUser) => {
+    const targetTier = app.requested_tier || 'silver';
     setProcessingId(app.id);
+
+    // Optimistically remove from pending and add to target list
+    setPendingApplications((prev) => prev.filter((u) => u.id !== app.id));
+    const approvedUser: ResellerUser = {
+      ...app,
+      role: targetTier,
+      reseller_status: 'approved',
+      expires: 'Active Partner (1 Year)',
+    };
+    if (targetTier === 'gold') {
+      setGoldResellers((prev) => [approvedUser, ...prev.filter((u) => u.id !== app.id)]);
+    } else {
+      setSilverResellers((prev) => [approvedUser, ...prev.filter((u) => u.id !== app.id)]);
+    }
+
     try {
       const res = await fetch('/api/admin/resellers', {
         method: 'POST',
@@ -96,21 +112,34 @@ export default function AdminResellersPage() {
         body: JSON.stringify({
           user_id: app.id,
           action: 'approve',
-          target_role: app.requested_tier || 'silver',
+          target_role: targetTier,
         }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (!data.success) {
         await loadResellers();
       }
     } catch (e) {
       console.error('Error approving reseller application:', e);
+      await loadResellers();
+    } finally {
+      setProcessingId(null);
     }
-    setProcessingId(null);
   };
 
   const handleRejectApplication = async (app: ResellerUser) => {
     setProcessingId(app.id);
+
+    // Optimistically remove from pending and move to normal users
+    setPendingApplications((prev) => prev.filter((u) => u.id !== app.id));
+    const rejectedUser: ResellerUser = {
+      ...app,
+      role: 'normal',
+      reseller_status: 'rejected',
+      expires: 'N/A',
+    };
+    setNormalUsers((prev) => [rejectedUser, ...prev.filter((u) => u.id !== app.id)]);
+
     try {
       const res = await fetch('/api/admin/resellers', {
         method: 'POST',
@@ -118,17 +147,40 @@ export default function AdminResellersPage() {
         body: JSON.stringify({ user_id: app.id, action: 'reject' }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (!data.success) {
         await loadResellers();
       }
     } catch (e) {
       console.error('Error rejecting reseller application:', e);
+      await loadResellers();
+    } finally {
+      setProcessingId(null);
     }
-    setProcessingId(null);
   };
 
   const handlePromoteUser = async (user: ResellerUser, targetTier: 'silver' | 'gold' | 'normal') => {
     setProcessingId(user.id);
+
+    // Optimistically update tier lists immediately
+    const updatedUser: ResellerUser = {
+      ...user,
+      role: targetTier,
+      expires: targetTier === 'normal' ? 'N/A' : 'Active Partner (1 Year)',
+    };
+
+    setPendingApplications((prev) => prev.filter((u) => u.id !== user.id));
+    setGoldResellers((prev) => prev.filter((u) => u.id !== user.id));
+    setSilverResellers((prev) => prev.filter((u) => u.id !== user.id));
+    setNormalUsers((prev) => prev.filter((u) => u.id !== user.id));
+
+    if (targetTier === 'gold') {
+      setGoldResellers((prev) => [updatedUser, ...prev]);
+    } else if (targetTier === 'silver') {
+      setSilverResellers((prev) => [updatedUser, ...prev]);
+    } else {
+      setNormalUsers((prev) => [updatedUser, ...prev]);
+    }
+
     try {
       const res = await fetch('/api/admin/resellers', {
         method: 'POST',
@@ -136,13 +188,15 @@ export default function AdminResellersPage() {
         body: JSON.stringify({ user_id: user.id, action: 'promote', target_role: targetTier }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (!data.success) {
         await loadResellers();
       }
     } catch (e) {
       console.error('Error updating user reseller tier:', e);
+      await loadResellers();
+    } finally {
+      setProcessingId(null);
     }
-    setProcessingId(null);
   };
 
   return (

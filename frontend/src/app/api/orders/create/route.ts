@@ -7,6 +7,146 @@ import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
 import { sendPurchaseReceiptEmail } from '@/lib/emailService';
 import { checkAndNotifyLowStock } from '@/lib/stockMonitor';
 
+// Max packages sent in a single UC Bot request. Bundles never contain the same package code
+// twice (duplicates go to the next request) so a provider-side de-dupe can't silently drop items.
+const MAX_PACKS_PER_UCBOT_REQUEST = 5;
+
+interface CartDispatchItem {
+  dbPackage: any;
+  packageName: string;
+  playerUid: string;
+  shellCost: number;
+}
+
+type CartItemOutcome = 'delivered' | 'failed' | 'review';
+
+interface CartDispatchResult<T> {
+  item: T;
+  outcome: CartItemOutcome;
+  reason: string;
+  transactionId?: string;
+  playerNickname?: string;
+  bundleNote: string;
+}
+
+function getPackageIdentifier(it: CartDispatchItem): string {
+  return it.dbPackage?.package_code && String(it.dbPackage.package_code).trim()
+    ? String(it.dbPackage.package_code).trim()
+    : it.packageName;
+}
+
+/**
+ * Delivers cart items through UC Bot.
+ * Items for the same Player UID are bundled into ONE request ("LITE,WEEKLY"), so Garena only
+ * logs in once per bundle instead of once per item.
+ *
+ * Outcomes per item:
+ *  - delivered: UC Bot confirmed success
+ *  - failed:    UC Bot failed with no sign of delivery -> caller refunds
+ *  - review:    a multi-pack bundle failed but UC Bot reported a trx_id or shells used, so some
+ *               packs may have been delivered -> caller must NOT auto-refund; admin reviews
+ */
+async function dispatchCartTopups<T extends CartDispatchItem>(
+  items: T[],
+  shellAcc: any
+): Promise<{ results: CartDispatchResult<T>[]; lastPostBalance?: number }> {
+  const dbAutocode = shellAcc?.autocode ? String(shellAcc.autocode).trim() : '';
+  const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
+  const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
+
+  // 1. Group by Player UID (keeps cart order)
+  const groups = new Map<string, T[]>();
+  for (const it of items) {
+    const list = groups.get(it.playerUid) || [];
+    list.push(it);
+    groups.set(it.playerUid, list);
+  }
+
+  // 2. Split each group into bundles of unique package codes
+  const bundles: { uid: string; items: T[] }[] = [];
+  for (const [uid, groupItems] of groups) {
+    const uidBundles: T[][] = [];
+    for (const it of groupItems) {
+      const code = getPackageIdentifier(it).toUpperCase();
+      const target = uidBundles.find(
+        (b) => b.length < MAX_PACKS_PER_UCBOT_REQUEST && !b.some((x) => getPackageIdentifier(x).toUpperCase() === code)
+      );
+      if (target) target.push(it);
+      else uidBundles.push([it]);
+    }
+    uidBundles.forEach((b) => bundles.push({ uid, items: b }));
+  }
+
+  // 3. One UC Bot request per bundle
+  const results: CartDispatchResult<T>[] = [];
+  let lastPostBalance: number | undefined;
+
+  for (const bundle of bundles) {
+    const codes = bundle.items.map(getPackageIdentifier);
+    const isMulti = codes.length > 1;
+    const expectedShells = bundle.items.reduce((sum, i) => sum + (Number(i.shellCost) || 0), 0);
+
+    let res: any;
+    try {
+      res = await executeUCBotTopup(
+        bundle.uid,
+        isMulti ? codes : codes[0],
+        'sg',
+        shellAcc?.account_username || 'SHADOW_TOPUP1',
+        shellAcc?.password || 'Shadow123@',
+        shellAutocode
+      );
+    } catch (e: any) {
+      res = { success: false, message: e?.message || 'Topup delivery failed' };
+    }
+
+    if (typeof res?.postBalance === 'number') lastPostBalance = res.postBalance;
+
+    const usedNote = typeof res?.balanceUsed === 'number' ? ` | balance_used=${res.balanceUsed} (expected ${expectedShells})` : '';
+    const bundleNote = isMulti ? `Bundled ${codes.length} packs in 1 UCBot request [${codes.join(',')}]${usedNote}` : '';
+    const reason = typeof res?.message === 'string' ? res.message : JSON.stringify(res?.message ?? 'Topup delivery failed');
+
+    let outcome: CartItemOutcome;
+    if (res?.success) {
+      outcome = 'delivered';
+    } else {
+      const raw = res?.rawResponse || {};
+      const maybePartlyDelivered = Boolean(raw.trx_id) || (typeof res?.balanceUsed === 'number' && res.balanceUsed > 0);
+      outcome = isMulti && maybePartlyDelivered ? 'review' : 'failed';
+    }
+
+    for (const it of bundle.items) {
+      results.push({
+        item: it,
+        outcome,
+        reason,
+        transactionId: res?.transactionId,
+        playerNickname: res?.playerNickname,
+        bundleNote,
+      });
+    }
+  }
+
+  return { results, lastPostBalance };
+}
+
+/**
+ * Inserts a refunded cart order. Tries status 'refunded' (what the dashboards display as
+ * "REFUNDED TO WALLET"); if the live DB check constraint doesn't allow it yet, falls back to
+ * 'rejected' so the failed item is never silently missing from the customer's order history.
+ */
+async function insertRefundedOrder(adminSupabase: any, row: Record<string, any>) {
+  const first = await adminSupabase.from('orders').insert([{ ...row, status: 'refunded' }]).select();
+  if (!first.error) return first.data?.[0] || null;
+
+  const fallback = await adminSupabase.from('orders').insert([{ ...row, status: 'rejected' }]).select();
+  if (fallback.error) {
+    console.error('[Order Flow] Failed to record refunded cart order:', fallback.error);
+    return null;
+  }
+  return fallback.data?.[0] || null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -196,35 +336,19 @@ export async function POST(request: NextRequest) {
         let shellsUsedTotal = 0;
         const deliveredItems: any[] = [];
         const failedItems: { item: any; reason: string }[] = [];
+        const reviewItems: { item: any; reason: string }[] = [];
         let failedRefundTotal = 0;
 
-        for (const it of expandedItems) {
-          let ucBotRes: any = null;
-          try {
-            const dbAutocode = targetShellAcc?.autocode ? String(targetShellAcc.autocode).trim() : '';
-            const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
-            const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
-            const targetPackageIdentifier = (it.dbPackage.package_code && String(it.dbPackage.package_code).trim())
-              ? String(it.dbPackage.package_code).trim()
-              : it.packageName;
+        const { results: dispatchResults, lastPostBalance } = await dispatchCartTopups(expandedItems, targetShellAcc);
 
-            ucBotRes = await executeUCBotTopup(
-              it.playerUid,
-              targetPackageIdentifier,
-              'sg',
-              targetShellAcc?.account_username || 'SHADOW_TOPUP1',
-              targetShellAcc?.password || 'Shadow123@',
-              shellAutocode
-            );
-          } catch (e: any) {
-            ucBotRes = { success: false, message: e.message };
-          }
+        for (const r of dispatchResults) {
+          const it = r.item;
+          const bundleSuffix = r.bundleNote ? ` | ${r.bundleNote}` : '';
 
-          const isDelivered = Boolean(ucBotRes && ucBotRes.success);
-          if (isDelivered) {
+          if (r.outcome === 'delivered') {
             shellsUsedTotal += it.shellCost;
-            if (ucBotRes.transactionId) lastTxId = ucBotRes.transactionId;
-            if (ucBotRes.playerNickname) lastPlayerNickname = ucBotRes.playerNickname;
+            if (r.transactionId) lastTxId = r.transactionId;
+            if (r.playerNickname) lastPlayerNickname = r.playerNickname;
             deliveredItems.push(it);
 
             const { data: ord } = await adminSupabase.from('orders').insert([{
@@ -234,7 +358,7 @@ export async function POST(request: NextRequest) {
               free_fire_player_id: it.playerUid,
               package_name: it.packageName,
               payment_method: 'shadow_wallet',
-              admin_note: `Delivered via UCBot TxID: ${ucBotRes.transactionId || ''}`,
+              admin_note: `Delivered via UCBot TxID: ${r.transactionId || ''}${bundleSuffix}`,
             }]).select();
 
             if (ord && ord[0]) createdOrders.push(ord[0]);
@@ -250,22 +374,35 @@ export async function POST(request: NextRequest) {
               status: 'completed',
               payment_method: 'shadow_wallet',
             }]);
-          } else {
-            const failReason = ucBotRes?.message || 'Topup delivery failed';
-            failedItems.push({ item: it, reason: failReason });
-            failedRefundTotal += it.unitPrice;
+          } else if (r.outcome === 'review') {
+            // Bundle failed but UC Bot reported activity -> some packs may be in-game. Keep the payment, flag for admin.
+            reviewItems.push({ item: it, reason: r.reason });
 
             const { data: ord } = await adminSupabase.from('orders').insert([{
               user_id: authUser.id,
               total_amount: it.unitPrice,
-              status: 'refunded',
+              status: 'pending',
               free_fire_player_id: it.playerUid,
               package_name: it.packageName,
               payment_method: 'shadow_wallet',
-              admin_note: `Delivery failed & refunded to wallet: ${failReason}`,
+              admin_note: `MANUAL REVIEW: bundled UCBot request returned an error but may have partly delivered. Check in-game, then Complete or Refund. Reason: ${r.reason} | UCBot ref: ${r.transactionId || ''}${bundleSuffix}`,
             }]).select();
 
             if (ord && ord[0]) createdOrders.push(ord[0]);
+          } else {
+            failedItems.push({ item: it, reason: r.reason });
+            failedRefundTotal += it.unitPrice;
+
+            const ord = await insertRefundedOrder(adminSupabase, {
+              user_id: authUser.id,
+              total_amount: it.unitPrice,
+              free_fire_player_id: it.playerUid,
+              package_name: it.packageName,
+              payment_method: 'shadow_wallet',
+              admin_note: `Delivery failed & LKR ${it.unitPrice} auto-refunded to Shadow Wallet: ${r.reason}${bundleSuffix}`,
+            });
+
+            if (ord) createdOrders.push(ord);
 
             await adminSupabase.from('purchase_transactions').insert([{
               user_id: authUser.id,
@@ -292,26 +429,33 @@ export async function POST(request: NextRequest) {
             })
             .eq('id', authUser.id);
 
-          await adminSupabase.from('wallet_transactions').insert([{
+          // 'WALLET_REFUND' is an allowed type in wallet_transactions_type_check ('ORDER_REFUND' was being rejected,
+          // which hid refunds from the customer's wallet history)
+          const { error: refundTxErr } = await adminSupabase.from('wallet_transactions').insert([{
             user_id: authUser.id,
-            type: 'ORDER_REFUND',
+            type: 'WALLET_REFUND',
             amount: failedRefundTotal,
             balance_after: refundedBalance,
             description: `Auto-refund for failed item(s): ${failedItems.map((f) => `${f.item.packageName} (${f.reason})`).join(', ')}. Refunded to Shadow Wallet.`,
             created_at: new Date().toISOString(),
           }]);
+          if (refundTxErr) console.error('[Order Flow Wallet] Failed to record refund transaction:', refundTxErr);
         }
 
-        // 2. Deduct shells only for successfully delivered items
+        // 2. Update shell balance (prefer UC Bot's live post-balance)
         if (shellsUsedTotal > 0 && targetShellAcc?.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
           await adminSupabase.from('shell_accounts').update({
-            available_balance: Math.max(0, (targetShellAcc.available_balance || 0) - shellsUsedTotal),
+            available_balance: typeof lastPostBalance === 'number'
+              ? lastPostBalance
+              : Math.max(0, (targetShellAcc.available_balance || 0) - shellsUsedTotal),
             last_synced_at: new Date().toISOString(),
           }).eq('id', targetShellAcc.id);
         }
 
-        // 3. If ALL items failed delivery -> Fail clearly, NO completed receipt
-        if (deliveredItems.length === 0) {
+        const reviewTotal = reviewItems.reduce((sum, r) => sum + r.item.unitPrice, 0);
+
+        // 3. If ALL items failed delivery (and nothing is under review) -> Fail clearly, NO completed receipt
+        if (deliveredItems.length === 0 && reviewItems.length === 0) {
           const firstErr = failedItems[0]?.reason || 'Provider delivery failed';
           return NextResponse.json({
             success: false,
@@ -321,17 +465,22 @@ export async function POST(request: NextRequest) {
           }, { status: 400 });
         }
 
-        // 4. If PARTIAL delivery
-        if (failedItems.length > 0) {
-          if (authUser.email) {
+        // 4. If PARTIAL delivery (some refunded and/or some held for review)
+        if (failedItems.length > 0 || reviewItems.length > 0) {
+          const msgParts: string[] = [];
+          if (deliveredItems.length > 0) msgParts.push(`${deliveredItems.length} package(s) delivered instantly.`);
+          if (failedItems.length > 0) msgParts.push(`${failedItems.length} item(s) failed and LKR ${failedRefundTotal.toLocaleString()} was automatically refunded to your Shadow Wallet.`);
+          if (reviewItems.length > 0) msgParts.push(`${reviewItems.length} item(s) (LKR ${reviewTotal.toLocaleString()}) are being checked by our team and will be delivered or refunded shortly.`);
+
+          if (authUser.email && deliveredItems.length > 0) {
             sendPurchaseReceiptEmail(authUser.email, {
               orderId: createdOrders[0]?.id ? String(createdOrders[0].id).slice(0, 8).toUpperCase() : `W_${Date.now().toString().slice(-8)}`,
               transactionId: lastTxId || `W_${Date.now().toString().slice(-8)}`,
-              packageName: `Partial Delivery (${deliveredItems.length} Delivered, ${failedItems.length} Refunded)`,
+              packageName: `Partial Delivery (${deliveredItems.length} Delivered, ${failedItems.length} Refunded${reviewItems.length ? `, ${reviewItems.length} Under Review` : ''})`,
               itemsDelivered: deliveredItems.map((i) => i.packageName).join(', '),
               playerUid: deliveredItems[0]?.playerUid,
               playerNickname: lastPlayerNickname,
-              amount: totalAmount - failedRefundTotal,
+              amount: totalAmount - failedRefundTotal - reviewTotal,
               paymentMethod: 'Shadow Wallet',
               status: 'PARTIAL COMPLETED',
               resellerRole: userRole,
@@ -343,12 +492,18 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             success: true,
             status: 'partial',
-            message: `⚡ Partial Top-Up Delivered! ${deliveredItems.length} package(s) delivered instantly. ${failedItems.length} item(s) failed and LKR ${failedRefundTotal.toLocaleString()} was automatically refunded to your Shadow Wallet.`,
+            message: `⚡ Partial Top-Up: ${msgParts.join(' ')}`,
             orders: createdOrders,
             transactionId: lastTxId || `W_${Date.now().toString().slice(-8)}`,
             playerNickname: lastPlayerNickname,
+            // Amount still charged (delivered + under review). Refunded items are excluded.
             totalAmount: totalAmount - failedRefundTotal,
+            deliveredAmount: totalAmount - failedRefundTotal - reviewTotal,
             refundedAmount: failedRefundTotal,
+            reviewAmount: reviewTotal,
+            deliveredItems: deliveredItems.map((i) => i.packageName),
+            refundedItems: failedItems.map((f) => f.item.packageName),
+            reviewItems: reviewItems.map((r) => r.item.packageName),
           });
         }
 
@@ -426,35 +581,19 @@ export async function POST(request: NextRequest) {
         let shellsUsedTotal = 0;
         const deliveredItems: any[] = [];
         const failedItems: { item: any; reason: string }[] = [];
+        const reviewItems: { item: any; reason: string }[] = [];
         let failedRefundTotal = 0;
 
-        for (const it of expandedItems) {
-          let ucBotRes: any = null;
-          try {
-            const dbAutocode = targetShellAcc?.autocode ? String(targetShellAcc.autocode).trim() : '';
-            const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
-            const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
-            const targetPackageIdentifier = (it.dbPackage.package_code && String(it.dbPackage.package_code).trim())
-              ? String(it.dbPackage.package_code).trim()
-              : it.packageName;
+        const { results: dispatchResults, lastPostBalance } = await dispatchCartTopups(expandedItems, targetShellAcc);
 
-            ucBotRes = await executeUCBotTopup(
-              it.playerUid,
-              targetPackageIdentifier,
-              'sg',
-              targetShellAcc?.account_username || 'SHADOW_TOPUP1',
-              targetShellAcc?.password || 'Shadow123@',
-              shellAutocode
-            );
-          } catch (e: any) {
-            ucBotRes = { success: false, message: e.message };
-          }
+        for (const r of dispatchResults) {
+          const it = r.item;
+          const bundleSuffix = r.bundleNote ? ` | ${r.bundleNote}` : '';
 
-          const isDelivered = Boolean(ucBotRes && ucBotRes.success);
-          if (isDelivered) {
+          if (r.outcome === 'delivered') {
             shellsUsedTotal += it.shellCost;
-            if (ucBotRes.transactionId) lastTxId = ucBotRes.transactionId;
-            if (ucBotRes.playerNickname) lastPlayerNickname = ucBotRes.playerNickname;
+            if (r.transactionId) lastTxId = r.transactionId;
+            if (r.playerNickname) lastPlayerNickname = r.playerNickname;
             deliveredItems.push(it);
 
             const { data: ord } = await adminSupabase.from('orders').insert([{
@@ -464,7 +603,7 @@ export async function POST(request: NextRequest) {
               free_fire_player_id: it.playerUid,
               package_name: it.packageName,
               payment_method: 'ez_cash',
-              admin_note: `eZ Cash TxID: ${cleanEzTrxId} | Delivered via UCBot TxID: ${ucBotRes.transactionId || ''}`,
+              admin_note: `eZ Cash TxID: ${cleanEzTrxId} | Delivered via UCBot TxID: ${r.transactionId || ''}${bundleSuffix}`,
             }]).select();
 
             if (ord && ord[0]) createdOrders.push(ord[0]);
@@ -480,22 +619,35 @@ export async function POST(request: NextRequest) {
               status: 'completed',
               payment_method: 'ez_cash',
             }]);
-          } else {
-            const failReason = ucBotRes?.message || 'Topup delivery failed';
-            failedItems.push({ item: it, reason: failReason });
-            failedRefundTotal += it.unitPrice;
+          } else if (r.outcome === 'review') {
+            // Bundle failed but UC Bot reported activity -> some packs may be in-game. Keep the payment, flag for admin.
+            reviewItems.push({ item: it, reason: r.reason });
 
             const { data: ord } = await adminSupabase.from('orders').insert([{
               user_id: authUser.id,
               total_amount: it.unitPrice,
-              status: 'refunded',
+              status: 'pending',
               free_fire_player_id: it.playerUid,
               package_name: it.packageName,
               payment_method: 'ez_cash',
-              admin_note: `eZ Cash TxID: ${cleanEzTrxId} | Delivery failed & credited to wallet: ${failReason}`,
+              admin_note: `eZ Cash TxID: ${cleanEzTrxId} | MANUAL REVIEW: bundled UCBot request returned an error but may have partly delivered. Check in-game, then Complete or Refund. Reason: ${r.reason} | UCBot ref: ${r.transactionId || ''}${bundleSuffix}`,
             }]).select();
 
             if (ord && ord[0]) createdOrders.push(ord[0]);
+          } else {
+            failedItems.push({ item: it, reason: r.reason });
+            failedRefundTotal += it.unitPrice;
+
+            const ord = await insertRefundedOrder(adminSupabase, {
+              user_id: authUser.id,
+              total_amount: it.unitPrice,
+              free_fire_player_id: it.playerUid,
+              package_name: it.packageName,
+              payment_method: 'ez_cash',
+              admin_note: `eZ Cash TxID: ${cleanEzTrxId} | Delivery failed & LKR ${it.unitPrice} credited to Shadow Wallet: ${r.reason}${bundleSuffix}`,
+            });
+
+            if (ord) createdOrders.push(ord);
 
             await adminSupabase.from('purchase_transactions').insert([{
               user_id: authUser.id,
@@ -521,7 +673,7 @@ export async function POST(request: NextRequest) {
           const curBal = parseFloat(profData?.wallet_balance || 0);
           const newBal = curBal + failedRefundTotal;
           await adminSupabase.from('profiles').update({ wallet_balance: newBal }).eq('id', authUser.id);
-          await adminSupabase.from('wallet_transactions').insert([{
+          const { error: refundTxErr } = await adminSupabase.from('wallet_transactions').insert([{
             user_id: authUser.id,
             type: 'WALLET_REFUND',
             amount: failedRefundTotal,
@@ -529,12 +681,15 @@ export async function POST(request: NextRequest) {
             description: `Credit for failed eZ Cash item(s): ${failedItems.map((f) => `${f.item.packageName} (${f.reason})`).join(', ')}. Funds credited to your Shadow Wallet.`,
             created_at: new Date().toISOString(),
           }]);
+          if (refundTxErr) console.error('[Order Flow eZ Cash] Failed to record refund transaction:', refundTxErr);
         }
 
-        // 2. Deduct shells only for delivered items
+        // 2. Update shell balance (prefer UC Bot's live post-balance)
         if (shellsUsedTotal > 0 && targetShellAcc?.id && !String(targetShellAcc.id).startsWith('shell_fallback')) {
           await adminSupabase.from('shell_accounts').update({
-            available_balance: Math.max(0, (targetShellAcc.available_balance || 0) - shellsUsedTotal),
+            available_balance: typeof lastPostBalance === 'number'
+              ? lastPostBalance
+              : Math.max(0, (targetShellAcc.available_balance || 0) - shellsUsedTotal),
             last_synced_at: new Date().toISOString(),
           }).eq('id', targetShellAcc.id);
         }
@@ -554,8 +709,10 @@ export async function POST(request: NextRequest) {
           }]);
         } catch {}
 
-        // 4. If ALL items failed delivery
-        if (deliveredItems.length === 0) {
+        const reviewTotal = reviewItems.reduce((sum, r) => sum + r.item.unitPrice, 0);
+
+        // 4. If ALL items failed delivery (and nothing is under review)
+        if (deliveredItems.length === 0 && reviewItems.length === 0) {
           const firstErr = failedItems[0]?.reason || 'Topup delivery failed';
           return NextResponse.json({
             success: false,
@@ -565,17 +722,22 @@ export async function POST(request: NextRequest) {
           }, { status: 400 });
         }
 
-        // 5. If PARTIAL items succeeded
-        if (failedItems.length > 0) {
-          if (authUser.email) {
+        // 5. If PARTIAL items succeeded (some credited to wallet and/or some held for review)
+        if (failedItems.length > 0 || reviewItems.length > 0) {
+          const msgParts: string[] = [];
+          if (deliveredItems.length > 0) msgParts.push(`${deliveredItems.length} package(s) delivered instantly.`);
+          if (failedItems.length > 0) msgParts.push(`${failedItems.length} item(s) failed and LKR ${failedRefundTotal.toLocaleString()} was credited to your Shadow Wallet balance.`);
+          if (reviewItems.length > 0) msgParts.push(`${reviewItems.length} item(s) (LKR ${reviewTotal.toLocaleString()}) are being checked by our team and will be delivered or refunded shortly.`);
+
+          if (authUser.email && deliveredItems.length > 0) {
             sendPurchaseReceiptEmail(authUser.email, {
               orderId: createdOrders[0]?.id ? String(createdOrders[0].id).slice(0, 8).toUpperCase() : cleanEzTrxId,
               transactionId: lastTxId || cleanEzTrxId,
-              packageName: `Partial Delivery (${deliveredItems.length} Delivered, ${failedItems.length} Credited to Wallet)`,
+              packageName: `Partial Delivery (${deliveredItems.length} Delivered, ${failedItems.length} Credited to Wallet${reviewItems.length ? `, ${reviewItems.length} Under Review` : ''})`,
               itemsDelivered: deliveredItems.map((i) => i.packageName).join(', '),
               playerUid: deliveredItems[0]?.playerUid,
               playerNickname: lastPlayerNickname,
-              amount: totalAmount - failedRefundTotal,
+              amount: totalAmount - failedRefundTotal - reviewTotal,
               paymentMethod: 'Dialog eZ Cash',
               status: 'PARTIAL COMPLETED',
               resellerRole: userRole,
@@ -587,12 +749,18 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             success: true,
             status: 'partial',
-            message: `⚡ Partial Delivery! ${deliveredItems.length} package(s) delivered instantly. ${failedItems.length} item(s) failed and LKR ${failedRefundTotal.toLocaleString()} was credited to your Shadow Wallet balance.`,
+            message: `⚡ Partial Delivery: ${msgParts.join(' ')}`,
             orders: createdOrders,
             transactionId: lastTxId,
             playerNickname: lastPlayerNickname,
+            // Amount still charged (delivered + under review). Wallet-credited items are excluded.
             totalAmount: totalAmount - failedRefundTotal,
+            deliveredAmount: totalAmount - failedRefundTotal - reviewTotal,
             refundedAmount: failedRefundTotal,
+            reviewAmount: reviewTotal,
+            deliveredItems: deliveredItems.map((i) => i.packageName),
+            refundedItems: failedItems.map((f) => f.item.packageName),
+            reviewItems: reviewItems.map((r) => r.item.packageName),
           });
         }
 

@@ -1,3 +1,5 @@
+import { getHLGamingAccounts } from './hlgamingQuotaService';
+
 export interface UCBotTopupResult {
   success: boolean;
   message: string;
@@ -94,31 +96,43 @@ export function resolveUCBotPackId(packageName: string): string {
 
 /**
  * Verifies Free Fire Player ID & retrieves player details via HL Gaming API
- * Email: adminshadowtopup.com@gmail.com
- * Key: a29b37d3-dc90-4c79-9a7d-59b977b6e597
+ * Supports multi-account rotation / failover if one account exceeds quota
  */
 export async function verifyUCBotPlayer(playerUid: string, region: string = 'sg') {
   const cleanUid = String(playerUid || '').trim();
-  const useruid = process.env.HL_GAMING_USERUID || 'Xv00AKjlBJMgOpxr05VP2Sreu0z1';
-  const apiKey = process.env.HL_GAMING_API_KEY || 'Kjt47EN5VEvYVa77afIsd4hEAFicFg';
+  const accounts = getHLGamingAccounts();
 
-  try {
-    const url = `https://proapis.hlgamingofficial.com/main/games/freefire/account/api?sectionName=AllData&PlayerUid=${cleanUid}&region=${region}&useruid=${encodeURIComponent(useruid)}&api=${apiKey}`;
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.result?.AccountInfo?.AccountName) {
-        return {
-          success: true,
-          nickname: data.result.AccountInfo.AccountName,
-          level: data.result.AccountInfo.AccountLevel || 'N/A',
-          region: data.result.AccountInfo.AccountRegion || 'SG',
-          data,
-        };
+  for (let i = 0; i < accounts.length; i++) {
+    const acc = accounts[i];
+    try {
+      const url = `https://proapis.hlgamingofficial.com/main/games/freefire/account/api?sectionName=AllData&PlayerUid=${cleanUid}&region=${region}&useruid=${encodeURIComponent(acc.useruid)}&api=${acc.apiKey}`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+
+      if (res.status === 429 || res.status === 401 || res.status === 403) {
+        console.warn(`[HL Gaming] ${acc.name} quota reached or unavailable (HTTP ${res.status}). Rotating to next account...`);
+        continue;
       }
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.error || data?.message?.toLowerCase()?.includes('limit')) {
+          console.warn(`[HL Gaming] ${acc.name} returned limit: ${data.message || data.error}. Rotating...`);
+          continue;
+        }
+
+        if (data?.result?.AccountInfo?.AccountName) {
+          return {
+            success: true,
+            nickname: data.result.AccountInfo.AccountName,
+            level: data.result.AccountInfo.AccountLevel || 'N/A',
+            region: data.result.AccountInfo.AccountRegion || 'SG',
+            data,
+          };
+        }
+      }
+    } catch (e: any) {
+      console.error(`[HL Gaming API] ${acc.name} error:`, e.message);
     }
-  } catch (e) {
-    console.error('[HL Gaming API] Player retrieval error:', e);
   }
 
   return { success: false, nickname: null };
@@ -128,10 +142,14 @@ export async function verifyUCBotPlayer(playerUid: string, region: string = 'sg'
  * Topup Execution Handler
  * Dispatches automated Free Fire topup via UC Bot API (ffapi.ucbot.net/topup-sync)
  * Uses Garena Authenticator setup key (autocode) for automated 2FA authentication
+ *
+ * `packageName` may be a single package, or an array of packages for the SAME player.
+ * Arrays are sent as one comma-separated UC Bot request (e.g. "LITE,WEEKLY"), so the
+ * whole bundle is delivered in a single Garena login session.
  */
 export async function executeUCBotTopup(
   playerUid: string,
-  packageName: string,
+  packageName: string | string[],
   region: string = 'sg',
   shellUsername?: string,
   shellPassword?: string,
@@ -139,7 +157,10 @@ export async function executeUCBotTopup(
 ): Promise<UCBotTopupResult> {
   const cleanUid = String(playerUid || '').trim();
   const ucBotToken = process.env.UC_BOT_API_KEY || 'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
-  const packId = resolveUCBotPackId(packageName);
+  // Resolve each package individually (names like "1,060 Diamond" contain commas, so never split a single name)
+  const packageList = Array.isArray(packageName) ? packageName : [packageName];
+  const packId = packageList.map((p) => resolveUCBotPackId(p)).join(',');
+  const packageLabel = packageList.join(', ');
   const generatedTxId = `UCB_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
   // Clean setup key / autocode (strip spaces, tabs, dashes often copied from Google Authenticator setup screen)
@@ -148,7 +169,7 @@ export async function executeUCBotTopup(
   const rawAutocode = (shellAutocode && shellAutocode.trim() !== '' && !isMasked) ? shellAutocode : defaultAutocode;
   const cleanAutocode = String(rawAutocode).replace(/[\s-]+/g, '').trim();
 
-  console.log(`[UC Bot Topup Engine] Initiating automated topup execution for ${packageName} (Pack ID: ${packId})...`);
+  console.log(`[UC Bot Topup Engine] Initiating automated topup execution for ${packageLabel} (Pack ID: ${packId})...`);
   console.log(`[UC Bot Topup Engine] Target Player UID: ${cleanUid}`);
   console.log(`[UC Bot Topup Engine] Using Garena Account: ${shellUsername || 'SHADOW_TOPUP1'} with 2FA Autocode configured`);
 
@@ -196,10 +217,10 @@ export async function executeUCBotTopup(
         success: true,
         transactionId: liveTxId,
         playerNickname: liveNickname,
-        items: data.items || packageName,
+        items: data.items || packageLabel,
         balanceUsed: data.balance_used,
         postBalance: data.post_balance,
-        message: `UC Bot topup executed successfully! ${data.items || packageName} delivered to ${liveNickname} (UID: ${cleanUid}).`,
+        message: `UC Bot topup executed successfully! ${data.items || packageLabel} delivered to ${liveNickname} (UID: ${cleanUid}).`,
         rawResponse: data,
       };
     } else {
@@ -210,6 +231,9 @@ export async function executeUCBotTopup(
         transactionId: generatedTxId,
         playerNickname: data.nickname || nickname,
         message: errMsg,
+        // Passed through so bundled cart requests can detect a possible partial delivery
+        balanceUsed: data.balance_used,
+        postBalance: data.post_balance,
         rawResponse: data,
       };
     }

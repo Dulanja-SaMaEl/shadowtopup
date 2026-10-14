@@ -46,9 +46,24 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
     if (ordersErr) console.warn('Supabase orders query note:', ordersErr.message);
     if (txErr) console.warn('Supabase tx query note:', txErr.message);
 
-    const activeRows = (ordersRows && ordersRows.length > 0) ? ordersRows : (txRows && txRows.length > 0) ? txRows : null;
+    // 4. Combine rows by ID to avoid duplicates and ensure all customer transactions are captured
+    const combinedMap = new Map<string, any>();
+    if (txRows) {
+      txRows.forEach((row: any) => {
+        if (row && row.id) combinedMap.set(row.id, row);
+      });
+    }
+    if (ordersRows) {
+      ordersRows.forEach((row: any) => {
+        if (row && row.id) combinedMap.set(row.id, row);
+      });
+    }
 
-    if (activeRows && activeRows.length > 0) {
+    const activeRows = Array.from(combinedMap.values()).sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
+
+    if (activeRows.length > 0) {
       return activeRows.map((row: any) => {
         const rawStatus = (row.status || 'pending').toLowerCase();
         const isCompleted = ['completed', 'success', 'verified'].includes(rawStatus);
@@ -68,7 +83,7 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
           customerEmail: cEmail,
           free_fire_player_id: row.free_fire_player_id || '8777843685',
           package_name: row.package_name || 'Free Fire Diamonds',
-          totalAmount: Number(row.total_amount || row.price_paid || 750.00),
+          totalAmount: Number(row.total_amount ?? row.price_paid ?? 0),
           fulfillmentStatus: normStatus as any,
           paymentMethod: row.payment_method === 'ez_cash' ? 'DIALOG EZ CASH' : (row.payment_method || 'BANK TRANSFER').toUpperCase(),
           paymentReceipt: row.receipt_path || row.receipt_url || null,

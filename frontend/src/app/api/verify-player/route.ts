@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { incrementHLGamingUsage } from '@/lib/hlgamingQuotaService';
+import { incrementHLGamingUsage, getHLGamingAccounts } from '@/lib/hlgamingQuotaService';
 
 // In-memory cache for resolved player nicknames (persists across requests during server runtime)
 const playerCache = new Map<string, { nickname: string; level?: string | number; region?: string; timestamp: number }>();
@@ -43,24 +43,33 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // 2. Query HL Gaming Official API if configured
+  // 2. Query HL Gaming Official API with Automatic Multi-Account Failover & Rotation
   if (slug === 'free-fire') {
-    const useruid = process.env.HL_GAMING_USERUID || 'Xv00AKjlBJMgOpxr05VP2Sreu0z1';
-    const apiKey = process.env.HL_GAMING_API_KEY || 'Kjt47EN5VEvYVa77afIsd4hEAFicFg';
+    const accounts = getHLGamingAccounts();
 
-    // Support comma-separated pool of API keys if provided
-    const apiKeys = apiKey.split(',').map((k) => k.trim()).filter(Boolean);
-
-    for (const currentKey of apiKeys) {
-      const url = `https://proapis.hlgamingofficial.com/main/games/freefire/account/api?sectionName=AllData&PlayerUid=${cleanUid}&region=sg&useruid=${encodeURIComponent(useruid)}&api=${currentKey}`;
+    for (let i = 0; i < accounts.length; i++) {
+      const acc = accounts[i];
+      const url = `https://proapis.hlgamingofficial.com/main/games/freefire/account/api?sectionName=AllData&PlayerUid=${cleanUid}&region=sg&useruid=${encodeURIComponent(acc.useruid)}&api=${acc.apiKey}`;
 
       try {
-        const response = await fetch(url, { cache: 'no-store' });
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
         // Increment daily quota count on live request
         await incrementHLGamingUsage().catch(() => {});
 
+        // If rate limited or unauthorized/expired, immediately rotate to next account
+        if (response.status === 429 || response.status === 401 || response.status === 403) {
+          console.warn(`[Verify Player API] HL Gaming ${acc.name} quota reached or unavailable (HTTP ${response.status}). Rotating to next account...`);
+          continue;
+        }
+
         if (response.ok) {
           const data = await response.json();
+          // If response body reports quota or daily limit error, rotate to next account
+          if (data?.error || data?.message?.toLowerCase()?.includes('limit') || data?.message?.toLowerCase()?.includes('quota')) {
+            console.warn(`[Verify Player API] HL Gaming ${acc.name} reported limit: ${data.message || data.error}. Rotating to next account...`);
+            continue;
+          }
+
           if (data?.result?.AccountInfo?.AccountName) {
             const accountInfo = data.result.AccountInfo;
             const resolvedName = accountInfo.AccountName;
@@ -86,11 +95,11 @@ export async function GET(request: NextRequest) {
               },
             });
           }
-        } else if (response.status === 429) {
-          console.warn(`[Verify Player API] HL Gaming daily quota reached (HTTP 429) on key: ${currentKey.slice(0, 6)}...`);
+        } else {
+          console.warn(`[Verify Player API] HL Gaming ${acc.name} returned HTTP ${response.status}. Rotating...`);
         }
       } catch (err: any) {
-        console.error('[Verify Player API] HL Gaming API Connection Error:', err.message);
+        console.error(`[Verify Player API] HL Gaming ${acc.name} Connection Error:`, err.message);
       }
     }
   }

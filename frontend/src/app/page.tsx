@@ -280,7 +280,7 @@ export default async function HomePage() {
                     <ShieldCheck className="w-4 h-4 text-purple-400" /> Live Nickname Check
                   </span>
                   <span className="flex items-center gap-1.5 text-slate-300 font-mono">
-                    <Lock className="w-4 h-4 text-cyan-400" /> Dialog eZ Cash Verified
+                    <Lock className="w-4 h-4 text-cyan-400" /> Dialog eZ Cash Verify
                   </span>
                 </div>
               </div>

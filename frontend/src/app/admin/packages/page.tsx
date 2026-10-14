@@ -61,6 +61,9 @@ export default function AdminPackagesPage() {
 
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const [basePrice1300, setBasePrice1300] = useState<number>(3380);
+  const unitShellCost = (basePrice1300 || 3380) / 1300;
+
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMsg({ type, text });
     setTimeout(() => setToastMsg(null), 5000);
@@ -69,13 +72,20 @@ export default function AdminPackagesPage() {
   const loadPackages = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/packages');
-      const data = await res.json();
+      const [pkgRes, rulesRes] = await Promise.all([
+        fetch('/api/admin/packages'),
+        fetch('/api/admin/pricing-rules'),
+      ]);
+      const data = await pkgRes.json();
       if (data.success && data.packages) {
         setPackages(data.packages);
       }
+      const rulesData = await rulesRes.json();
+      if (rulesData.success && rulesData.pricingRules && rulesData.pricingRules.basePrice1300) {
+        setBasePrice1300(Number(rulesData.pricingRules.basePrice1300));
+      }
     } catch (e) {
-      console.error('Error fetching admin packages:', e);
+      console.error('Error fetching admin packages or pricing rules:', e);
     }
     setLoading(false);
   };
@@ -86,7 +96,7 @@ export default function AdminPackagesPage() {
 
   const autoCalculatePrices = () => {
     const shells = parseInt(shellCost) || 100;
-    const baseCostLkr = shells * 2.60;
+    const baseCostLkr = shells * unitShellCost;
     const recNormal = Math.round(baseCostLkr * 1.35); // ~35% markup (25.7% net profit)
     const recSilver = Math.round(baseCostLkr * 1.23); // ~23% markup
     const recGold = Math.round(baseCostLkr * 1.15);   // ~15% markup
@@ -474,9 +484,11 @@ export default function AdminPackagesPage() {
                 </tr>
               ) : (
                 displayedPackages.map((pkg) => {
-                  const baseCost = pkg.shell_cost * 2.60;
-                  const profit = pkg.normal_price - baseCost;
-                  const margin = pkg.normal_price > 0 ? (profit / pkg.normal_price) * 100 : 0;
+                  const baseCost = pkg.shell_cost * unitShellCost;
+                  const normalProfit = pkg.normal_price - baseCost;
+                  const silverProfit = (pkg.silver_price || 0) - baseCost;
+                  const goldProfit = (pkg.gold_price || 0) - baseCost;
+                  const margin = pkg.normal_price > 0 ? (normalProfit / pkg.normal_price) * 100 : 0;
 
                   return (
                     <tr key={pkg.id} className="hover:bg-slate-900/40 transition-colors">
@@ -536,9 +548,11 @@ export default function AdminPackagesPage() {
                         <div><span className="text-slate-400 font-bold">Standard:</span> <span className="text-cyan-300 font-bold">LKR {Number(pkg.silver_price || 0).toFixed(2)}</span></div>
                         <div><span className="text-slate-400 font-bold">Elite:</span> <span className="text-amber-300 font-bold">LKR {Number(pkg.gold_price || 0).toFixed(2)}</span></div>
                       </td>
-                      <td className="p-4 font-mono">
-                        <span className="text-emerald-300 font-bold block text-xs">+LKR {profit.toFixed(2)}</span>
-                        <span className="text-[9px] text-emerald-400/80 font-bold">+{margin.toFixed(1)}% margin</span>
+                      <td className="p-4 font-mono text-[11px] space-y-0.5">
+                        <div><span className="text-slate-400 font-bold">Customer:</span> <span className="text-emerald-400 font-bold">+LKR {normalProfit.toFixed(2)}</span></div>
+                        <div><span className="text-slate-400 font-bold">Standard:</span> <span className="text-cyan-300 font-bold">+LKR {silverProfit.toFixed(2)}</span></div>
+                        <div><span className="text-slate-400 font-bold">Elite:</span> <span className="text-amber-300 font-bold">+LKR {goldProfit.toFixed(2)}</span></div>
+                        <span className="text-[9px] text-emerald-400/80 font-bold block">+{margin.toFixed(1)}% customer margin</span>
                       </td>
                       <td className="p-4">
                         <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${
@@ -683,7 +697,7 @@ export default function AdminPackagesPage() {
                   }`}
                 >
                   <img src={WEEKLY_PASS_CDN} className="w-5 h-5 object-contain" alt="" />
-                  <span>Weekly VIP</span>
+                  <span>Weekly Membership</span>
                 </button>
 
                 <button
@@ -705,7 +719,7 @@ export default function AdminPackagesPage() {
                   }`}
                 >
                   <img src={MONTHLY_PASS_CDN} className="w-5 h-5 object-contain" alt="" />
-                  <span>Monthly VIP</span>
+                  <span>Monthly Membership</span>
                 </button>
 
                 <button
@@ -813,9 +827,9 @@ export default function AdminPackagesPage() {
                     onChange={(e) => setPackageType(e.target.value)}
                     className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono focus:outline-none"
                   >
-                    <option value="weekly_pass">weekly_pass (Membership)</option>
-                    <option value="monthly_pass">monthly_pass (Membership)</option>
-                    <option value="evo_access">evo_access (Membership)</option>
+                    <option value="weekly_pass">weekly_pass (Weekly Membership)</option>
+                    <option value="monthly_pass">monthly_pass (Monthly Membership)</option>
+                    <option value="evo_access">evo_access (EVO Access)</option>
                     <option value="levelup_pass">levelup_pass (Level Up)</option>
                     <option value="diamond">diamond (Diamonds)</option>
                   </select>
@@ -847,7 +861,7 @@ export default function AdminPackagesPage() {
               {/* Auto Calculate Button */}
               <div className="flex justify-between items-center p-3 rounded-xl bg-purple-950/30 border border-purple-900/40">
                 <span className="text-[10px] text-purple-300 font-mono">
-                  Base Shell Cost: <strong className="text-white">LKR {((parseInt(shellCost) || 0) * 2.60).toFixed(2)}</strong>
+                  Base Shell Cost: <strong className="text-white">LKR {((parseInt(shellCost) || 0) * unitShellCost).toFixed(2)}</strong> (LKR {unitShellCost.toFixed(2)}/shell)
                 </span>
                 <button
                   type="button"
@@ -869,6 +883,9 @@ export default function AdminPackagesPage() {
                     onChange={(e) => setNormalPrice(e.target.value)}
                     className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-emerald-400 font-mono font-bold focus:outline-none"
                   />
+                  <span className="text-[10px] text-emerald-400 font-mono block mt-1 font-semibold">
+                    Customer Profit: +LKR {((parseFloat(normalPrice) || 0) - ((parseInt(shellCost) || 0) * unitShellCost)).toFixed(2)}
+                  </span>
                 </div>
                 <div>
                   <label className="block text-[9px] font-bold text-cyan-400 uppercase mb-1">Standard Reseller (Silver)</label>
@@ -879,6 +896,9 @@ export default function AdminPackagesPage() {
                     onChange={(e) => setSilverPrice(e.target.value)}
                     className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-cyan-300 font-mono font-bold focus:outline-none"
                   />
+                  <span className="text-[10px] text-cyan-300 font-mono block mt-1 font-semibold">
+                    Standard Profit: +LKR {((parseFloat(silverPrice) || 0) - ((parseInt(shellCost) || 0) * unitShellCost)).toFixed(2)}
+                  </span>
                 </div>
                 <div>
                   <label className="block text-[9px] font-bold text-amber-400 uppercase mb-1">Elite Reseller (Gold)</label>
@@ -889,6 +909,9 @@ export default function AdminPackagesPage() {
                     onChange={(e) => setGoldPrice(e.target.value)}
                     className="w-full px-3 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-amber-300 font-mono font-bold focus:outline-none"
                   />
+                  <span className="text-[10px] text-amber-300 font-mono block mt-1 font-semibold">
+                    Elite Profit: +LKR {((parseFloat(goldPrice) || 0) - ((parseInt(shellCost) || 0) * unitShellCost)).toFixed(2)}
+                  </span>
                 </div>
               </div>
 
@@ -953,7 +976,7 @@ export default function AdminPackagesPage() {
                       imageUrl === WEEKLY_PASS_CDN ? 'bg-purple-500/20 border-purple-500 text-purple-300' : 'bg-slate-900 border-slate-800 text-slate-400'
                     }`}
                   >
-                    <img src={WEEKLY_PASS_CDN} className="w-3.5 h-3.5 object-contain" alt="" /> Weekly Pass
+                    <img src={WEEKLY_PASS_CDN} className="w-3.5 h-3.5 object-contain" alt="" /> Weekly Membership
                   </button>
                   <button
                     type="button"
@@ -971,7 +994,7 @@ export default function AdminPackagesPage() {
                       imageUrl === MONTHLY_PASS_CDN ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-slate-900 border-slate-800 text-slate-400'
                     }`}
                   >
-                    <img src={MONTHLY_PASS_CDN} className="w-3.5 h-3.5 object-contain" alt="" /> Monthly Pass
+                    <img src={MONTHLY_PASS_CDN} className="w-3.5 h-3.5 object-contain" alt="" /> Monthly Membership
                   </button>
                   <button
                     type="button"

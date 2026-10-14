@@ -120,7 +120,13 @@ export default function AdminUsersPage() {
     const newStatus = userItem.status === 'ACTIVE' ? 'BANNED' : 'ACTIVE';
     const isBanned = newStatus === 'BANNED';
 
-    await supabase.from('profiles').update({ is_banned: isBanned }).eq('id', userItem.id);
+    await supabase
+      .from('profiles')
+      .update({
+        is_banned: isBanned,
+        banned_at: isBanned ? new Date().toISOString() : null,
+      })
+      .eq('id', userItem.id);
     setUsers(users.map((u) => (u.id === userItem.id ? { ...u, status: newStatus } : u)));
   };
 

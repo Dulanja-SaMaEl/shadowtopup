@@ -40,6 +40,12 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
       .eq('id', user.id)
       .maybeSingle();
 
+    // Intercept banned accounts immediately
+    if (profile?.is_banned || profile?.banned_at) {
+      console.warn(`[AuthGuard] Intercepted banned user: ${user.id} (${user.email})`);
+      return null;
+    }
+
     // The single source of truth for user permissions is profile.role
     let role: 'admin' | 'gold' | 'silver' | 'normal' = (profile?.role as any) || 'normal';
 

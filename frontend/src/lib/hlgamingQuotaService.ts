@@ -12,8 +12,66 @@ export interface HLGamingQuotaInfo {
   status: 'healthy' | 'low' | 'exhausted';
 }
 
+export interface HLGamingAccount {
+  name: string;
+  useruid: string;
+  apiKey: string;
+}
+
+export function getHLGamingAccounts(): HLGamingAccount[] {
+  const accounts: HLGamingAccount[] = [];
+
+  // 1. Account 1 (Primary)
+  const uid1 = (process.env.HL_GAMING_USERUID || '').trim();
+  const key1 = (process.env.HL_GAMING_API_KEY || '').trim();
+
+  if (uid1.includes(',') || key1.includes(',')) {
+    const uids = uid1.split(',').map((u) => u.trim()).filter(Boolean);
+    const keys = key1.split(',').map((k) => k.trim()).filter(Boolean);
+    const count = Math.max(uids.length, keys.length);
+    for (let i = 0; i < count; i++) {
+      accounts.push({
+        name: `Account #${i + 1}`,
+        useruid: uids[i] || uids[0] || 'Xv00AKjlBJMgOpxr05VP2Sreu0z1',
+        apiKey: keys[i] || keys[0] || 'Kjt47EN5VEvYVa77afIsd4hEAFicFg',
+      });
+    }
+  } else {
+    accounts.push({
+      name: 'Account #1 (Primary)',
+      useruid: uid1 || 'Xv00AKjlBJMgOpxr05VP2Sreu0z1',
+      apiKey: key1 || 'Kjt47EN5VEvYVa77afIsd4hEAFicFg',
+    });
+  }
+
+  // 2. Account 2 (Secondary / Rotation Key)
+  const uid2 = (process.env.HL_GAMING_USERUID_2 || 'IGlCKbprmSTAEH09keqWr6s3fP42').trim();
+  const key2 = (process.env.HL_GAMING_API_KEY_2 || 'yGRHKhY0kQuc8adZ4EEcNq7A1thzFb').trim();
+  if (uid2 && key2 && !accounts.some((a) => a.apiKey === key2)) {
+    accounts.push({
+      name: 'Account #2 (Secondary)',
+      useruid: uid2,
+      apiKey: key2,
+    });
+  }
+
+  // 3. Account 3 (Optional expansion)
+  const uid3 = (process.env.HL_GAMING_USERUID_3 || '').trim();
+  const key3 = (process.env.HL_GAMING_API_KEY_3 || '').trim();
+  if (uid3 && key3 && !accounts.some((a) => a.apiKey === key3)) {
+    accounts.push({
+      name: 'Account #3',
+      useruid: uid3,
+      apiKey: key3,
+    });
+  }
+
+  return accounts;
+}
+
+const initialAccounts = getHLGamingAccounts();
+
 // In-memory fallback state (persists during server runtime)
-// Initialized from the user's verified HLGaming developer dashboard
 let inMemoryQuota: {
   developerUid: string;
   apiKey: string;
@@ -24,14 +82,14 @@ let inMemoryQuota: {
   limitResetAt: string;
   apiVersion: string;
 } = {
-  developerUid: process.env.HL_GAMING_USERUID || 'Xv00AKjlBJMgOpxr05VP2Sreu0z1',
-  apiKey: process.env.HL_GAMING_API_KEY || 'Kjt47EN5VEvYVa77afIsd4hEAFicFg',
-  dailyLimit: 25,
-  usedToday: 11, // Verified initial count from dashboard
+  developerUid: initialAccounts.map((a) => a.useruid).join(', '),
+  apiKey: initialAccounts.map((a) => `${a.apiKey.slice(0, 8)}••••`).join(', '),
+  dailyLimit: Math.max(25, initialAccounts.length * 25),
+  usedToday: 14,
   lastUsedAt: new Date().toISOString(),
   lastResetDate: new Date().toISOString().split('T')[0],
   limitResetAt: new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString(),
-  apiVersion: 'V2.0.0',
+  apiVersion: 'V2.0.0 (Rotational)',
 };
 
 function getSupabaseAdmin() {

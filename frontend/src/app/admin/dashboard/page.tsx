@@ -32,6 +32,7 @@ import {
   Award,
   Trophy,
   Calculator,
+  Boxes,
 } from 'lucide-react';
 
 const SHELL_UNIT_COST_LKR = 2.60; // 1 Garena Shell base cost in LKR
@@ -98,7 +99,7 @@ const recommendedPricingMatrix = [
     margin: 25.7,
   },
   {
-    name: 'Weekly Membership Pass',
+    name: 'Weekly Membership',
     shells: 210,
     baseCost: 210 * SHELL_UNIT_COST_LKR, // 546 LKR
     recNormal: 650.00,
@@ -108,7 +109,7 @@ const recommendedPricingMatrix = [
     margin: 16.0,
   },
   {
-    name: 'Weekly Lite Pass',
+    name: 'Weekly Lite',
     shells: 70,
     baseCost: 70 * SHELL_UNIT_COST_LKR, // 182 LKR
     recNormal: 280.00,
@@ -118,7 +119,7 @@ const recommendedPricingMatrix = [
     margin: 35.0,
   },
   {
-    name: 'Monthly Membership Pass',
+    name: 'Monthly Membership',
     shells: 1050,
     baseCost: 1050 * SHELL_UNIT_COST_LKR, // 2730 LKR
     recNormal: 3200.00,
@@ -131,13 +132,17 @@ const recommendedPricingMatrix = [
 
 export default function AdminDashboardPage() {
   const [totalSales, setTotalSales] = useState(0);
-  const [pendingVerification, setPendingVerification] = useState(0);
   const [totalUsers, setTotalUsers] = useState(8);
   const [todayRevenue, setTodayRevenue] = useState(0);
   const [totalProfit, setTotalProfit] = useState(0);
   const [profitMargin, setProfitMargin] = useState(25.4);
   const [recentOrders, setRecentOrders] = useState<DatabaseOrder[]>([]);
   const [allDbOrders, setAllDbOrders] = useState<DatabaseOrder[]>([]);
+  const [totalShellStock, setTotalShellStock] = useState(6495);
+  const [basePrice1300, setBasePrice1300] = useState(3380);
+
+  const unitShellCost = (basePrice1300 || 3380) / 1300;
+  const currentStockValueLkr = totalShellStock * unitShellCost;
 
   // Expected Profits & Dynamic Package Breakdown State
   const [expectedProfits, setExpectedProfits] = useState<ExpectedProfitsConfig>(DEFAULT_EXPECTED_PROFITS);
@@ -390,15 +395,30 @@ export default function AdminDashboardPage() {
         // Recalculate profit metrics using formula: Weekly + Monthly + Lite + Etc
         recalculateProfitsWithOrders(dbOrders, currentProfits);
 
-        const pendingCount = dbOrders.filter((o) => o.fulfillmentStatus === 'PENDING').length;
-        
         const todayDateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         const todaySum = dbOrders
           .filter((o) => o.fulfillmentStatus === 'COMPLETED' && o.date === todayDateStr)
           .reduce((acc, o) => acc + o.totalAmount, 0);
 
-        setPendingVerification(pendingCount);
         setTodayRevenue(todaySum);
+
+        // Fetch Live Shell Inventory & Base Pricing for real-time Stock Value
+        try {
+          const [enduranceRes, pricingRes] = await Promise.all([
+            fetch('/api/admin/stock-endurance'),
+            fetch('/api/admin/pricing-rules'),
+          ]);
+          const enduranceData = await enduranceRes.json();
+          if (enduranceData.success && typeof enduranceData.totalShellStock === 'number') {
+            setTotalShellStock(enduranceData.totalShellStock);
+          }
+          const pricingData = await pricingRes.json();
+          if (pricingData.success && pricingData.pricingRules && pricingData.pricingRules.basePrice1300) {
+            setBasePrice1300(Number(pricingData.pricingRules.basePrice1300));
+          }
+        } catch (e) {
+          console.warn('Note fetching stock endurance or pricing rules for dashboard:', e);
+        }
       } catch (err) {
         console.error('Error loading dashboard stats from database:', err);
       }
@@ -413,7 +433,7 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-wide uppercase">Dashboard Overview</h1>
-          <p className="text-xs text-slate-400 mt-1">Live database statistics, profit analytics, and recommended pricing.</p>
+          <p className="text-xs text-slate-400 mt-1">Live database statistics, profit analytics, and real-time stock valuation.</p>
         </div>
 
         <Link
@@ -424,15 +444,15 @@ export default function AdminDashboardPage() {
         </Link>
       </div>
 
-      {/* Top 5 Metric Cards including Total Profit */}
+      {/* Top 5 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-        {/* Total Profit Indicator */}
+        {/* Total Revenue Indicator (Renamed from Total Profit per Item 3) */}
         <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-950/80 via-[#141229] to-[#141229] border border-emerald-500/40 relative overflow-hidden shadow-xl shadow-emerald-500/5 group hover:border-emerald-500/70 transition-all">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] font-mono font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> TOTAL PROFIT
+                  <TrendingUp className="w-3 h-3" /> TOTAL REVENUE
                 </span>
                 <button
                   onClick={() => {
@@ -446,14 +466,14 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
               <h3 className="text-2xl font-black text-emerald-300 font-mono">
-                LKR {totalProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                LKR {totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h3>
               <div className="flex flex-col gap-1 mt-1">
                 <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold w-fit">
                   <Percent className="w-3 h-3" /> +{profitMargin.toFixed(1)}% NET MARGIN
                 </div>
-                <span className="text-[9px] font-mono text-slate-400 truncate">
-                  Weekly + Monthly + Lite + Etc.
+                <span className="text-[9px] font-mono text-emerald-400/90 font-bold truncate">
+                  Est. Profit: LKR {totalProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -470,13 +490,17 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Total Sales */}
+        {/* Total Sales (Exact completed volume per Item 14) */}
         <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 relative overflow-hidden">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Sales</span>
-              <h3 className="text-2xl font-black text-white">LKR {totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
-              <p className="text-[10px] text-purple-400 font-bold">All-time revenue</p>
+              <h3 className="text-2xl font-black text-white font-mono">
+                LKR {totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </h3>
+              <p className="text-[10px] text-purple-400 font-bold font-mono">
+                {allDbOrders.filter((o) => o.fulfillmentStatus === 'COMPLETED').length} Completed Orders
+              </p>
             </div>
             <div className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
               <DollarSign className="w-5 h-5" />
@@ -484,17 +508,27 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Pending Verification */}
-        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 relative overflow-hidden">
+        {/* Current Stock Value (LKR) - Replaces Pending per Revision 8 & 13 */}
+        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 relative overflow-hidden group hover:border-purple-600/40 transition-all">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Pending</span>
-              <h3 className="text-2xl font-black text-white">{pendingVerification}</h3>
-              <p className="text-[10px] text-amber-400 font-bold">Requires review</p>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-300 flex items-center gap-1">
+                <Boxes className="w-3 h-3 text-purple-400" /> Current Stock Value (LKR)
+              </span>
+              <h3 className="text-2xl font-black text-cyan-400 font-mono">
+                LKR {currentStockValueLkr.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h3>
+              <p className="text-[10px] text-slate-400 font-mono">
+                {totalShellStock.toLocaleString()} Shells @ LKR {unitShellCost.toFixed(2)}/sh
+              </p>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300">
-              <Clock className="w-5 h-5" />
-            </div>
+            <Link
+              href="/admin/shell-accounts"
+              className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 hover:bg-purple-600/30 transition-colors"
+              title="Manage Shell Accounts"
+            >
+              <Boxes className="w-5 h-5" />
+            </Link>
           </div>
         </div>
 
@@ -563,19 +597,19 @@ export default function AdminDashboardPage() {
 
         {/* The 4 Category Profit Indicator Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
-          {/* Card 1: Weekly Pass Profit */}
+          {/* Card 1: Weekly Membership Profit */}
           <div className="p-5 rounded-2xl bg-[#0f0d22] border border-blue-500/30 relative overflow-hidden group hover:border-blue-500/60 transition-all shadow-lg">
             <div className="flex justify-between items-start mb-3">
               <div className="space-y-0.5">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-400 block">
-                  Weekly Pass Profit
+                  Weekly Membership Profit
                 </span>
                 <h4 className="text-xl font-black text-white font-mono">
                   LKR {profitBreakdown.weekly.profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h4>
               </div>
               <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/30 text-blue-300 text-[10px] font-mono font-bold">
-                {profitBreakdown.weekly.count} passes
+                {profitBreakdown.weekly.count} memberships
               </span>
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
@@ -593,19 +627,19 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Card 2: Monthly Pass Profit */}
+          {/* Card 2: Monthly Membership Profit */}
           <div className="p-5 rounded-2xl bg-[#0f0d22] border border-amber-500/30 relative overflow-hidden group hover:border-amber-500/60 transition-all shadow-lg">
             <div className="flex justify-between items-start mb-3">
               <div className="space-y-0.5">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 block">
-                  Monthly Pass Profit
+                  Monthly Membership Profit
                 </span>
                 <h4 className="text-xl font-black text-white font-mono">
                   LKR {profitBreakdown.monthly.profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h4>
               </div>
               <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold">
-                {profitBreakdown.monthly.count} passes
+                {profitBreakdown.monthly.count} memberships
               </span>
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
@@ -628,14 +662,14 @@ export default function AdminDashboardPage() {
             <div className="flex justify-between items-start mb-3">
               <div className="space-y-0.5">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-400 block">
-                  Lite Pass Profit
+                  Weekly Lite Profit
                 </span>
                 <h4 className="text-xl font-black text-white font-mono">
                   LKR {profitBreakdown.lite.profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h4>
               </div>
               <span className="px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/30 text-purple-300 text-[10px] font-mono font-bold">
-                {profitBreakdown.lite.count} passes
+                {profitBreakdown.lite.count} units
               </span>
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
@@ -985,14 +1019,14 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-blue-400" />
                   <h4 className="text-xs font-mono font-black uppercase tracking-wider text-blue-300">
-                    Membership Passes (Expected Net Profit / Unit)
+                    Memberships (Expected Net Profit / Unit)
                   </h4>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Weekly */}
                   <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-blue-500/30 space-y-1.5">
                     <label className="text-[10px] font-mono uppercase text-blue-400 font-bold block">
-                      Weekly Pass (LKR)
+                      Weekly Membership (LKR)
                     </label>
                     <input
                       type="number"
@@ -1010,7 +1044,7 @@ export default function AdminDashboardPage() {
                   {/* Monthly */}
                   <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/30 space-y-1.5">
                     <label className="text-[10px] font-mono uppercase text-amber-400 font-bold block">
-                      Monthly Pass (LKR)
+                      Monthly Membership (LKR)
                     </label>
                     <input
                       type="number"
@@ -1028,7 +1062,7 @@ export default function AdminDashboardPage() {
                   {/* Weekly Lite */}
                   <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-purple-500/30 space-y-1.5">
                     <label className="text-[10px] font-mono uppercase text-purple-400 font-bold block">
-                      Lite Pass (LKR)
+                      Weekly Lite (LKR)
                     </label>
                     <input
                       type="number"
@@ -1293,7 +1327,7 @@ export default function AdminDashboardPage() {
               Package Profitability & Recommended Retail Pricing Matrix
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Based on Garena Shell unit cost rate of <span className="text-emerald-400 font-mono font-bold">LKR 2.60 / shell</span>
+              Based on Garena Shell unit cost rate of <span className="text-emerald-400 font-mono font-bold">LKR {unitShellCost.toFixed(2)} / shell</span> (1,300 Pack @ LKR {basePrice1300.toFixed(2)})
             </p>
           </div>
           <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold uppercase">

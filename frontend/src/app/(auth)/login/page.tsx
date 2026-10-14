@@ -21,6 +21,9 @@ export default function LoginPage() {
       if (params.get('reset') === 'success') {
         setSuccessNotice('Password reset successfully! Please sign in with your new password.');
       }
+      if (params.get('banned') === 'true' || params.get('error') === 'banned') {
+        setError('Your account has been banned.');
+      }
     }
   }, []);
 
@@ -31,9 +34,6 @@ export default function LoginPage() {
 
     const targetEmail = email.trim().toLowerCase();
 
-    // Set cookie for session persistence across server routes
-    document.cookie = `active_session_email=${targetEmail}; path=/; max-age=86400; SameSite=Lax`;
-
     // Attempt Supabase Auth login
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: targetEmail,
@@ -43,9 +43,26 @@ export default function LoginPage() {
     if (authData?.user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, name')
+        .select('role, name, is_banned, banned_at')
         .eq('id', authData.user.id)
         .single();
+
+      // Check if user account is banned
+      if (profile?.is_banned || profile?.banned_at) {
+        await supabase.auth.signOut();
+        document.cookie = 'active_session_email=; path=/; max-age=0; SameSite=Lax';
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('active_session_email');
+          localStorage.removeItem('active_session_role');
+          localStorage.removeItem('active_session_name');
+        }
+        setLoading(false);
+        setError('Your account has been banned.');
+        return;
+      }
+
+      // Set cookie for session persistence across server routes
+      document.cookie = `active_session_email=${targetEmail}; path=/; max-age=86400; SameSite=Lax`;
 
       const userRole = profile?.role || 'normal';
       const userName = profile?.name || targetEmail.split('@')[0].toUpperCase();
@@ -137,9 +154,24 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+            <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span className="font-bold">{error}</span>
+              </div>
+              {error.toLowerCase().includes('banned') && (
+                <div className="pt-2 border-t border-red-500/20 text-[11px] text-slate-300 flex flex-col gap-1.5 font-sans">
+                  <p>Your platform access has been suspended. If you believe this is an error, you can submit an appeal to support.</p>
+                  <a
+                    href="https://wa.me/94765604635?text=Hello%20Shadow%20Topup%20Support,%20my%20account%20was%20banned%20and%20I%20would%20like%20to%20submit%20an%20appeal."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 font-bold underline font-mono"
+                  >
+                    Submit Ban Appeal via WhatsApp &rarr;
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

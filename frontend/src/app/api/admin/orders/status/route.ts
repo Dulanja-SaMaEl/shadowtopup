@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         // 2. Insert audit transaction into wallet_transactions
         await adminSupabase.from('wallet_transactions').insert([{
           user_id: userId,
-          type: 'ORDER_REFUND',
+          type: 'WALLET_REFUND',
           amount: refundAmount,
           balance_after: newBal,
           description: `Refund for unavailable package: ${packageName} (Order #${matchedId.slice(0, 8)})`,
@@ -102,7 +102,15 @@ export async function POST(request: NextRequest) {
         .update({ status: statusVal })
         .eq('id', matchedId);
 
-      if (error) console.error(`Error updating status for ${tableName}:`, error);
+      if (error && statusVal === 'refunded') {
+        const fallback = await adminSupabase
+          .from(tableName)
+          .update({ status: 'rejected' })
+          .eq('id', matchedId);
+        if (fallback.error) console.error(`Error updating fallback status for ${tableName}:`, fallback.error);
+      } else if (error) {
+        console.error(`Error updating status for ${tableName}:`, error);
+      }
     };
 
     await updateTableStatus('orders', orderStatusVal);
