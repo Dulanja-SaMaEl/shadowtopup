@@ -346,12 +346,10 @@ export default async function HomePage() {
                   <div className="flex items-center justify-between pb-3 border-b border-purple-950/60">
                     <div>
                       <span className="text-[10px] font-mono uppercase text-purple-400 font-semibold block">POPULAR PACKAGES</span>
-                      <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" /> Live LKR Rates
-                      </h3>
+                      <h3 className="text-sm font-bold text-white">Live LKR Rates</h3>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)] flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> IN STOCK
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 font-semibold">
+                      IN STOCK
                     </span>
                   </div>
 
@@ -506,14 +504,10 @@ export default async function HomePage() {
 
         {/* 3. Why Choose Shadow Store: Structured, Factual Guarantees */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          <div className="pb-4 border-b border-purple-950/60 flex items-center justify-between">
+          <div className="pb-4 border-b border-purple-950/60">
             <div>
               <span className="text-xs font-mono font-semibold uppercase text-purple-400 tracking-wider">Infrastructure</span>
               <h2 className="text-xl sm:text-2xl font-bold text-white mt-0.5">Why Players & Resellers Choose Us</h2>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-              <span>99.9% Automated Fulfillment</span>
             </div>
           </div>
 

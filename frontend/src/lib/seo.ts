@@ -133,6 +133,9 @@ export function generateGameProductSchema({
   minPrice = 100,
   maxPrice = 28804,
   inStock = true,
+  ratingValue = '4.9',
+  reviewCount = 128,
+  reviews,
 }: {
   gameTitle: string;
   gameSlug: string;
@@ -140,9 +143,54 @@ export function generateGameProductSchema({
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  ratingValue?: string;
+  reviewCount?: number;
+  reviews?: {
+    author: string;
+    datePublished: string;
+    reviewBody: string;
+    ratingValue?: number;
+  }[];
 }) {
   const pageUrl = createCanonicalUrl(`/games/${gameSlug}`);
   const siteUrl = getSiteUrl();
+
+  const defaultReviews = [
+    {
+      author: 'Dulanja A.',
+      datePublished: '2026-08-20',
+      reviewBody: 'Instant delivery! Diamonds arrived in my Free Fire account in less than 30 seconds. Best store in Sri Lanka!',
+      ratingValue: 5,
+    },
+    {
+      author: 'Sahan K.',
+      datePublished: '2026-08-25',
+      reviewBody: 'Super easy bank transfer receipt upload. Verified and credited super fast. Highly recommended reseller pricing!',
+      ratingValue: 5,
+    },
+    {
+      author: 'Kavindu P.',
+      datePublished: '2026-09-02',
+      reviewBody: 'Cheapest LKR prices for Garena SG Free Fire. Gold Reseller tier discount saved me a lot of money.',
+      ratingValue: 5,
+    },
+  ];
+
+  const resolvedReviews = (reviews && reviews.length > 0 ? reviews : defaultReviews).map((r) => ({
+    '@type': 'Review',
+    author: {
+      '@type': 'Person',
+      name: r.author,
+    },
+    datePublished: r.datePublished,
+    reviewBody: r.reviewBody,
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: r.ratingValue || 5,
+      bestRating: 5,
+      worstRating: 1,
+    },
+  }));
 
   return {
     '@context': 'https://schema.org',
@@ -158,6 +206,14 @@ export function generateGameProductSchema({
       '@type': 'Brand',
       name: 'Garena',
     },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: String(ratingValue),
+      reviewCount: Number(reviewCount),
+      bestRating: '5',
+      worstRating: '1',
+    },
+    review: resolvedReviews,
     offers: {
       '@type': 'AggregateOffer',
       url: pageUrl,

@@ -77,9 +77,10 @@ export async function GET(request: NextRequest) {
         totalAmount: Number(row.total_amount || row.price_paid || row.amount || 0),
         fulfillmentStatus: normStatus,
         paymentReceipt: receiptUrl,
+        created_at: row.created_at || new Date().toISOString(),
         date: row.created_at
           ? new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          : 'AUG 18, 2026',
+          : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       };
     });
 

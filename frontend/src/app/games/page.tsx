@@ -158,10 +158,6 @@ export default async function GamesCatalogPage() {
               Select an active game to check available diamond packages, membership bundles, and live reseller prices in Sri Lanka.
             </p>
           </div>
-
-          <div className="relative z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-950/60 border border-purple-700/50 text-purple-300 text-xs font-mono font-semibold shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> Automated Garena Sync
-          </div>
         </div>
 
         {/* Games Grid */}

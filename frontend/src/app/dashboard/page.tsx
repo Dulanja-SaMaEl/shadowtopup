@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -65,6 +65,7 @@ export default function UserDashboardPage() {
   });
 
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [packagesList, setPackagesList] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [resellerTier, setResellerTier] = useState<'silver' | 'gold'>('silver');
   const [applying, setApplying] = useState(false);
@@ -136,10 +137,22 @@ export default function UserDashboardPage() {
                 status: o.fulfillmentStatus,
                 time: '11:30 AM',
                 date: (o.date || '').toUpperCase(),
+                created_at: o.created_at || o.date,
                 player_uid: o.free_fire_player_id,
                 receipt_url: o.paymentReceipt,
               }))
             );
+          }
+
+          // Fetch real-time packages for Package Pricing Tiers chart
+          try {
+            const pkgRes = await fetch('/api/packages');
+            const pkgJson = await pkgRes.json();
+            if (pkgJson.success && Array.isArray(pkgJson.packages)) {
+              setPackagesList(pkgJson.packages);
+            }
+          } catch (pkgErr) {
+            console.error('Error fetching packages for dashboard:', pkgErr);
           }
 
           // Fetch real-time wallet float balance for reseller card
@@ -309,18 +322,102 @@ export default function UserDashboardPage() {
     window.location.href = '/login';
   };
 
-  const lineData = [
-    { date: 'Aug 12', spent: 0 },
-    { date: 'Aug 15', spent: 0 },
-    { date: 'Aug 16', spent: 0 },
-    { date: 'Aug 17', spent: 0 },
-    { date: 'Aug 18', spent: 0 },
-  ];
+  const lineData = useMemo(() => {
+    const days = 30;
+    const now = new Date();
+    const dayBuckets: { [key: string]: { date: string; spent: number; ordersCount: number; timestamp: number } } = {};
 
-  const barData = [
-    { name: '100 Diamonds', Normal: 750, Standard: 690, Elite: 637 },
-    { name: '310 Diamonds', Normal: 2100, Standard: 1932, Elite: 1785 },
-  ];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const key = `${yyyy}-${mm}-${dd}`;
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dayBuckets[key] = {
+        date: label,
+        spent: 0,
+        ordersCount: 0,
+        timestamp: d.getTime(),
+      };
+    }
+
+    transactions.forEach((tx) => {
+      const st = (tx.status || '').toUpperCase();
+      if (st === 'REJECTED' || st === 'CANCELLED') return;
+
+      const raw = tx.created_at || tx.raw_date || tx.date;
+      if (!raw) return;
+
+      const tDate = new Date(raw);
+      if (isNaN(tDate.getTime())) return;
+
+      const yyyy = tDate.getFullYear();
+      const mm = String(tDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(tDate.getDate()).padStart(2, '0');
+      const key = `${yyyy}-${mm}-${dd}`;
+
+      const amount = Number(tx.amount || 0);
+
+      if (dayBuckets[key]) {
+        dayBuckets[key].spent += amount;
+        dayBuckets[key].ordersCount += 1;
+      }
+    });
+
+    const result = Object.values(dayBuckets).sort((a, b) => a.timestamp - b.timestamp);
+
+    // If all spent are 0 in the 30-day window but transactions exist, map actual transaction dates
+    const hasAnySpend = result.some((r) => r.spent > 0);
+    if (!hasAnySpend && transactions.length > 0) {
+      const txMap = new Map<string, { date: string; spent: number; ordersCount: number }>();
+      transactions.forEach((tx) => {
+        const raw = tx.created_at || tx.date;
+        const d = tx.date || (raw ? new Date(raw).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent');
+        const amt = Number(tx.amount || 0);
+        if (txMap.has(d)) {
+          const entry = txMap.get(d)!;
+          entry.spent += amt;
+          entry.ordersCount += 1;
+        } else {
+          txMap.set(d, { date: d, spent: amt, ordersCount: 1 });
+        }
+      });
+      if (txMap.size > 0) {
+        return Array.from(txMap.values());
+      }
+    }
+
+    return result;
+  }, [transactions]);
+
+  const barData = useMemo(() => {
+    if (packagesList.length > 0) {
+      const p100 = packagesList.find(
+        (p) => p.diamond_amount === 100 && (p.package_type === 'diamond' || p.package_name?.includes('100'))
+      );
+      const pWeekly = packagesList.find(
+        (p) => p.package_name?.toLowerCase().includes('weekly') && !p.package_name?.toLowerCase().includes('lite')
+      );
+      const p310 = packagesList.find((p) => p.diamond_amount === 310);
+
+      const items = [p100, pWeekly, p310].filter(Boolean);
+      if (items.length > 0) {
+        return items.map((p: any) => ({
+          name: p.package_name,
+          Normal: Number(p.normal_price || 0),
+          Standard: Number(p.silver_price || Math.round(Number(p.normal_price || 0) * 0.95)),
+          Elite: Number(p.gold_price || Math.round(Number(p.normal_price || 0) * 0.9)),
+        }));
+      }
+    }
+    return [
+      { name: '100 Diamond', Normal: 325, Standard: 310, Elite: 295 },
+      { name: 'Weekly Subscription', Normal: 562, Standard: 535, Elite: 508 },
+      { name: '310 Diamond', Normal: 990, Standard: 940, Elite: 890 },
+    ];
+  }, [packagesList]);
 
   const totalSpent = transactions.reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const activeOrdersCount = transactions.filter((t) => t.status === 'PENDING').length;
@@ -352,12 +449,6 @@ export default function UserDashboardPage() {
 
           {/* Foreground Content & Tactical Gaming HUD Elements */}
           <div className="relative z-10 space-y-3 px-4 max-w-4xl mx-auto py-10">
-            {/* Tactical Status Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-black/60 border border-cyan-400/40 backdrop-blur-md text-[10px] font-mono font-bold tracking-widest text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.25)]">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <Zap className="w-3 h-3 text-cyan-400" />
-              <span>SHADOW GAMING HUB • CUSTOMER COMMAND CENTER</span>
-            </div>
 
             {/* Main Title */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-[0.2em] font-gaming text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]">
@@ -627,7 +718,6 @@ export default function UserDashboardPage() {
               {/* Card Footer: Quick Actions */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/[0.08]">
                 <div className="flex items-center gap-2 text-xs text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span>
                     Store Name: <strong className="text-white">{profile?.store_name || profile?.name || 'SHADOW STORE SL'}</strong>
                   </span>
@@ -845,17 +935,64 @@ export default function UserDashboardPage() {
         {/* CHARTS ROW */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4 min-w-0 overflow-hidden">
-            <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
-              <TrendingUp className="w-4 h-4 text-cyan-400" /> PURCHASE HISTORY (30 DAYS)
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
+                <TrendingUp className="w-4 h-4 text-cyan-400" /> PURCHASE HISTORY (30 DAYS)
+              </div>
+              <span className="text-[10px] font-mono text-purple-300 font-bold">
+                LKR {totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2 })} Total
+              </span>
             </div>
             <div className="h-56 w-full pt-4 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={lineData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1b3a" />
-                  <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 9 }} />
-                  <YAxis stroke="#64748b" tick={{ fontSize: 9 }} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0e0c1f', borderColor: '#334155', fontSize: '10px' }} />
-                  <Line type="monotone" dataKey="spent" stroke="#a855f7" strokeWidth={3} dot={{ fill: '#a855f7', r: 4 }} />
+                <LineChart data={lineData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1b3a" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#64748b"
+                    tick={{ fontSize: 9 }}
+                    interval="preserveStartEnd"
+                    minTickGap={20}
+                  />
+                  <YAxis
+                    stroke="#64748b"
+                    tick={{ fontSize: 9 }}
+                    tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(1)}k` : `${val}`)}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0e0c1f',
+                      borderColor: '#3b2d60',
+                      borderRadius: '10px',
+                      fontSize: '11px',
+                      color: '#fff',
+                    }}
+                    formatter={(val: any) => [`LKR ${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 'Purchases']}
+                    labelFormatter={(label) => `Date: ${label}`}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="spent"
+                    stroke="#a855f7"
+                    strokeWidth={3}
+                    dot={(props: any) => {
+                      if (props.payload?.spent > 0) {
+                        return (
+                          <circle
+                            cx={props.cx}
+                            cy={props.cy}
+                            r={4}
+                            fill="#22d3ee"
+                            stroke="#a855f7"
+                            strokeWidth={2}
+                            key={props.key}
+                          />
+                        );
+                      }
+                      return <circle cx={props.cx} cy={props.cy} r={1.5} fill="#6b21a8" key={props.key} />;
+                    }}
+                    activeDot={{ r: 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -867,11 +1004,24 @@ export default function UserDashboardPage() {
             </div>
             <div className="h-56 w-full pt-4 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1b3a" />
+                <BarChart data={barData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1b3a" vertical={false} />
                   <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 9 }} />
-                  <YAxis stroke="#64748b" tick={{ fontSize: 9 }} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0e0c1f', borderColor: '#334155', fontSize: '10px' }} />
+                  <YAxis
+                    stroke="#64748b"
+                    tick={{ fontSize: 9 }}
+                    tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(1)}k` : `${val}`)}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0e0c1f',
+                      borderColor: '#3b2d60',
+                      borderRadius: '10px',
+                      fontSize: '10px',
+                      color: '#fff',
+                    }}
+                    formatter={(val: any) => [`LKR ${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 'Price']}
+                  />
                   <Legend wrapperStyle={{ fontSize: '10px' }} />
                   <Bar dataKey="Normal" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Standard" fill="#06b6d4" radius={[4, 4, 0, 0]} />

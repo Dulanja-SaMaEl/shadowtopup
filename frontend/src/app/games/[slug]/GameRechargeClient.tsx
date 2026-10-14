@@ -131,9 +131,8 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
         </div>
         <div className="relative z-10 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)] flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Singapore & Malaysia Servers</span>
+            <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
+              Singapore & Malaysia Servers
             </span>
 
             {/* Restock Warning Badge next to server badge */}
@@ -150,7 +149,7 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
           </p>
           <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-slate-400">
             <span className="flex items-center gap-1.5 text-slate-300 font-mono">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Automated Garena Dispatch (&lt;30s)
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Fast Delivery (&lt;30s)
             </span>
             <span className="flex items-center gap-1.5 text-slate-300 font-mono">
               <ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> Live Nickname Verification

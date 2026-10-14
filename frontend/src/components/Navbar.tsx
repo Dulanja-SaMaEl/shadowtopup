@@ -76,7 +76,7 @@ export default function Navbar() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo & Tactical Live Status */}
+          {/* Logo */}
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-3 py-1">
               <Image
@@ -88,14 +88,6 @@ export default function Navbar() {
                 priority
               />
             </Link>
-
-            {/* Tactical Live Ping Beacon */}
-            <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-full bg-purple-950/40 border border-purple-800/40 text-[10px] font-mono text-purple-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-              <span className="tracking-wide">DISPATCH: LIVE</span>
-              <span className="text-slate-600">|</span>
-              <span className="text-cyan-400 font-bold">&lt;30s</span>
-            </div>
           </div>
 
           {/* Desktop Nav Links */}
