@@ -551,7 +551,7 @@ export default function UserDashboardPage() {
         {/* Metrics Summary Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">TOTAL DB ORDERS</span>
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">TOTAL ORDERS</span>
             <h3 className="text-3xl font-black text-white">{transactions.length}</h3>
           </div>
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
