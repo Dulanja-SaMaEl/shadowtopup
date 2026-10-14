@@ -444,35 +444,35 @@ export default function AdminDashboardPage() {
         </Link>
       </div>
 
-      {/* Top 5 Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-        {/* Total Revenue Indicator (Renamed from Total Profit per Item 3) */}
-        <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-950/80 via-[#141229] to-[#141229] border border-emerald-500/40 relative overflow-hidden shadow-xl shadow-emerald-500/5 group hover:border-emerald-500/70 transition-all">
+      {/* Top 4 Live Stock & Metric Cards (Purple Theme Overhaul per Item 8) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Total Revenue Indicator */}
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-950/70 via-[#141229] to-[#120e24] border border-purple-600/50 relative overflow-hidden shadow-xl shadow-purple-950/30 group hover:border-purple-500/80 transition-all">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-mono font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> TOTAL REVENUE
+                <span className="text-[10px] font-mono font-black uppercase tracking-widest text-purple-300 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3 text-purple-400" /> TOTAL REVENUE
                 </span>
                 <button
                   onClick={() => {
                     setEditingProfits({ ...expectedProfits });
                     setProfitModalOpen(true);
                   }}
-                  className="px-1.5 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-[9px] font-mono text-emerald-300 border border-emerald-500/40 flex items-center gap-1 transition-all"
+                  className="px-1.5 py-0.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-[9px] font-mono text-purple-200 border border-purple-500/40 flex items-center gap-1 transition-all"
                   title="Configure Expected Profit Formula"
                 >
                   <Sliders className="w-2.5 h-2.5" /> Formula
                 </button>
               </div>
-              <h3 className="text-2xl font-black text-emerald-300 font-mono">
+              <h3 className="text-2xl font-black text-white font-mono">
                 LKR {totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h3>
               <div className="flex flex-col gap-1 mt-1">
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold w-fit">
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 text-[10px] font-mono font-bold w-fit">
                   <Percent className="w-3 h-3" /> +{profitMargin.toFixed(1)}% NET MARGIN
                 </div>
-                <span className="text-[9px] font-mono text-emerald-400/90 font-bold truncate">
+                <span className="text-[9px] font-mono text-purple-400 font-bold truncate">
                   Est. Profit: LKR {totalProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -482,19 +482,21 @@ export default function AdminDashboardPage() {
                 setEditingProfits({ ...expectedProfits });
                 setProfitModalOpen(true);
               }}
-              className="w-10 h-10 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 transition-transform active:scale-95"
+              className="w-10 h-10 rounded-2xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0 transition-transform active:scale-95"
               title="Edit Expected Profit Formula"
             >
-              <TrendingUp className="w-5 h-5" />
+              <TrendingUp className="w-5 h-5 text-purple-300" />
             </button>
           </div>
         </div>
 
-        {/* Total Sales (Exact completed volume per Item 14) */}
-        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 relative overflow-hidden">
+        {/* Card 2: Total Sales (Exact completed transaction volume) */}
+        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/60 relative overflow-hidden group hover:border-purple-600/50 transition-all">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Sales</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-300 flex items-center gap-1">
+                <DollarSign className="w-3 h-3 text-purple-400" /> Total Sales
+              </span>
               <h3 className="text-2xl font-black text-white font-mono">
                 LKR {totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
@@ -502,14 +504,14 @@ export default function AdminDashboardPage() {
                 {allDbOrders.filter((o) => o.fulfillmentStatus === 'COMPLETED').length} Completed Orders
               </p>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
+            <div className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
         </div>
 
-        {/* Current Stock Value (LKR) - Replaces Pending per Revision 8 & 13 */}
-        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 relative overflow-hidden group hover:border-purple-600/40 transition-all">
+        {/* Card 3: Current Stock Value (LKR) - (Total Shell Stock / Total Shell Qty) * 1300 pack ratio */}
+        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/60 relative overflow-hidden group hover:border-purple-600/50 transition-all">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-300 flex items-center gap-1">
@@ -524,7 +526,7 @@ export default function AdminDashboardPage() {
             </div>
             <Link
               href="/admin/shell-accounts"
-              className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 hover:bg-purple-600/30 transition-colors"
+              className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300 hover:bg-purple-600/30 transition-colors"
               title="Manage Shell Accounts"
             >
               <Boxes className="w-5 h-5" />
@@ -532,30 +534,18 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Total Users */}
-        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 relative overflow-hidden">
+        {/* Card 4: Total Users */}
+        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/60 relative overflow-hidden group hover:border-purple-600/50 transition-all">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Users</span>
-              <h3 className="text-2xl font-black text-white">{totalUsers}</h3>
-              <p className="text-[10px] text-pink-400 font-bold">Profiles registered</p>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-300 flex items-center gap-1">
+                <Users className="w-3 h-3 text-purple-400" /> Total Users
+              </span>
+              <h3 className="text-2xl font-black text-white font-mono">{totalUsers}</h3>
+              <p className="text-[10px] text-purple-400/90 font-bold font-mono">Profiles registered</p>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-300">
+            <div className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
               <Users className="w-5 h-5" />
-            </div>
-          </div>
-        </div>
-
-        {/* Today's Revenue */}
-        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/40 relative overflow-hidden">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Today's Revenue</span>
-              <h3 className="text-2xl font-black text-cyan-400">LKR {todayRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
-              <p className="text-[10px] text-cyan-400/80 font-bold">Daily gross revenue</p>
-            </div>
-            <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
-              <ArrowUpRight className="w-5 h-5" />
             </div>
           </div>
         </div>

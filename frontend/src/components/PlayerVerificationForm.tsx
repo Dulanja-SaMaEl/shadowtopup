@@ -107,7 +107,6 @@ export default function PlayerVerificationForm({ gameSlug, onVerified }: Props) 
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <span>Step 1: Enter Player ID (UID)</span>
-            <span className="text-[10px] font-mono text-purple-400 font-normal">[ LIVE VERIFY ]</span>
           </h3>
           <p className="text-xs text-slate-400">Validate your Free Fire numeric UID to preview in-game nickname before ordering</p>
         </div>

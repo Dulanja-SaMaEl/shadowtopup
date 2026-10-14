@@ -397,7 +397,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
             <Diamond className="w-4 h-4 text-purple-400" /> Step 2: Select Recharge Package
           </h2>
-          <p className="text-xs text-slate-400">Select Free Fire diamonds, Weekly Pass, or Monthly VIP subscription</p>
+          <p className="text-xs text-slate-400">Select Free Fire diamonds, Weekly Membership, or Monthly Membership</p>
         </div>
         {effectiveRole && effectiveRole !== 'normal' && (
           <span className="px-3 py-1 rounded-md bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold uppercase shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.25)] flex items-center gap-1.5">
@@ -419,7 +419,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none font-gaming">
         {[
           { id: 'membership', label: `Memberships (${membershipPkgs.length})` },
-          { id: 'levelup', label: `Level Up Passes (${levelUpPkgs.length})` },
+          { id: 'levelup', label: `Level Up Rewards (${levelUpPkgs.length})` },
           { id: 'diamond', label: `Diamonds (${diamondPkgs.length})` },
         ].map((tab) => (
           <button
@@ -469,11 +469,11 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             const hasDiscount = Boolean(effectiveRole && effectiveRole !== 'normal' && pkg.normal_price && finalPrice < Number(pkg.normal_price));
 
             const subTitle = isMembership
-              ? (pkg.diamond_amount > 0 ? `Pass (${pkg.diamond_amount} Diamonds)` : 'Subscription Pass')
+              ? (pkg.diamond_amount > 0 ? `Membership (${pkg.diamond_amount} Diamonds)` : 'Subscription Membership')
               : isEvo
-              ? 'EVO Gun Access Pass'
+              ? 'EVO Gun Access'
               : isLevelUp
-              ? `Level Up Pass (${pkg.diamond_amount} Diamonds)`
+              ? `Level Up (${pkg.diamond_amount} Diamonds)`
               : `${pkg.diamond_amount} Diamonds`;
 
             return (
@@ -551,7 +551,6 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         <div className="bg-[#110e24] border border-purple-950/60 rounded-xl p-6 space-y-5 shadow-xl">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <span>Step 3: Select Payment Method</span>
-            <span className="text-[10px] font-mono text-purple-400 font-normal">[ DIRECT DISPATCH ]</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

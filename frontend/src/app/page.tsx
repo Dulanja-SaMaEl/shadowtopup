@@ -14,9 +14,11 @@ import {
   AlertTriangle,
   HelpCircle,
   TrendingUp,
+  RefreshCw,
 } from 'lucide-react';
 import CustomerReviewsSection from '@/components/CustomerReviewsSection';
 import { createClient } from '@supabase/supabase-js';
+import { getRestockAlert } from '@/lib/restockAlertService';
 import {
   SITE_NAME,
   createCanonicalUrl,
@@ -66,24 +68,21 @@ const defaultFeaturedGames: FeaturedGame[] = [
 const resellerTiers = [
   {
     name: 'Standard Reseller',
-    discount: '8% Off',
-    minDeposit: 'LKR 5,000 Wallet Balance',
-    sampleProfit: 'Profit ~LKR 50–200 per order',
-    idealFor: 'Casual sellers & gaming friends',
+    discount: 'Up to 5% Off',
+    pricing: 'Free for Sellers',
+    validity: 'Permanent Validity',
+    verification: 'Requires Admin Approval',
+    sampleProfit: 'Save up to 5% on retail top-up packages',
+    idealFor: 'Independent top-up sellers & casual shops',
   },
   {
     name: 'Elite Reseller',
-    discount: '15% Off',
-    minDeposit: 'LKR 15,000 Wallet Balance',
-    sampleProfit: 'Profit ~LKR 100–450 per order',
-    idealFor: 'Active WhatsApp & Facebook shops',
-  },
-  {
-    name: 'Diamond Partner',
-    discount: '20% Off',
-    minDeposit: 'LKR 40,000 Monthly Volume',
-    sampleProfit: 'Maximum wholesale margin',
-    idealFor: 'Physical game centers & high volume hubs',
+    discount: 'Up to 10% Off',
+    pricing: 'Starting 2,000 LKR / year',
+    validity: '1 Year Validity',
+    verification: 'Contact Admin for Details & Activation',
+    sampleProfit: 'Special discounted wholesale pricing across all packages',
+    idealFor: 'High-volume merchants, gaming shops & top-up hubs',
   },
 ];
 
@@ -211,7 +210,10 @@ async function getFeaturedGames(): Promise<FeaturedGame[]> {
 }
 
 export default async function HomePage() {
-  const games = await getFeaturedGames();
+  const [games, restockAlert] = await Promise.all([
+    getFeaturedGames(),
+    getRestockAlert(),
+  ]);
   const faqSchema = generateFAQSchema(homepageFaqs);
 
   return (
@@ -243,7 +245,7 @@ export default async function HomePage() {
               {/* Left Column: Clear Value Prop with Tactical HUD */}
               <div className="lg:col-span-7 space-y-5">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-                  Instant Free Fire Diamonds & Weekly Passes in{' '}
+                  Instant Free Fire Diamonds & Weekly Memberships in{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-300 to-purple-300">
                     Sri Lanka
                   </span>
@@ -303,7 +305,7 @@ export default async function HomePage() {
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
-                        <span className="font-semibold text-white block">Weekly Membership Pass</span>
+                        <span className="font-semibold text-white block">Weekly Membership</span>
                         <span className="text-[10px] text-purple-300/80 font-mono">450 Diamonds value</span>
                       </div>
                       <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 650.00</span>
@@ -319,7 +321,7 @@ export default async function HomePage() {
 
                     <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
-                        <span className="font-semibold text-white block">Monthly VIP Pass</span>
+                        <span className="font-semibold text-white block">Monthly Membership</span>
                         <span className="text-[10px] text-purple-300/80 font-mono">2,600 Diamonds value</span>
                       </div>
                       <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 3,200.00</span>
@@ -327,7 +329,7 @@ export default async function HomePage() {
 
                     <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0e0b20] border border-purple-950/50 hover:border-purple-500/40 text-xs transition-colors">
                       <div>
-                        <span className="font-semibold text-white block">Weekly Lite Pass</span>
+                        <span className="font-semibold text-white block">Weekly Lite</span>
                         <span className="text-[10px] text-purple-300/80 font-mono">120 Diamonds value</span>
                       </div>
                       <span className="font-mono font-bold text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">LKR 140.00</span>
@@ -389,11 +391,25 @@ export default async function HomePage() {
                     >
                       {game.badge}
                     </span>
+
+                    {restockAlert?.enabled && game.slug === 'free-fire' && (
+                      <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/25 border border-amber-500/60 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.35)] flex items-center gap-1.5 animate-pulse">
+                        <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
+                        <span>Restocking</span>
+                      </span>
+                    )}
                   </div>
 
                   <div>
                     <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider font-semibold">{game.category}</span>
-                    <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors mt-0.5">{game.title}</h3>
+                    <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors mt-0.5 flex items-center gap-2 flex-wrap">
+                      <span>{game.title}</span>
+                      {restockAlert?.enabled && game.slug === 'free-fire' && (
+                        <span className="text-[10px] text-amber-400 font-mono font-bold flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                          <RefreshCw className="w-3 h-3 animate-spin" /> Restocking Now
+                        </span>
+                      )}
+                    </h3>
                     <p className="text-xs text-slate-400 mt-1 font-mono">{game.discount}</p>
                   </div>
                 </div>
@@ -466,11 +482,11 @@ export default async function HomePage() {
               href="/reseller"
               className="text-xs font-semibold text-purple-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
             >
-              Full Reseller Guide &rarr;
+              Apply for Reseller &rarr;
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {resellerTiers.map((tier, idx) => (
               <div
                 key={idx}
@@ -485,11 +501,24 @@ export default async function HomePage() {
                   </div>
 
                   <p className="text-xs text-slate-300">{tier.sampleProfit}</p>
-                  <p className="text-[11px] text-purple-300/80 font-mono">Requirement: {tier.minDeposit}</p>
+                  <div className="flex flex-wrap gap-2 text-[11px] font-mono">
+                    <span className="px-2.5 py-1 rounded bg-purple-950/70 border border-purple-800/50 text-purple-300 font-semibold">
+                      {tier.pricing}
+                    </span>
+                    <span className="px-2.5 py-1 rounded bg-cyan-950/70 border border-cyan-800/50 text-cyan-300 font-semibold">
+                      {tier.validity}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Verification: <span className="text-slate-300">{tier.verification}</span>
+                  </p>
                 </div>
 
-                <div className="pt-3 border-t border-purple-950/60 text-[11px] text-slate-400">
-                  Best for: <strong className="text-white font-medium">{tier.idealFor}</strong>
+                <div className="pt-3 border-t border-purple-950/60 text-[11px] text-slate-400 flex items-center justify-between">
+                  <span>Best for: <strong className="text-white font-medium">{tier.idealFor}</strong></span>
+                  <Link href="/reseller" className="text-purple-400 hover:text-cyan-300 font-bold transition-colors">
+                    Apply Now &rarr;
+                  </Link>
                 </div>
               </div>
             ))}
@@ -532,7 +561,7 @@ export default async function HomePage() {
               Ready to Recharge Your Free Fire Account?
             </h2>
             <p className="max-w-xl mx-auto text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Fast, reliable diamond and pass recharges with live player ID verification and Dialog eZ Cash support.
+              Fast, reliable diamond and membership recharges with live player ID verification and Dialog eZ Cash support.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">

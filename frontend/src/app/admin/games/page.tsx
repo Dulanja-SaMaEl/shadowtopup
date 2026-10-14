@@ -36,6 +36,18 @@ export default function AdminGamesPage() {
   const [saving, setSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Free Fire Restock Warning State
+  const [restockAlert, setRestockAlert] = useState<{
+    enabled: boolean;
+    message: string;
+    gameSlug: string;
+  }>({
+    enabled: false,
+    message: 'Free Fire SG/MY Is Currently Restocking! Please Check again Later!',
+    gameSlug: 'free-fire',
+  });
+  const [savingAlert, setSavingAlert] = useState(false);
+
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMsg({ type, text });
     setTimeout(() => setToastMsg(null), 5000);
@@ -44,7 +56,10 @@ export default function AdminGamesPage() {
   const loadGames = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/games');
+      const [res, alertRes] = await Promise.all([
+        fetch('/api/admin/games'),
+        fetch('/api/admin/restock-alert'),
+      ]);
       const data = await res.json();
       if (data.success && Array.isArray(data.games)) {
         setGames(
@@ -60,10 +75,67 @@ export default function AdminGamesPage() {
           }))
         );
       }
+      const alertData = await alertRes.json();
+      if (alertData.success && alertData.restockAlert) {
+        setRestockAlert(alertData.restockAlert);
+      }
     } catch (err) {
       console.error('Error loading games from API:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleRestockAlert = async (newVal?: boolean) => {
+    const nextVal = newVal !== undefined ? newVal : !restockAlert.enabled;
+    setSavingAlert(true);
+    try {
+      const res = await fetch('/api/admin/restock-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: nextVal,
+          message: restockAlert.message,
+          gameSlug: 'free-fire',
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.restockAlert) {
+        setRestockAlert(data.restockAlert);
+        showToast('success', nextVal ? 'Restock warning alert ACTIVATED with spinning icon!' : 'Restock warning alert DEACTIVATED');
+      } else {
+        showToast('error', data.message || 'Failed to update restock warning');
+      }
+    } catch {
+      showToast('error', 'Network error updating restock alert');
+    } finally {
+      setSavingAlert(false);
+    }
+  };
+
+  const handleSaveRestockMessage = async () => {
+    setSavingAlert(true);
+    try {
+      const res = await fetch('/api/admin/restock-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: restockAlert.enabled,
+          message: restockAlert.message,
+          gameSlug: 'free-fire',
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.restockAlert) {
+        setRestockAlert(data.restockAlert);
+        showToast('success', 'Restock warning message updated successfully!');
+      } else {
+        showToast('error', data.message || 'Failed to update message');
+      }
+    } catch {
+      showToast('error', 'Network error saving restock message');
+    } finally {
+      setSavingAlert(false);
     }
   };
 
@@ -309,6 +381,81 @@ export default function AdminGamesPage() {
         </div>
       </div>
 
+      {/* Restock Warning Feature Control Panel */}
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1b152d] via-[#141229] to-[#0d0b1a] border border-amber-500/40 shadow-2xl relative overflow-hidden space-y-4">
+        <div className="absolute top-0 right-0 w-80 h-32 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
+        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-[10px] font-mono font-black uppercase tracking-widest text-amber-400">
+                LIVE RESTOCK WARNING FEATURE (CUSTOMER-FACING)
+              </span>
+              <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider ${restockAlert.enabled ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse' : 'bg-slate-800 text-slate-400'}`}>
+                {restockAlert.enabled ? 'WARNING ACTIVE' : 'INACTIVE'}
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              Free Fire SG / MY Restock Alert
+              {restockAlert.enabled && (
+                <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-mono font-normal">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> spinning icon live
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-slate-400 max-w-2xl">
+              When activated, a spinning refresh icon (🔄) and custom warning notice are displayed on the homepage, game catalog, and recharge portal next to Free Fire.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => handleToggleRestockAlert()}
+              disabled={savingAlert}
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg ${
+                restockAlert.enabled
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
+                  : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-amber-500/30'
+              }`}
+            >
+              <RefreshCw className={`w-4 h-4 ${restockAlert.enabled ? 'animate-spin' : ''}`} />
+              <span>{restockAlert.enabled ? 'Deactivate Warning' : 'Activate Restock Warning'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Custom Warning Message Input & Live Preview */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-2 border-t border-purple-950/60 relative z-10">
+          <div className="lg:col-span-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <input
+              type="text"
+              value={restockAlert.message}
+              onChange={(e) => setRestockAlert({ ...restockAlert, message: e.target.value })}
+              placeholder="e.g. Free Fire SG/MY Is Currently Restocking! Please Check again Later!"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900/90 border border-purple-950/80 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-mono"
+            />
+            <button
+              onClick={handleSaveRestockMessage}
+              disabled={savingAlert}
+              className="px-4 py-2.5 rounded-xl bg-purple-900/60 hover:bg-purple-800 border border-purple-700/60 text-purple-200 text-xs font-bold uppercase tracking-wider shrink-0 transition-colors"
+            >
+              {savingAlert ? 'Saving...' : 'Update Message'}
+            </button>
+          </div>
+
+          <div className="lg:col-span-4 p-2.5 rounded-xl bg-[#0f0c22] border border-amber-500/30 flex items-center gap-2.5 text-xs text-amber-300">
+            <RefreshCw className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
+            <div className="overflow-hidden">
+              <span className="text-[9px] font-mono uppercase text-slate-400 block font-semibold">Live Preview Banner</span>
+              <span className="text-[11px] font-bold text-white truncate block">
+                {restockAlert.message || 'Free Fire SG/MY Is Currently Restocking! Please Check again Later!'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Catalog Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {loading ? (
@@ -338,10 +485,18 @@ export default function AdminGamesPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#141229] via-transparent to-black/40" />
 
                 {/* Status Badges */}
-                <div className="absolute top-3 left-3 right-3 flex justify-between items-center">
-                  <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-purple-500/30 text-purple-300 text-[10px] font-mono font-bold uppercase tracking-wider">
-                    {g.category}
-                  </span>
+                <div className="absolute top-3 left-3 right-3 flex justify-between items-center flex-wrap gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-purple-500/30 text-purple-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                      {g.category}
+                    </span>
+                    {g.slug === 'free-fire' && restockAlert.enabled && (
+                      <span className="px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider backdrop-blur-sm bg-amber-500/25 border border-amber-500/60 text-amber-300 flex items-center gap-1 animate-pulse">
+                        <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
+                        <span>RESTOCKING</span>
+                      </span>
+                    )}
+                  </div>
                   <span
                     className={`px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider backdrop-blur-sm border ${
                       g.is_active

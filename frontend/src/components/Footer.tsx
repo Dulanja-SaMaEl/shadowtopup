@@ -35,10 +35,10 @@ export default function Footer() {
             <h4 className="font-semibold text-slate-200 mb-3 text-xs uppercase tracking-wider">Top-Up Services</h4>
             <ul className="space-y-2 text-xs">
               <li><Link href="/games/free-fire" className="hover:text-purple-400 transition-colors">Free Fire Diamonds</Link></li>
-              <li><Link href="/games/free-fire" className="hover:text-purple-400 transition-colors">Weekly & Monthly Passes</Link></li>
-              <li><Link href="/games/free-fire" className="hover:text-purple-400 transition-colors">Level Up Pass</Link></li>
+              <li><Link href="/games/free-fire" className="hover:text-purple-400 transition-colors">Weekly & Monthly Memberships</Link></li>
+              <li><Link href="/games/free-fire" className="hover:text-purple-400 transition-colors">Level Up Rewards</Link></li>
               <li><Link href="/games" className="hover:text-purple-400 transition-colors">Supported Games Catalog</Link></li>
-              <li><Link href="/reseller" className="hover:text-purple-400 transition-colors">Wholesale Reseller Program</Link></li>
+              <li><Link href="/reseller" className="hover:text-purple-400 transition-colors">Reseller Partner Program</Link></li>
             </ul>
           </div>
 

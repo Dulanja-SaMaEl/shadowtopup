@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Gamepad2, Zap, Clock, Lock, Sparkles, ChevronRight, Home } from 'lucide-react';
+import { Gamepad2, Zap, Clock, Lock, Sparkles, ChevronRight, Home, RefreshCw } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+import { getRestockAlert } from '@/lib/restockAlertService';
 import {
   SITE_NAME,
   createCanonicalUrl,
@@ -113,7 +114,10 @@ async function getGamesCatalog(): Promise<GameItem[]> {
 }
 
 export default async function GamesCatalogPage() {
-  const games = await getGamesCatalog();
+  const [games, restockAlert] = await Promise.all([
+    getGamesCatalog(),
+    getRestockAlert(),
+  ]);
 
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: 'Home', path: '/' },
@@ -147,11 +151,11 @@ export default async function GamesCatalogPage() {
 
           <div className="relative z-10 space-y-1">
             <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
-              <Gamepad2 className="w-4 h-4" /> [ RECHARGE CATALOG ]
+              <Gamepad2 className="w-4 h-4" /> RECHARGE CATALOG
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Supported Games Catalog</h1>
             <p className="text-slate-300 text-xs sm:text-sm max-w-xl leading-relaxed">
-              Select an active game to check available diamond packages, pass bundles, and live reseller prices in Sri Lanka.
+              Select an active game to check available diamond packages, membership bundles, and live reseller prices in Sri Lanka.
             </p>
           </div>
 
@@ -190,14 +194,26 @@ export default async function GamesCatalogPage() {
                       <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-semibold uppercase tracking-wide">
                         Available Now
                       </span>
+
+                      {restockAlert?.enabled && game.slug === 'free-fire' && (
+                        <span className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-amber-500/25 border border-amber-500/60 text-amber-300 text-[10px] font-mono font-bold flex items-center gap-1 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.35)]">
+                          <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
+                          <span>Restocking</span>
+                        </span>
+                      )}
                     </div>
 
                     <div className="p-5">
                       <span className="text-[11px] font-mono uppercase text-purple-400 font-medium block mb-1">
                         {game.category}
                       </span>
-                      <h2 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
-                        {game.title}
+                      <h2 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors flex items-center gap-2 flex-wrap">
+                        <span>{game.title}</span>
+                        {restockAlert?.enabled && game.slug === 'free-fire' && (
+                          <span className="text-[10px] text-amber-400 font-mono font-bold flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30">
+                            <RefreshCw className="w-3 h-3 animate-spin" /> Restocking Now
+                          </span>
+                        )}
                       </h2>
                       {game.description && (
                         <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">

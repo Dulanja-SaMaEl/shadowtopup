@@ -2,8 +2,9 @@
 
 @theme {
   --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-gaming: var(--font-chakra), var(--font-rajdhani), sans-serif;
-  --font-display: var(--font-rajdhani), var(--font-chakra), sans-serif;
+  --font-heading: var(--font-heading), var(--font-inter), system-ui, sans-serif;
+  --font-gaming: var(--font-heading), var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-heading), var(--font-inter), system-ui, sans-serif;
 }
 
 @layer base {
@@ -13,8 +14,8 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-gaming);
-    letter-spacing: 0.03em;
+    font-family: var(--font-heading);
+    letter-spacing: -0.015em;
   }
 }
 

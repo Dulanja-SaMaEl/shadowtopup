@@ -220,7 +220,7 @@ export function generateHowToSchema(customSteps?: { name: string; text: string; 
           '@type': 'HowToStep',
           position: 2,
           name: 'Select Diamond Package or Pass',
-          text: 'Choose your desired recharge amount, including Weekly Lite, Weekly VIP, Monthly Pass, or bulk diamonds (25 to 11,500 diamonds).',
+          text: 'Choose your desired recharge amount, including Weekly Lite, Weekly Membership, Monthly Membership, or bulk diamonds (25 to 11,500 diamonds).',
           url: `${siteUrl}/games/free-fire`,
         },
         {

@@ -210,7 +210,7 @@ export default async function GameDetailPage({ params }: PageProps) {
         <section className="bg-[#141229] border border-purple-950/40 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
           <div className="space-y-2">
             <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider">
-              --- HOW IT WORKS ---
+              HOW IT WORKS
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wide">
               How to Top Up Free Fire Diamonds on Shadow Store

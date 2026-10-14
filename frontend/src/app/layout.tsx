@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Chakra_Petch, Rajdhani } from 'next/font/google';
+import { Inter, Outfit } from 'next/font/google';
 import { Suspense } from 'react';
 import './globals.css';
 import AppLayout from '@/components/AppLayout';
@@ -19,18 +19,11 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
-const chakraPetch = Chakra_Petch({
-  weight: ['400', '500', '600', '700'],
+const outfit = Outfit({
+  weight: ['400', '500', '600', '700', '800', '900'],
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-chakra',
-});
-
-const rajdhani = Rajdhani({
-  weight: ['500', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-rajdhani',
+  variable: '--font-heading',
 });
 
 const siteUrl = getSiteUrl();
@@ -56,6 +49,8 @@ export const metadata: Metadata = {
     'Free Fire diamonds Sri Lanka',
     'Free Fire top up Sri Lanka',
     'Free Fire diamond top up',
+    'Free Fire weekly membership Sri Lanka',
+    'Free Fire monthly membership Sri Lanka',
     'Free Fire weekly pass Sri Lanka',
     'Free Fire monthly pass Sri Lanka',
     'gaming top up Sri Lanka',
@@ -148,7 +143,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
       </head>
-      <body className={`${inter.variable} ${chakraPetch.variable} ${rajdhani.variable} font-sans`}>
+      <body className={`${inter.variable} ${outfit.variable} font-sans`}>
         <Suspense fallback={null}>
           <PagePreloader />
         </Suspense>

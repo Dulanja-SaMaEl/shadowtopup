@@ -34,6 +34,9 @@ import {
   Printer,
   Download,
   Sparkles,
+  BadgePercent,
+  Wallet,
+  Trophy,
 } from 'lucide-react';
 import ShadowWalletWidget from '@/components/ShadowWalletWidget';
 import TransactionReceiptModal, { ReceiptData } from '@/components/TransactionReceiptModal';
@@ -62,6 +65,7 @@ export default function UserDashboardPage() {
   });
 
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [resellerTier, setResellerTier] = useState<'silver' | 'gold'>('silver');
   const [applying, setApplying] = useState(false);
   const [resellerMsg, setResellerMsg] = useState<string | null>(null);
@@ -136,6 +140,20 @@ export default function UserDashboardPage() {
                 receipt_url: o.paymentReceipt,
               }))
             );
+          }
+
+          // Fetch real-time wallet float balance for reseller card
+          const targetUid = json.user.id || authUser?.id;
+          if (targetUid && targetUid !== 'demo-user') {
+            try {
+              const wRes = await fetch(`/api/wallet/balance?user_id=${encodeURIComponent(targetUid)}`);
+              const wJson = await wRes.json();
+              if (wJson.success) {
+                setWalletBalance(wJson.wallet_balance || 0);
+              }
+            } catch (wErr) {
+              console.error('Error fetching wallet balance for dashboard:', wErr);
+            }
           }
         }
 
@@ -479,10 +497,10 @@ export default function UserDashboardPage() {
         </div>
 
         {/* RESELLER STATUS & STORE NAME BRANDING CARD */}
-        <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6">
+        <div id="reseller-section" className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6">
           <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
             <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
-              <Award className="w-4 h-4 text-red-500" /> RESELLER STATUS & STORE BRANDING
+              <Award className="w-4 h-4 text-purple-400" /> RESELLER ACCOUNT & MEMBERSHIP
             </div>
             {profile?.store_name && (
               <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] border border-purple-500/30 truncate max-w-[200px]">
@@ -491,33 +509,142 @@ export default function UserDashboardPage() {
             )}
           </div>
 
-          {profile?.role === 'gold' ? (
-            <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">ELITE RESELLER ACTIVE</h4>
+          {/* 1. RESELLER CARD: PROMINENT VIP CARD SHOWING BALANCE & VALIDITY */}
+          <div className={`p-6 sm:p-7 rounded-3xl relative overflow-hidden shadow-2xl border transition-all ${
+            profile?.role === 'gold'
+              ? 'bg-gradient-to-br from-[#1a142e] via-[#150f26] to-[#261842] border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.25)]'
+              : profile?.role === 'silver'
+              ? 'bg-gradient-to-br from-[#0e1828] via-[#0b1320] to-[#122238] border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.25)]'
+              : 'bg-gradient-to-br from-[#130f28] via-[#0d091e] to-[#181135] border-purple-900/60'
+          }`}>
+            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 bg-gradient-to-bl from-purple-500/10 via-cyan-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute inset-0 cyber-grid opacity-20 pointer-events-none" />
+
+            <div className="relative z-10 space-y-6">
+              {/* Card Top Header */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg ${
+                    profile?.role === 'gold'
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                      : profile?.role === 'silver'
+                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                      : 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
+                  }`}>
+                    {profile?.role === 'gold' ? (
+                      <Trophy className="w-6 h-6" />
+                    ) : (
+                      <ShieldCheck className="w-6 h-6" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-slate-400">
+                      SHADOW STORE RESELLER PARTNER
+                    </span>
+                    <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider flex items-center gap-2">
+                      {profile?.role === 'gold'
+                        ? 'ELITE RESELLER VIP CARD'
+                        : profile?.role === 'silver'
+                        ? 'STANDARD RESELLER CARD'
+                        : 'RESELLER ACCESS CARD'}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Validity Period Pill */}
+                <div className="flex items-center gap-2">
+                  <span className={`px-3.5 py-1.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border flex items-center gap-1.5 shadow-sm ${
+                    profile?.role === 'gold'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : profile?.role === 'silver'
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                      : 'bg-slate-800 text-slate-400 border-slate-700'
+                  }`}>
+                    <Clock className="w-3.5 h-3.5" />
+                    {profile?.role === 'gold'
+                      ? 'VALID FOR 1 YEAR (365 DAYS ACTIVE)'
+                      : profile?.role === 'silver'
+                      ? 'PERMANENT VALIDITY'
+                      : 'UPGRADE TO ACTIVATE'}
+                  </span>
+                </div>
               </div>
-              <p className="text-[10px] text-slate-300 font-mono uppercase tracking-wider">
-                YOUR ACCOUNT HAS AN ACTIVE ELITE RESELLER SUBSCRIPTION. A 15% WHOLESALE DISCOUNT MATRIX IS AUTOMATICALLY APPLIED TO ALL TOP-UP ORDERS.
-              </p>
-              <span className="inline-block px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold uppercase border border-amber-500/30">
-                SUBSCRIPTION VALID UNTIL AUG 30, 2027
-              </span>
-            </div>
-          ) : profile?.role === 'silver' ? (
-            <div className="p-6 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 space-y-3">
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-cyan-400 fill-cyan-400" />
-                <h4 className="text-xs font-black text-cyan-400 uppercase tracking-wider">STANDARD RESELLER ACTIVE</h4>
+
+              {/* Card Body: Balance & Validity & Discount */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                {/* Available Float Balance */}
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.08] space-y-1">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <Wallet className="w-3.5 h-3.5 text-emerald-400" /> RESELLER FLOAT BALANCE
+                  </span>
+                  <div className="text-2xl font-black text-emerald-400 font-mono">
+                    LKR {walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </div>
+                  <p className="text-[10px] text-slate-500">Auto-deducted on diamond top-ups</p>
+                </div>
+
+                {/* Account Validity Period */}
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.08] space-y-1">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-purple-400" /> ACCOUNT VALIDITY PERIOD
+                  </span>
+                  <div className="text-lg font-black text-white uppercase">
+                    {profile?.role === 'gold'
+                      ? 'VALID FOR 1 YEAR'
+                      : profile?.role === 'silver'
+                      ? 'PERMANENT'
+                      : 'INACTIVE'}
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-mono">
+                    {profile?.role === 'gold'
+                      ? 'Valid 1 Year from activation date'
+                      : profile?.role === 'silver'
+                      ? 'Lifetime verified partner status'
+                      : 'Apply below to unlock'}
+                  </p>
+                </div>
+
+                {/* Wholesale Discount Margin */}
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.08] space-y-1">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <BadgePercent className="w-3.5 h-3.5 text-amber-400" /> WHOLESALE DISCOUNT
+                  </span>
+                  <div className={`text-2xl font-black font-mono ${
+                    profile?.role === 'gold' ? 'text-amber-400' : profile?.role === 'silver' ? 'text-cyan-400' : 'text-slate-400'
+                  }`}>
+                    {profile?.role === 'gold'
+                      ? 'UP TO 10% OFF'
+                      : profile?.role === 'silver'
+                      ? 'UP TO 5% OFF'
+                      : 'UP TO 10% OFF'}
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    {profile?.role === 'gold' ? 'Elite Special Rate Active' : profile?.role === 'silver' ? 'Standard Seller Rate Active' : 'Select tier below'}
+                  </p>
+                </div>
               </div>
-              <p className="text-[10px] text-slate-300 font-mono uppercase tracking-wider">
-                YOUR ACCOUNT HAS AN ACTIVE STANDARD RESELLER SUBSCRIPTION. AN 8% DISCOUNT MATRIX IS AUTOMATICALLY APPLIED TO ALL TOP-UP ORDERS.
-              </p>
-              <span className="inline-block px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-[9px] font-mono font-bold uppercase border border-cyan-500/30">
-                SUBSCRIPTION VALID UNTIL JUL 23, 2026
-              </span>
+
+              {/* Card Footer: Quick Actions */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/[0.08]">
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>
+                    Store Name: <strong className="text-white">{profile?.store_name || profile?.name || 'SHADOW STORE SL'}</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('shadow-wallet-widget');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-purple-600/30"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" /> Top Up Balance
+                </button>
+              </div>
             </div>
-          ) : null}
+          </div>
 
           {/* STORE NAME EDIT FORM EXCLUSIVELY FOR ACTIVE RESELLERS & ADMINS */}
           {(profile?.role === 'silver' || profile?.role === 'gold' || profile?.role === 'admin') && (
@@ -565,19 +692,19 @@ export default function UserDashboardPage() {
                   Unlock Exclusive Wholesale Profit Margins
                 </h3>
                 <p className="text-xs text-slate-300 max-w-xl">
-                  Become or upgrade your certified Reseller tier to instantly earn up to 15% wholesale discount on every Free Fire diamond recharge & gaming top-up.
+                  Become or upgrade your certified Reseller tier to instantly earn up to 10% wholesale profit on every Free Fire diamond recharge & membership.
                 </p>
               </div>
 
               <div className="flex items-center gap-2 bg-purple-950/60 border border-purple-800/80 px-4 py-2 rounded-2xl shrink-0">
                 <Zap className="w-5 h-5 text-amber-400 animate-bounce" />
-                <span className="text-xs font-black text-amber-300 uppercase tracking-wide">Up to 15% Profit Margin</span>
+                <span className="text-xs font-black text-amber-300 uppercase tracking-wide">Up to 10% Profit Margin</span>
               </div>
             </div>
 
             {/* Tier Comparison Feature Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
-              {/* Silver Tier Card */}
+              {/* Standard Tier Card */}
               <div className={`p-5 rounded-2xl border transition-all ${
                 profile?.role === 'silver'
                   ? 'bg-cyan-500/15 border-cyan-400 shadow-xl shadow-cyan-500/20 ring-1 ring-cyan-400/50'
@@ -596,27 +723,31 @@ export default function UserDashboardPage() {
                       </span>
                     )}
                     <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold">
-                      8% OFF MATRIX
+                      UP TO 5% OFF
                     </span>
                   </div>
                 </div>
                 <ul className="space-y-2 text-[11px] text-slate-300 font-mono">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span>Automatic 8% discount on all package purchases</span>
+                    <span><strong>Free for sellers:</strong> 0 LKR signup fee</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span>Customized store name branding on order receipts</span>
+                    <span><strong>Up to 5% discount:</strong> off standard retail prices</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span>Instant automated order processing & fulfillment</span>
+                    <span><strong>Permanent validity:</strong> Lifetime partner status</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>Requires admin approval/verification</span>
                   </li>
                 </ul>
               </div>
 
-              {/* Gold Tier Card */}
+              {/* Elite Tier Card */}
               <div className={`p-5 rounded-2xl border transition-all ${
                 profile?.role === 'gold'
                   ? 'bg-amber-500/15 border-amber-400 shadow-xl shadow-amber-500/20 ring-1 ring-amber-400/50'
@@ -635,22 +766,26 @@ export default function UserDashboardPage() {
                       </span>
                     )}
                     <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold">
-                      15% OFF MATRIX
+                      UP TO 10% OFF
                     </span>
                   </div>
                 </div>
                 <ul className="space-y-2 text-[11px] text-slate-300 font-mono">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Maximum 15% wholesale discount for maximum profit</span>
+                    <span><strong>Paid Tier:</strong> Starting price 2,000 LKR</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>VIP priority order queuing & instant processing</span>
+                    <span><strong>Up to 10% discount:</strong> Special discounted retail rates</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Bulk voucher generation & dedicated support line</span>
+                    <span><strong>Valid for 1 year:</strong> 365 days after activation</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Contact admin for details & activation</span>
                   </li>
                 </ul>
               </div>
@@ -670,9 +805,9 @@ export default function UserDashboardPage() {
                       className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-amber-400 uppercase"
                     >
                       {profile?.role !== 'silver' && (
-                        <option value="silver">Standard Reseller (8% Wholesale Discount)</option>
+                        <option value="silver">Standard Reseller (Free • Up to 5% Discount • Permanent)</option>
                       )}
-                      <option value="gold">Elite Reseller (15% Maximum Wholesale Discount)</option>
+                      <option value="gold">Elite Reseller (Starting 2,000 LKR • Up to 10% Discount • Valid 1 Year)</option>
                     </select>
                   </div>
 
@@ -685,7 +820,7 @@ export default function UserDashboardPage() {
                       'APPLICATION PENDING REVIEW'
                     ) : (
                       <>
-                        <ShieldCheck className="w-4 h-4" /> {profile?.role === 'silver' ? 'UPGRADE TO ELITE RESELLER' : 'APPLY NOW & GROW YOUR STORE'}
+                        <ShieldCheck className="w-4 h-4" /> {profile?.role === 'silver' ? 'UPGRADE TO ELITE RESELLER' : 'APPLY FOR RESELLER'}
                       </>
                     )}
                   </button>
@@ -701,7 +836,7 @@ export default function UserDashboardPage() {
             ) : (
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold flex items-center gap-2 relative z-10">
                 <Award className="w-5 h-5 text-amber-400 shrink-0" />
-                <span>YOU HAVE UNLOCKED MAXIMUM ELITE RESELLER TIER (15% PROFIT MARGIN ACTIVE).</span>
+                <span>YOU HAVE UNLOCKED MAXIMUM ELITE RESELLER TIER (UP TO 10% SPECIAL DISCOUNT ACTIVE).</span>
               </div>
             )}
           </div>
