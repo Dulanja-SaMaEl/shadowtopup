@@ -167,18 +167,39 @@ export default function AdminShellAccountsPage() {
 
   const rawScript = `(async function(){
     let bal=null,u="SHADOW_TOPUP1";
-    try{
-      const r1=await fetch("/api/auth/check_session",{credentials:"include"});
-      const d1=await r1.json();
-      if(d1&&d1.login&&d1.session_key){
-        const r2=await fetch("/api/auth/sso",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_key:d1.session_key}),credentials:"include"});
-        const d2=await r2.json();
-        if(typeof d2.shell_balance==="number"){
-          bal=d2.shell_balance;
-          if(d2.username)u=d2.username;
+    const shellSvg=document.querySelector('svg[aria-label="Shell"]');
+    if(shellSvg&&shellSvg.parentElement){
+      const numDiv=shellSvg.parentElement.querySelector('.text-ellipsis,[class*="font-bold"],div');
+      if(numDiv){
+        const parsed=parseFloat(numDiv.textContent.replace(/,/g,"").trim());
+        if(!isNaN(parsed)&&parsed>=0){bal=parsed;}
+      }
+    }
+    if(bal===null){
+      const allDivs=Array.from(document.querySelectorAll("div"));
+      const labelDiv=allDivs.find(d=>d.children.length===0&&d.textContent.trim()==="Garena Shells");
+      if(labelDiv&&labelDiv.parentElement){
+        const numDiv=labelDiv.parentElement.querySelector('.text-ellipsis,[class*="font-bold"]');
+        if(numDiv){
+          const parsed=parseFloat(numDiv.textContent.replace(/,/g,"").trim());
+          if(!isNaN(parsed)&&parsed>=0){bal=parsed;}
         }
       }
-    }catch(e){console.warn(e);}
+    }
+    if(bal===null){
+      try{
+        const r1=await fetch("/api/auth/check_session",{credentials:"include"});
+        const d1=await r1.json();
+        if(d1&&d1.login&&d1.session_key){
+          const r2=await fetch("/api/auth/sso",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_key:d1.session_key}),credentials:"include"});
+          const d2=await r2.json();
+          if(typeof d2.shell_balance==="number"){
+            bal=d2.shell_balance;
+            if(d2.username)u=d2.username;
+          }
+        }
+      }catch(e){}
+    }
     if(bal===null){
       const allText=document.body?document.body.innerText:"";
       const m=allText.match(/(\\d[\\d,\\.]*)\\s*(?:Shells?|GS)/i);
@@ -188,7 +209,7 @@ export default function AdminShellAccountsPage() {
       }
     }
     if(bal===null){
-      alert("⚠️ Shadow Store Sync: Could not detect Shell balance. Please ensure you are logged in on shop.garena.my and refresh.");
+      alert("⚠️ Shadow Store Sync: Could not detect Shell balance. Please ensure you are on shop.garena.my and refresh.");
       return;
     }
     try{

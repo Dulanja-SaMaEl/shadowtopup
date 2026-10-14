@@ -29,25 +29,56 @@ syncBtn.addEventListener('click', async () => {
         let bal = null;
         let username = 'SHADOW_TOPUP1';
 
-        // Check internal session API
-        try {
-          const r1 = await fetch('/api/auth/check_session', { credentials: 'include' });
-          const d1 = await r1.json();
-          if (d1 && d1.login && d1.session_key) {
-            const r2 = await fetch('/api/auth/sso', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ session_key: d1.session_key }),
-              credentials: 'include'
-            });
-            const d2 = await r2.json();
-            if (typeof d2.shell_balance === 'number') {
-              bal = d2.shell_balance;
-              if (d2.username) username = d2.username;
+        // Method A: Check exact shop.garena.my Shell balance DOM element
+        const shellSvg = document.querySelector('svg[aria-label="Shell"]');
+        if (shellSvg && shellSvg.parentElement) {
+          const numDiv = shellSvg.parentElement.querySelector('.text-ellipsis, [class*="font-bold"], div');
+          if (numDiv) {
+            const raw = numDiv.textContent.replace(/,/g, '').trim();
+            const parsed = parseFloat(raw);
+            if (!isNaN(parsed) && parsed >= 0) {
+              bal = parsed;
             }
           }
-        } catch (e) {
-          console.warn('API query note:', e);
+        }
+
+        // Method B: Find by "Garena Shells" label element
+        if (bal === null) {
+          const allDivs = Array.from(document.querySelectorAll('div'));
+          const labelDiv = allDivs.find(d => d.children.length === 0 && d.textContent.trim() === 'Garena Shells');
+          if (labelDiv && labelDiv.parentElement) {
+            const numDiv = labelDiv.parentElement.querySelector('.text-ellipsis, [class*="font-bold"]');
+            if (numDiv) {
+              const raw = numDiv.textContent.replace(/,/g, '').trim();
+              const parsed = parseFloat(raw);
+              if (!isNaN(parsed) && parsed >= 0) {
+                bal = parsed;
+              }
+            }
+          }
+        }
+
+        // Method C: Check internal session API
+        if (bal === null) {
+          try {
+            const r1 = await fetch('/api/auth/check_session', { credentials: 'include' });
+            const d1 = await r1.json();
+            if (d1 && d1.login && d1.session_key) {
+              const r2 = await fetch('/api/auth/sso', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_key: d1.session_key }),
+                credentials: 'include'
+              });
+              const d2 = await r2.json();
+              if (typeof d2.shell_balance === 'number') {
+                bal = d2.shell_balance;
+                if (d2.username) username = d2.username;
+              }
+            }
+          } catch (e) {
+            console.warn('API query note:', e);
+          }
         }
 
         // Fallback to inspecting visible text
