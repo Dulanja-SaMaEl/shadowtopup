@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch live Garena Shell balance directly from shop.garena.my / SSO API
-    const syncRes = await fetchLiveGarenaShellBalance(usernameStr, passwordStr);
+    const syncRes = await fetchLiveGarenaShellBalance(usernameStr, passwordStr, autocodeStr);
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 

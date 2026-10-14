@@ -46,9 +46,10 @@ interface StockEnduranceData {
 
 interface Props {
   compact?: boolean;
+  refreshKey?: number;
 }
 
-export default function AdminStockEnduranceWidget({ compact = false }: Props) {
+export default function AdminStockEnduranceWidget({ compact = false, refreshKey }: Props) {
   const [data, setData] = useState<StockEnduranceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllPacks, setShowAllPacks] = useState(false);
@@ -70,7 +71,7 @@ export default function AdminStockEnduranceWidget({ compact = false }: Props) {
 
   useEffect(() => {
     fetchEndurance();
-  }, []);
+  }, [refreshKey]);
 
   if (!data && loading) {
     return (

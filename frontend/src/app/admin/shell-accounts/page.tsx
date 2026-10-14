@@ -29,10 +29,102 @@ export default function AdminShellAccountsPage() {
   const [testResult, setTestResult] = useState<any>(null);
 
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [enduranceRefreshKey, setEnduranceRefreshKey] = useState(0);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMsg({ type, text });
     setTimeout(() => setToastMsg(null), 5000);
+  };
+
+  const handleSyncAccount = async (acc: ShellAccount) => {
+    setSyncingId(acc.id);
+    try {
+      const res = await fetch('/api/admin/shell-accounts/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: acc.id,
+          username: acc.account_username,
+        }),
+      });
+      const data = await res.json();
+      if (data.isLive) {
+        setAccounts((prev) =>
+          prev.map((a) =>
+            a.id === acc.id
+              ? {
+                  ...a,
+                  available_balance: data.liveBalance,
+                  last_synced_at: data.lastSyncedAt,
+                }
+              : a
+          )
+        );
+        showToast(
+          'success',
+          data.message || `Synchronized ${acc.account_username}! Live Balance: ${data.liveBalance.toLocaleString()} Shells.`
+        );
+        setEnduranceRefreshKey((k) => k + 1);
+      } else {
+        showToast(
+          'error',
+          data.message || `Garena anti-bot (DataDome) challenge active on shop.garena.my. Preserved stored balance (${(acc.available_balance || 0).toLocaleString()} Shells).`
+        );
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to connect to Garena sync API');
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
+  const handleSyncAll = async () => {
+    if (accounts.length === 0) return;
+    setSyncingId('ALL');
+    let anyLive = false;
+    let anyErrorMsg = '';
+    for (const acc of accounts) {
+      try {
+        const res = await fetch('/api/admin/shell-accounts/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: acc.id,
+            username: acc.account_username,
+          }),
+        });
+        const data = await res.json();
+        if (data.isLive) {
+          anyLive = true;
+          setAccounts((prev) =>
+            prev.map((a) =>
+              a.id === acc.id
+                ? {
+                    ...a,
+                    available_balance: data.liveBalance,
+                    last_synced_at: data.lastSyncedAt,
+                  }
+                : a
+            )
+          );
+        } else if (data.message) {
+          anyErrorMsg = data.message;
+        }
+      } catch (err) {
+        console.error('Sync failed for:', acc.account_username, err);
+      }
+    }
+    setSyncingId(null);
+    setEnduranceRefreshKey((k) => k + 1);
+    if (anyLive) {
+      showToast('success', 'Garena shell accounts updated with live balance!');
+    } else {
+      showToast(
+        'error',
+        anyErrorMsg || 'Garena anti-bot challenge active on shop.garena.my. Preserved stored balances.'
+      );
+    }
   };
 
   const loadAccounts = async () => {
@@ -80,6 +172,7 @@ export default function AdminShellAccountsPage() {
         setAccounts((prev) =>
           prev.map((a) => (a.id === editAcc.id ? { ...a, available_balance: newBal, autocode: cleanAuto, last_synced_at: json.lastSyncedAt } : a))
         );
+        setEnduranceRefreshKey((k) => k + 1);
         showToast('success', `Successfully updated ${editAcc.account_username}! Balance: ${newBal.toLocaleString()} Shells.`);
         setEditAcc(null);
       } else {
@@ -208,7 +301,17 @@ export default function AdminShellAccountsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleSyncAll}
+            disabled={syncingId !== null || loading || accounts.length === 0}
+            className="px-4 py-2.5 rounded-xl bg-purple-950/80 border border-purple-800/80 text-purple-300 hover:text-white hover:border-purple-500 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all disabled:opacity-50"
+            title="Sync live Shell stock from shop.garena.my"
+          >
+            <RefreshCw className={`w-4 h-4 text-purple-400 ${syncingId === 'ALL' ? 'animate-spin' : ''}`} />
+            <span>{syncingId === 'ALL' ? 'Syncing...' : 'Sync Live (Garena)'}</span>
+          </button>
+
           <button
             onClick={() => {
               setTestPlayerId('8718615060');
@@ -238,7 +341,7 @@ export default function AdminShellAccountsPage() {
       </div>
 
       {/* Total Stock & Endurance Forecasting Widget */}
-      <AdminStockEnduranceWidget />
+      <AdminStockEnduranceWidget refreshKey={enduranceRefreshKey} />
 
       {/* Account Table */}
       <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-6 shadow-2xl">
@@ -306,6 +409,20 @@ export default function AdminShellAccountsPage() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleSyncAccount(acc)}
+                          disabled={syncingId === acc.id || syncingId === 'ALL'}
+                          className="px-3 py-1.5 rounded-xl bg-purple-950/80 border border-purple-800/80 text-purple-300 hover:text-white hover:bg-purple-900 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                          title="Sync live balance from shop.garena.my"
+                        >
+                          <RefreshCw
+                            className={`w-3.5 h-3.5 text-purple-400 ${
+                              syncingId === acc.id || syncingId === 'ALL' ? 'animate-spin' : ''
+                            }`}
+                          />
+                          <span>{syncingId === acc.id ? 'Syncing...' : 'Sync'}</span>
+                        </button>
+
                         <button
                           onClick={() => {
                             setEditAcc(acc);
