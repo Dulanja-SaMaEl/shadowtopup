@@ -1,5 +1,5 @@
-const SYNC_SECRET = 'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
-const SHADOW_STORE_API = 'https://www.shadowstorelk.com/api/admin/shell-accounts/sync';
+const SUPABASE_URL = 'https://vdqyxwenhzhucmqiyogi.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkcXl4d2VuaHpodWNtcWl5b2dpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjkxNjA5NSwiZXhwIjoyMTAyNDkyMDk1fQ._28ze6ZDKyHPi7rz3Rk8gVXk2sw6th0Uu1GqikpAWys';
 
 const syncBtn = document.getElementById('syncBtn');
 const statusBox = document.getElementById('statusBox');
@@ -30,7 +30,17 @@ syncBtn.addEventListener('click', async () => {
         let username = 'SHADOW_TOPUP1';
 
         // Method A: Check exact shop.garena.my Shell balance DOM element
-        const shellSvg = document.querySelector('svg[aria-label="Shell"]');
+        let shellSvg = document.querySelector('svg[aria-label="Shell"]');
+        if (!shellSvg) {
+          // If closed, click header avatar to open dropdown
+          const avatar = Array.from(document.querySelectorAll('header img, nav img, header button, div[class*="avatar"]'))[0];
+          if (avatar) {
+            avatar.click();
+            await new Promise((r) => setTimeout(r, 400));
+          }
+          shellSvg = document.querySelector('svg[aria-label="Shell"]');
+        }
+
         if (shellSvg && shellSvg.parentElement) {
           const numDiv = shellSvg.parentElement.querySelector('.text-ellipsis, [class*="font-bold"], div');
           if (numDiv) {
@@ -58,73 +68,41 @@ syncBtn.addEventListener('click', async () => {
           }
         }
 
-        // Method C: Check internal session API
-        if (bal === null) {
-          try {
-            const r1 = await fetch('/api/auth/check_session', { credentials: 'include' });
-            const d1 = await r1.json();
-            if (d1 && d1.login && d1.session_key) {
-              const r2 = await fetch('/api/auth/sso', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_key: d1.session_key }),
-                credentials: 'include'
-              });
-              const d2 = await r2.json();
-              if (typeof d2.shell_balance === 'number') {
-                bal = d2.shell_balance;
-                if (d2.username) username = d2.username;
-              }
-            }
-          } catch (e) {
-            console.warn('API query note:', e);
-          }
-        }
-
-        // Fallback to inspecting visible text
-        if (bal === null) {
-          const text = document.body ? document.body.innerText : '';
-          const match = text.match(/(\d[\d,\.]*)\s*(?:Shells?|GS)/i);
-          if (match) {
-            const num = parseFloat(match[1].replace(/,/g, ''));
-            if (!isNaN(num) && num >= 0) {
-              bal = num;
-            }
-          }
-        }
-
         return { bal, username };
       }
     });
 
     const data = results?.[0]?.result;
     if (!data || data.bal === null) {
-      showStatus('❌ Could not detect Shell balance. Please ensure you are logged into shop.garena.my and refresh the page.', 'error');
+      showStatus('❌ Could not detect Shell balance. Please open the profile dropdown on shop.garena.my and click Sync again.', 'error');
       syncBtn.disabled = false;
       return;
     }
 
-    showStatus(`Found ${data.bal.toLocaleString()} Shells! Syncing to Shadow Store...`, 'info');
+    showStatus(`Found ${data.bal.toLocaleString()} Shells! Updating Shadow Store database...`, 'info');
 
-    // 3. Post to Shadow Store API
-    const postRes = await fetch(SHADOW_STORE_API, {
-      method: 'POST',
+    // 3. Update Supabase Directly
+    const nowIso = new Date().toISOString();
+    const postRes = await fetch(`${SUPABASE_URL}/rest/v1/shell_accounts?account_username=eq.${encodeURIComponent(data.username || 'SHADOW_TOPUP1')}`, {
+      method: 'PATCH',
       headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
-        'x-sync-secret': SYNC_SECRET
+        'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-        username: data.username || 'SHADOW_TOPUP1',
-        explicitBalance: data.bal,
-        syncSecret: SYNC_SECRET
+        available_balance: data.bal,
+        last_synced_at: nowIso,
+        updated_at: nowIso
       })
     });
 
-    const postData = await postRes.json();
-    if (postData.success) {
+    if (postRes.ok) {
       showStatus(`✅ Synced Successfully!\nAccount: ${data.username}\nBalance: ${data.bal.toLocaleString()} Shells`, 'success');
     } else {
-      showStatus(`❌ Server returned error: ${postData.message || 'Rejected'}`, 'error');
+      const errTxt = await postRes.text();
+      showStatus(`❌ Server returned error: ${errTxt}`, 'error');
     }
   } catch (err) {
     showStatus(`❌ Error: ${err.message}`, 'error');
