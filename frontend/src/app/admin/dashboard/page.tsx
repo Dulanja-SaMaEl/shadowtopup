@@ -7,7 +7,13 @@ import { fetchDatabaseOrders, DatabaseOrder } from '@/lib/ordersService';
 import AdminStockEnduranceWidget from '@/components/AdminStockEnduranceWidget';
 import {
   ExpectedProfitsConfig,
+  MultiTierExpectedProfitsConfig,
+  ExpectedProfitsTierConfig,
+  UserTier,
   DEFAULT_EXPECTED_PROFITS,
+  DEFAULT_TIER_PROFITS,
+  getTierProfitConfig,
+  normalizeExpectedProfits,
 } from '@/lib/expectedProfitsConfig';
 import {
   ShoppingBag,
@@ -149,6 +155,7 @@ export default function AdminDashboardPage() {
   const [editingProfits, setEditingProfits] = useState<ExpectedProfitsConfig>(DEFAULT_EXPECTED_PROFITS);
   const [profitModalOpen, setProfitModalOpen] = useState(false);
   const [savingProfits, setSavingProfits] = useState(false);
+  const [activeTierTab, setActiveTierTab] = useState<UserTier>('normal');
 
   const [profitBreakdown, setProfitBreakdown] = useState({
     weekly: { count: 0, sales: 0, profit: 0 },
@@ -181,58 +188,70 @@ export default function AdminDashboardPage() {
   const [calibrateDailyLimit, setCalibrateDailyLimit] = useState(25);
   const [savingQuota, setSavingQuota] = useState(false);
 
-  // Dynamic calculation of order expected profit
+  // Dynamic calculation of order expected profit based on customer tier
   function classifyAndCalculateOrderProfit(order: DatabaseOrder, config: ExpectedProfitsConfig) {
+    const role: UserTier = (order.customerRole === 'gold' || order.customerRole === 'silver') ? order.customerRole : 'normal';
+    const tierConfig: ExpectedProfitsTierConfig = getTierProfitConfig(config, role);
     const name = (order.package_name || '').toLowerCase();
 
     if (name.includes('lite')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 140));
-      return { category: 'lite' as const, profit: units * (config.lite ?? 93), units };
+      const denom = role === 'gold' ? 230 : role === 'silver' ? 250 : 280;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'lite' as const, profit: units * (tierConfig.lite ?? 93), units, tier: role };
     }
 
     if (name.includes('weekly')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 650));
-      return { category: 'weekly' as const, profit: units * (config.weekly ?? 104), units };
+      const denom = role === 'gold' ? 550 : role === 'silver' ? 600 : 650;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'weekly' as const, profit: units * (tierConfig.weekly ?? 104), units, tier: role };
     }
 
     if (name.includes('monthly')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 3200));
-      return { category: 'monthly' as const, profit: units * (config.monthly ?? 470), units };
+      const denom = role === 'gold' ? 2800 : role === 'silver' ? 3000 : 3200;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'monthly' as const, profit: units * (tierConfig.monthly ?? 470), units, tier: role };
     }
 
     // Specific diamond packages
     if (name.includes('100 ') || name.includes('100 diamonds') || name.includes('100d')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 350));
-      return { category: 'etc' as const, profit: units * (config.d100 ?? 90), units };
+      const denom = role === 'gold' ? 300 : role === 'silver' ? 320 : 350;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'etc' as const, profit: units * (tierConfig.d100 ?? 90), units, tier: role };
     }
     if (name.includes('310')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 1050));
-      return { category: 'etc' as const, profit: units * (config.d310 ?? 270), units };
+      const denom = role === 'gold' ? 920 : role === 'silver' ? 980 : 1050;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'etc' as const, profit: units * (tierConfig.d310 ?? 270), units, tier: role };
     }
     if (name.includes('520')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 1750));
-      return { category: 'etc' as const, profit: units * (config.d520 ?? 450), units };
+      const denom = role === 'gold' ? 1500 : role === 'silver' ? 1620 : 1750;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'etc' as const, profit: units * (tierConfig.d520 ?? 450), units, tier: role };
     }
     if (name.includes('1060')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 3450));
-      return { category: 'etc' as const, profit: units * (config.d1060 ?? 850), units };
+      const denom = role === 'gold' ? 3000 : role === 'silver' ? 3200 : 3450;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'etc' as const, profit: units * (tierConfig.d1060 ?? 850), units, tier: role };
     }
     if (name.includes('2180')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 6900));
-      return { category: 'etc' as const, profit: units * (config.d2180 ?? 1700), units };
+      const denom = role === 'gold' ? 6000 : role === 'silver' ? 6400 : 6900;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'etc' as const, profit: units * (tierConfig.d2180 ?? 1700), units, tier: role };
     }
     if (name.includes('5600')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 17500));
-      return { category: 'etc' as const, profit: units * (config.d5600 ?? 4500), units };
+      const denom = role === 'gold' ? 15000 : role === 'silver' ? 16200 : 17500;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'etc' as const, profit: units * (tierConfig.d5600 ?? 4500), units, tier: role };
     }
     if (name.includes('11500')) {
-      const units = Math.max(1, Math.round(order.totalAmount / 34000));
-      return { category: 'etc' as const, profit: units * (config.d11500 ?? 9200), units };
+      const denom = role === 'gold' ? 30200 : role === 'silver' ? 32600 : 35200;
+      const units = Math.max(1, Math.round(order.totalAmount / denom));
+      return { category: 'etc' as const, profit: units * (tierConfig.d11500 ?? 9200), units, tier: role };
     }
 
     // Fallback for general diamonds / custom orders
-    const fallbackProfit = (order.totalAmount * (config.fallbackMarginPercent ?? 26.0)) / 100;
-    return { category: 'etc' as const, profit: fallbackProfit, units: 1 };
+    const fallbackProfit = (order.totalAmount * (tierConfig.fallbackMarginPercent ?? 26.0)) / 100;
+    return { category: 'etc' as const, profit: fallbackProfit, units: 1, tier: role };
   }
 
   function recalculateProfitsWithOrders(orders: DatabaseOrder[], config: ExpectedProfitsConfig) {
@@ -287,19 +306,19 @@ export default function AdminDashboardPage() {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('shadow_expected_profits');
         if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed.weekly === 'number') {
-            currentConfig = { ...DEFAULT_EXPECTED_PROFITS, ...parsed };
+          try {
+            const parsed = JSON.parse(saved);
+            currentConfig = normalizeExpectedProfits(parsed);
             setExpectedProfits(currentConfig);
             setEditingProfits(currentConfig);
-          }
+          } catch (e) {}
         }
       }
 
       const res = await fetch('/api/admin/expected-profits');
       const data = await res.json();
       if (data.success && data.profits) {
-        currentConfig = { ...DEFAULT_EXPECTED_PROFITS, ...data.profits };
+        currentConfig = normalizeExpectedProfits(data.profits);
         setExpectedProfits(currentConfig);
         setEditingProfits(currentConfig);
         if (typeof window !== 'undefined') {
@@ -624,15 +643,20 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
               <div className="flex justify-between text-slate-400">
-                <span>Expected / Unit:</span>
-                <span className="text-blue-300 font-bold">LKR {expectedProfits.weekly.toFixed(2)}</span>
+                <span>Formula (3 Tiers):</span>
+                <span className="text-blue-300 font-bold">LKR {expectedProfits.normal?.weekly ?? 104} / unit</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-400 bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800">
+                <span>Normal: <b className="text-emerald-400">{expectedProfits.normal?.weekly ?? 104}</b></span>
+                <span>Silver: <b className="text-cyan-400">{expectedProfits.silver?.weekly ?? 54}</b></span>
+                <span>Gold: <b className="text-amber-400">{expectedProfits.gold?.weekly ?? 25}</b></span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Gross Revenue:</span>
                 <span className="text-slate-300">LKR {profitBreakdown.weekly.sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="text-[9px] text-slate-500 text-right mt-1">
-                Formula: units × expected profit
+                Formula: tier expected profit × units
               </div>
             </div>
           </div>
@@ -654,15 +678,20 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
               <div className="flex justify-between text-slate-400">
-                <span>Expected / Unit:</span>
-                <span className="text-amber-300 font-bold">LKR {expectedProfits.monthly.toFixed(2)}</span>
+                <span>Formula (3 Tiers):</span>
+                <span className="text-amber-300 font-bold">LKR {expectedProfits.normal?.monthly ?? 470} / unit</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-400 bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800">
+                <span>Normal: <b className="text-emerald-400">{expectedProfits.normal?.monthly ?? 470}</b></span>
+                <span>Silver: <b className="text-cyan-400">{expectedProfits.silver?.monthly ?? 270}</b></span>
+                <span>Gold: <b className="text-amber-400">{expectedProfits.gold?.monthly ?? 70}</b></span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Gross Revenue:</span>
                 <span className="text-slate-300">LKR {profitBreakdown.monthly.sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="text-[9px] text-slate-500 text-right mt-1">
-                Formula: units × expected profit
+                Formula: tier expected profit × units
               </div>
             </div>
           </div>
@@ -684,15 +713,20 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
               <div className="flex justify-between text-slate-400">
-                <span>Expected / Unit:</span>
-                <span className="text-purple-300 font-bold">LKR {expectedProfits.lite.toFixed(2)}</span>
+                <span>Formula (3 Tiers):</span>
+                <span className="text-purple-300 font-bold">LKR {expectedProfits.normal?.lite ?? 93} / unit</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-400 bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800">
+                <span>Normal: <b className="text-emerald-400">{expectedProfits.normal?.lite ?? 93}</b></span>
+                <span>Silver: <b className="text-cyan-400">{expectedProfits.silver?.lite ?? 68}</b></span>
+                <span>Gold: <b className="text-amber-400">{expectedProfits.gold?.lite ?? 48}</b></span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Gross Revenue:</span>
                 <span className="text-slate-300">LKR {profitBreakdown.lite.sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="text-[9px] text-slate-500 text-right mt-1">
-                Formula: units × expected profit
+                Formula: tier expected profit × units
               </div>
             </div>
           </div>
@@ -715,14 +749,19 @@ export default function AdminDashboardPage() {
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
               <div className="flex justify-between text-slate-400">
                 <span>Expected Margin:</span>
-                <span className="text-emerald-300 font-bold">Configured / ~{expectedProfits.fallbackMarginPercent}%</span>
+                <span className="text-emerald-300 font-bold">~{expectedProfits.normal?.fallbackMarginPercent ?? 26}%</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-400 bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800">
+                <span>Normal: <b className="text-emerald-400">{expectedProfits.normal?.fallbackMarginPercent ?? 26}%</b></span>
+                <span>Silver: <b className="text-cyan-400">{expectedProfits.silver?.fallbackMarginPercent ?? 15}%</b></span>
+                <span>Gold: <b className="text-amber-400">{expectedProfits.gold?.fallbackMarginPercent ?? 8}%</b></span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Gross Revenue:</span>
                 <span className="text-slate-300">LKR {profitBreakdown.etc.sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="text-[9px] text-slate-500 text-right mt-1">
-                Formula: 100d–11500d + margin
+                Formula: 100d–11500d + tier margin
               </div>
             </div>
           </div>
@@ -1024,12 +1063,112 @@ export default function AdminDashboardPage() {
 
             {/* Scrollable Form Content */}
             <div className="overflow-y-auto pr-2 space-y-6 flex-1">
-              {/* Category 1: Memberships & Passes */}
+              {/* 3 User Types Tier Selector Tabs */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-purple-400" />
+                    Select User Pricing Tier to Configure:
+                  </label>
+                  <span className="text-[10px] font-mono text-purple-400 font-semibold">
+                    3 User Types Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 bg-slate-950/80 rounded-2xl border border-slate-800">
+                  {/* Tab 1: Normal Customer */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTierTab('normal')}
+                    className={`px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5 ${
+                      activeTierTab === 'normal'
+                        ? 'bg-gradient-to-r from-emerald-600/30 to-teal-600/20 border border-emerald-500/50 text-white shadow-md'
+                        : 'hover:bg-slate-900 border border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      activeTierTab === 'normal' ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold truncate">Normal Customer</div>
+                      <div className="text-[9px] font-mono text-emerald-400 font-semibold truncate">Retail Price Profit</div>
+                    </div>
+                  </button>
+
+                  {/* Tab 2: Standard Reseller */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTierTab('silver')}
+                    className={`px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5 ${
+                      activeTierTab === 'silver'
+                        ? 'bg-gradient-to-r from-cyan-600/30 to-blue-600/20 border border-cyan-500/50 text-white shadow-md'
+                        : 'hover:bg-slate-900 border border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      activeTierTab === 'silver' ? 'bg-cyan-500 text-white' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      <Award className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold truncate">Standard Reseller</div>
+                      <div className="text-[9px] font-mono text-cyan-400 font-semibold truncate">Silver (~5% Discount)</div>
+                    </div>
+                  </button>
+
+                  {/* Tab 3: Elite Reseller */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTierTab('gold')}
+                    className={`px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5 ${
+                      activeTierTab === 'gold'
+                        ? 'bg-gradient-to-r from-amber-600/30 to-yellow-600/20 border border-amber-500/50 text-white shadow-md'
+                        : 'hover:bg-slate-900 border border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      activeTierTab === 'gold' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      <Trophy className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold truncate">Elite Reseller</div>
+                      <div className="text-[9px] font-mono text-amber-400 font-semibold truncate">Gold (~10% Discount)</div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Active Tier Guidance Banner */}
+                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${
+                      activeTierTab === 'gold' ? 'bg-amber-400' : activeTierTab === 'silver' ? 'bg-cyan-400' : 'bg-emerald-400'
+                    }`} />
+                    <span className="text-slate-300">
+                      Configuring Expected Profit for:{' '}
+                      <strong className={activeTierTab === 'gold' ? 'text-amber-300' : activeTierTab === 'silver' ? 'text-cyan-300' : 'text-emerald-300'}>
+                        {activeTierTab === 'gold' ? 'Elite Reseller (Gold)' : activeTierTab === 'silver' ? 'Standard Reseller (Silver)' : 'Normal Customer (Retail)'}
+                      </strong>
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">
+                    {activeTierTab === 'gold'
+                      ? 'Wholesale max discount (est. ~15% margin)'
+                      : activeTierTab === 'silver'
+                      ? 'Wholesale standard discount (est. ~23% margin)'
+                      : 'Direct consumer retail (est. ~35% margin)'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Category 1: Memberships */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-blue-400" />
                   <h4 className="text-xs font-mono font-black uppercase tracking-wider text-blue-300">
-                    Memberships (Expected Net Profit / Unit)
+                    Memberships (Expected Net Profit / Unit for {activeTierTab.toUpperCase()})
                   </h4>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1042,13 +1181,21 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.weekly}
+                      value={editingProfits[activeTierTab]?.weekly ?? DEFAULT_TIER_PROFITS[activeTierTab].weekly}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, weekly: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            weekly: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-sm focus:outline-none focus:border-blue-400"
                     />
-                    <p className="text-[9px] text-slate-400">Default: 104 LKR (Retail ~650)</p>
+                    <p className="text-[9px] text-slate-400">
+                      Default: {DEFAULT_TIER_PROFITS[activeTierTab].weekly} LKR (Shell Cost ~546)
+                    </p>
                   </div>
 
                   {/* Monthly */}
@@ -1060,13 +1207,21 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.monthly}
+                      value={editingProfits[activeTierTab]?.monthly ?? DEFAULT_TIER_PROFITS[activeTierTab].monthly}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, monthly: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            monthly: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-sm focus:outline-none focus:border-amber-400"
                     />
-                    <p className="text-[9px] text-slate-400">Default: 470 LKR (Retail ~3,200)</p>
+                    <p className="text-[9px] text-slate-400">
+                      Default: {DEFAULT_TIER_PROFITS[activeTierTab].monthly} LKR (Shell Cost ~2,730)
+                    </p>
                   </div>
 
                   {/* Weekly Lite */}
@@ -1078,13 +1233,21 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.lite}
+                      value={editingProfits[activeTierTab]?.lite ?? DEFAULT_TIER_PROFITS[activeTierTab].lite}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, lite: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            lite: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-sm focus:outline-none focus:border-purple-400"
                     />
-                    <p className="text-[9px] text-slate-400">Default: 93 LKR (Retail ~240)</p>
+                    <p className="text-[9px] text-slate-400">
+                      Default: {DEFAULT_TIER_PROFITS[activeTierTab].lite} LKR (Shell Cost ~182)
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1094,7 +1257,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   <h4 className="text-xs font-mono font-black uppercase tracking-wider text-emerald-300">
-                    +Etc. Diamonds Top-Up Packages (Expected Net Profit / Order)
+                    +Etc. Diamonds Top-Up Packages (Expected Net Profit for {activeTierTab.toUpperCase()})
                   </h4>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1107,13 +1270,19 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.d100}
+                      value={editingProfits[activeTierTab]?.d100 ?? DEFAULT_TIER_PROFITS[activeTierTab].d100}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, d100: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            d100: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
                     />
-                    <p className="text-[9px] text-slate-500">Def: 90 LKR</p>
+                    <p className="text-[9px] text-slate-500">Def: {DEFAULT_TIER_PROFITS[activeTierTab].d100} LKR</p>
                   </div>
 
                   {/* 310 Diamonds */}
@@ -1125,13 +1294,19 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.d310}
+                      value={editingProfits[activeTierTab]?.d310 ?? DEFAULT_TIER_PROFITS[activeTierTab].d310}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, d310: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            d310: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
                     />
-                    <p className="text-[9px] text-slate-500">Def: 270 LKR</p>
+                    <p className="text-[9px] text-slate-500">Def: {DEFAULT_TIER_PROFITS[activeTierTab].d310} LKR</p>
                   </div>
 
                   {/* 520 Diamonds */}
@@ -1143,13 +1318,19 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.d520}
+                      value={editingProfits[activeTierTab]?.d520 ?? DEFAULT_TIER_PROFITS[activeTierTab].d520}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, d520: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            d520: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
                     />
-                    <p className="text-[9px] text-slate-500">Def: 450 LKR</p>
+                    <p className="text-[9px] text-slate-500">Def: {DEFAULT_TIER_PROFITS[activeTierTab].d520} LKR</p>
                   </div>
 
                   {/* 1060 Diamonds */}
@@ -1161,13 +1342,19 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.d1060}
+                      value={editingProfits[activeTierTab]?.d1060 ?? DEFAULT_TIER_PROFITS[activeTierTab].d1060}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, d1060: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            d1060: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
                     />
-                    <p className="text-[9px] text-slate-500">Def: 850 LKR</p>
+                    <p className="text-[9px] text-slate-500">Def: {DEFAULT_TIER_PROFITS[activeTierTab].d1060} LKR</p>
                   </div>
 
                   {/* 2180 Diamonds */}
@@ -1179,13 +1366,19 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.d2180}
+                      value={editingProfits[activeTierTab]?.d2180 ?? DEFAULT_TIER_PROFITS[activeTierTab].d2180}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, d2180: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            d2180: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
                     />
-                    <p className="text-[9px] text-slate-500">Def: 1,700 LKR</p>
+                    <p className="text-[9px] text-slate-500">Def: {DEFAULT_TIER_PROFITS[activeTierTab].d2180} LKR</p>
                   </div>
 
                   {/* 5600 Diamonds */}
@@ -1197,13 +1390,19 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.d5600}
+                      value={editingProfits[activeTierTab]?.d5600 ?? DEFAULT_TIER_PROFITS[activeTierTab].d5600}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, d5600: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            d5600: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
                     />
-                    <p className="text-[9px] text-slate-500">Def: 4,500 LKR</p>
+                    <p className="text-[9px] text-slate-500">Def: {DEFAULT_TIER_PROFITS[activeTierTab].d5600} LKR</p>
                   </div>
 
                   {/* 11500 Diamonds */}
@@ -1215,13 +1414,19 @@ export default function AdminDashboardPage() {
                       type="number"
                       step="1"
                       min="0"
-                      value={editingProfits.d11500}
+                      value={editingProfits[activeTierTab]?.d11500 ?? DEFAULT_TIER_PROFITS[activeTierTab].d11500}
                       onChange={(e) =>
-                        setEditingProfits((prev) => ({ ...prev, d11500: Number(e.target.value) || 0 }))
+                        setEditingProfits((prev) => ({
+                          ...prev,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            d11500: Number(e.target.value) || 0,
+                          },
+                        }))
                       }
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
                     />
-                    <p className="text-[9px] text-slate-500">Def: 9,200 LKR</p>
+                    <p className="text-[9px] text-slate-500">Def: {DEFAULT_TIER_PROFITS[activeTierTab].d11500} LKR</p>
                   </div>
 
                   {/* Fallback % */}
@@ -1234,16 +1439,19 @@ export default function AdminDashboardPage() {
                       step="0.5"
                       min="0"
                       max="100"
-                      value={editingProfits.fallbackMarginPercent}
+                      value={editingProfits[activeTierTab]?.fallbackMarginPercent ?? DEFAULT_TIER_PROFITS[activeTierTab].fallbackMarginPercent}
                       onChange={(e) =>
                         setEditingProfits((prev) => ({
                           ...prev,
-                          fallbackMarginPercent: Number(e.target.value) || 0,
+                          [activeTierTab]: {
+                            ...(prev[activeTierTab] || DEFAULT_TIER_PROFITS[activeTierTab]),
+                            fallbackMarginPercent: Number(e.target.value) || 0,
+                          },
                         }))
                       }
                       className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
                     />
-                    <p className="text-[9px] text-slate-500">Def: 26.0%</p>
+                    <p className="text-[9px] text-slate-500">Def: {DEFAULT_TIER_PROFITS[activeTierTab].fallbackMarginPercent}%</p>
                   </div>
                 </div>
               </div>
@@ -1252,27 +1460,65 @@ export default function AdminDashboardPage() {
               {(() => {
                 const completedOrders = allDbOrders.filter((o) => o.fulfillmentStatus === 'COMPLETED');
                 let simW = 0, simM = 0, simL = 0, simE = 0;
+                let normCount = 0, normProfit = 0;
+                let silvCount = 0, silvProfit = 0;
+                let goldCount = 0, goldProfit = 0;
+
                 completedOrders.forEach((o) => {
                   const res = classifyAndCalculateOrderProfit(o, editingProfits);
                   if (res.category === 'weekly') simW += res.profit;
                   else if (res.category === 'monthly') simM += res.profit;
                   else if (res.category === 'lite') simL += res.profit;
                   else simE += res.profit;
+
+                  if (res.tier === 'gold') {
+                    goldCount += res.units;
+                    goldProfit += res.profit;
+                  } else if (res.tier === 'silver') {
+                    silvCount += res.units;
+                    silvProfit += res.profit;
+                  } else {
+                    normCount += res.units;
+                    normProfit += res.profit;
+                  }
                 });
                 const simTotal = simW + simM + simL + simE;
                 const diff = simTotal - totalProfit;
 
                 return (
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-950 via-emerald-950/30 to-slate-950 border border-emerald-500/40 space-y-2">
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-950 via-purple-950/30 to-slate-950 border border-purple-500/40 space-y-3">
                     <div className="flex justify-between items-center text-xs font-mono">
-                      <span className="text-slate-400 font-bold uppercase flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> Live Simulation on Database Orders:
+                      <span className="text-slate-300 font-bold uppercase flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-purple-400" /> Live Simulation on {completedOrders.length} Completed Database Orders:
                       </span>
                       <span className="text-emerald-300 font-black text-sm">
                         LKR {simTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800">
+
+                    {/* 3 User Types Breakdown Pills */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-[11px] font-mono">
+                      <div className="p-2 rounded-xl bg-slate-900/80 border border-emerald-500/30 flex justify-between items-center">
+                        <span className="text-emerald-400 flex items-center gap-1">
+                          <Users className="w-3 h-3" /> Normal ({normCount}):
+                        </span>
+                        <span className="text-white font-bold">LKR {normProfit.toFixed(0)}</span>
+                      </div>
+                      <div className="p-2 rounded-xl bg-slate-900/80 border border-cyan-500/30 flex justify-between items-center">
+                        <span className="text-cyan-400 flex items-center gap-1">
+                          <Award className="w-3 h-3" /> Silver ({silvCount}):
+                        </span>
+                        <span className="text-white font-bold">LKR {silvProfit.toFixed(0)}</span>
+                      </div>
+                      <div className="p-2 rounded-xl bg-slate-900/80 border border-amber-500/30 flex justify-between items-center">
+                        <span className="text-amber-400 flex items-center gap-1">
+                          <Trophy className="w-3 h-3" /> Gold ({goldCount}):
+                        </span>
+                        <span className="text-white font-bold">LKR {goldProfit.toFixed(0)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800/80">
                       <span>Weekly: LKR {simW.toFixed(0)}</span>
                       <span>Monthly: LKR {simM.toFixed(0)}</span>
                       <span>Lite: LKR {simL.toFixed(0)}</span>
@@ -1288,13 +1534,27 @@ export default function AdminDashboardPage() {
 
             {/* Footer Buttons */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800 shrink-0">
-              <button
-                type="button"
-                onClick={() => setEditingProfits({ ...DEFAULT_EXPECTED_PROFITS })}
-                className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 text-xs font-mono transition-all"
-              >
-                Reset to Recommended Defaults
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditingProfits((prev) => ({
+                      ...prev,
+                      [activeTierTab]: { ...DEFAULT_TIER_PROFITS[activeTierTab] },
+                    }))
+                  }
+                  className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs font-mono transition-all"
+                >
+                  Reset {activeTierTab.toUpperCase()} to Defaults
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingProfits(JSON.parse(JSON.stringify(DEFAULT_EXPECTED_PROFITS)))}
+                  className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 text-xs font-mono transition-all"
+                >
+                  Reset All 3 Tiers
+                </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <button

@@ -6,6 +6,7 @@ export interface DatabaseOrder {
   user_id: string;
   customerName: string;
   customerEmail: string;
+  customerRole: 'normal' | 'silver' | 'gold';
   free_fire_player_id: string;
   package_name: string;
   totalAmount: number;
@@ -22,11 +23,20 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
   try {
     // 1. Fetch profiles table map
     const { data: profileList } = await supabase.from('profiles').select('*');
-    const profileMap = new Map<string, { name: string; email: string }>();
+    const profileMap = new Map<string, { name: string; email: string; role: 'normal' | 'silver' | 'gold' }>();
     if (profileList) {
       profileList.forEach((p: any) => {
         if (p.id) {
-          profileMap.set(p.id, { name: p.name || p.email?.split('@')[0] || 'Customer', email: p.email || '' });
+          let role: 'normal' | 'silver' | 'gold' = 'normal';
+          const rawRole = (p.role || p.reseller_tier || '').toLowerCase();
+          if (rawRole.includes('gold')) role = 'gold';
+          else if (rawRole.includes('silver') || rawRole.includes('reseller')) role = 'silver';
+          
+          profileMap.set(p.id, {
+            name: p.name || p.email?.split('@')[0] || 'Customer',
+            email: p.email || '',
+            role,
+          });
         }
       });
     }
@@ -74,6 +84,7 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
         const userProf = row.user_id ? profileMap.get(row.user_id) : null;
         const cName = userProf?.name || 'Customer Account';
         const cEmail = userProf?.email || 'user@shadowstorelk.com';
+        const cRole = userProf?.role || (row.user_role === 'gold' ? 'gold' : row.user_role === 'silver' ? 'silver' : 'normal');
 
         return {
           id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
@@ -81,6 +92,7 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
           user_id: row.user_id || '',
           customerName: cName,
           customerEmail: cEmail,
+          customerRole: cRole,
           free_fire_player_id: row.free_fire_player_id || '8777843685',
           package_name: row.package_name || 'Free Fire Diamonds',
           totalAmount: Number(row.total_amount ?? row.price_paid ?? 0),

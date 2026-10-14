@@ -1,6 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { ExpectedProfitsConfig, DEFAULT_EXPECTED_PROFITS } from './expectedProfitsConfig';
+import {
+  ExpectedProfitsConfig,
+  DEFAULT_EXPECTED_PROFITS,
+  normalizeExpectedProfits,
+} from './expectedProfitsConfig';
 
 export * from './expectedProfitsConfig';
 
@@ -12,10 +16,8 @@ export function getExpectedProfits(): ExpectedProfitsConfig {
     if (fs.existsSync(CACHE_FILE_PATH)) {
       const content = fs.readFileSync(CACHE_FILE_PATH, 'utf8');
       const parsed = JSON.parse(content);
-      if (parsed && typeof parsed.weekly === 'number') {
-        inMemoryProfits = { ...DEFAULT_EXPECTED_PROFITS, ...parsed };
-        return inMemoryProfits;
-      }
+      inMemoryProfits = normalizeExpectedProfits(parsed);
+      return inMemoryProfits;
     }
   } catch (e) {
     console.warn('Note reading expected profits cache:', e);
@@ -23,10 +25,10 @@ export function getExpectedProfits(): ExpectedProfitsConfig {
   return inMemoryProfits;
 }
 
-export function saveExpectedProfits(config: Partial<ExpectedProfitsConfig>): ExpectedProfitsConfig {
+export function saveExpectedProfits(config: any): ExpectedProfitsConfig {
+  const normalized = normalizeExpectedProfits(config);
   inMemoryProfits = {
-    ...inMemoryProfits,
-    ...config,
+    ...normalized,
     updatedAt: new Date().toISOString(),
   };
   try {
