@@ -444,8 +444,8 @@ export default function AdminDashboardPage() {
         </Link>
       </div>
 
-      {/* Top 4 Live Stock & Metric Cards (Purple Theme Overhaul per Item 8) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* Top 5 Live Stock & Metric Cards (Purple Theme) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Card 1: Total Revenue Indicator */}
         <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-950/70 via-[#141229] to-[#120e24] border border-purple-600/50 relative overflow-hidden shadow-xl shadow-purple-950/30 group hover:border-purple-500/80 transition-all">
           <div className="flex justify-between items-start">
@@ -490,7 +490,27 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Card 2: Total Sales (Exact completed transaction volume) */}
+        {/* Card 2: Today's Sales */}
+        <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/60 relative overflow-hidden group hover:border-purple-600/50 transition-all">
+          <div className="flex justify-between items-start">
+            <div className="space-y-1">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-300 flex items-center gap-1">
+                <ArrowUpRight className="w-3 h-3 text-purple-400" /> Today&apos;s Sales
+              </span>
+              <h3 className="text-2xl font-black text-white font-mono">
+                LKR {todayRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </h3>
+              <p className="text-[10px] text-purple-400 font-bold font-mono">
+                {allDbOrders.filter((o) => o.fulfillmentStatus === 'COMPLETED' && o.date === new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })).length} Today&apos;s Orders
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
+              <ArrowUpRight className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Total Sales (Exact completed transaction volume) */}
         <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/60 relative overflow-hidden group hover:border-purple-600/50 transition-all">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
