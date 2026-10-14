@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Shadow Store - Garena Shell Sync",
+  "version": "1.0.0",
+  "description": "1-Click automated live Shell stock sync for Shadow Store",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Sync Garena Shells to Shadow Store"
+  },
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": [
+    "https://shop.garena.my/*",
+    "https://*.shadowstorelk.com/*",
+    "http://localhost:3000/*"
+  ]
+}

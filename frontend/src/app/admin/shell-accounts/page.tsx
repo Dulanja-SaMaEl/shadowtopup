@@ -165,13 +165,62 @@ export default function AdminShellAccountsPage() {
       ? window.location.origin
       : 'https://www.shadowstorelk.com');
 
-  const bookmarkletCode = `javascript:(async function(){if(!location.hostname.includes("garena")){alert("⚠️ Please open shop.garena.my and log into your Garena account before clicking this bookmarklet.");return;}let d=document.getElementById("__shadow_sync_hud");if(!d){d=document.createElement("div");d.id="__shadow_sync_hud";d.style.cssText="position:fixed;top:24px;right:24px;z-index:99999999;padding:18px 24px;border-radius:20px;background:rgba(18,16,40,0.96);border:1.5px solid #06b6d4;box-shadow:0 15px 50px rgba(6,182,212,0.4);font-family:ui-monospace,monospace;color:#fff;font-size:13px;display:flex;flex-direction:column;gap:6px;min-width:320px;backdrop-filter:blur(14px);transition:all 0.3s ease;";document.body.appendChild(d);}function setHud(t,m,s,e){d.innerHTML=\`<div style="display:flex;align-items:center;gap:8px;font-weight:900;color:\${e?'#f43f5e':s?'#34d399':'#38bdf8'};font-size:14px;"><span>\${e?'❌':s?'⚡':'🔄'}</span><span>\${t}</span></div><div style="color:#94a3b8;font-size:12px;margin-top:2px;">\${m}</div>\`;if(s||e){setTimeout(()=>{if(d){d.style.opacity='0';setTimeout(()=>d.remove(),600);}},6000);}}setHud("Connecting...","Querying active Garena session...",false,false);let bal=null,u="SHADOW_TOPUP1";try{const r1=await fetch("/api/auth/check_session",{credentials:"include"});const d1=await r1.json();if(d1&&d1.login&&d1.session_key){const r2=await fetch("/api/auth/sso",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_key:d1.session_key}),credentials:"include"});const d2=await r2.json();if(typeof d2.shell_balance==="number"){bal=d2.shell_balance;if(d2.username)u=d2.username;}}}catch(e){console.warn(e);}if(bal===null){const els=Array.from(document.querySelectorAll("*"));for(const el of els){const txt=(el.textContent||"").trim();if(txt.length<40&&/(?:shell|gs)/i.test(txt)){const m=txt.match(/(\\d[\\d,\\.]*)\\s*(?:Shells?|GS)/i);if(m){const num=parseFloat(m[1].replace(/,/g,""));if(!isNaN(num)&&num>=0){bal=num;break;}}}}}if(bal===null){setHud("Session Not Found","Please make sure you are logged into shop.garena.my and refresh.",false,true);return;}setHud("Balance Found! 💎",bal.toLocaleString()+" Shells detected. Syncing to Shadow Store...",false,false);try{const r3=await fetch("${activeSiteUrl}/api/admin/shell-accounts/sync",{method:"POST",headers:{"Content-Type":"application/json","x-sync-secret":"${syncSecret}"},body:JSON.stringify({username:u,explicitBalance:bal,syncSecret:"${syncSecret}"})});const d3=await r3.json();if(d3.success){setHud("Synced Successfully! 🚀","Shadow Store updated to "+bal.toLocaleString()+" Shells!",true,false);}else{setHud("Sync Failed",d3.message||"Server rejected balance",false,true);}}catch(e){setHud("Connection Error","Could not reach Shadow Store API.",false,true);}})();`;
+  const rawScript = `(async function(){
+    let bal=null,u="SHADOW_TOPUP1";
+    try{
+      const r1=await fetch("/api/auth/check_session",{credentials:"include"});
+      const d1=await r1.json();
+      if(d1&&d1.login&&d1.session_key){
+        const r2=await fetch("/api/auth/sso",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_key:d1.session_key}),credentials:"include"});
+        const d2=await r2.json();
+        if(typeof d2.shell_balance==="number"){
+          bal=d2.shell_balance;
+          if(d2.username)u=d2.username;
+        }
+      }
+    }catch(e){console.warn(e);}
+    if(bal===null){
+      const allText=document.body?document.body.innerText:"";
+      const m=allText.match(/(\\d[\\d,\\.]*)\\s*(?:Shells?|GS)/i);
+      if(m){
+        const num=parseFloat(m[1].replace(/,/g,""));
+        if(!isNaN(num)&&num>=0){bal=num;}
+      }
+    }
+    if(bal===null){
+      alert("⚠️ Shadow Store Sync: Could not detect Shell balance. Please ensure you are logged in on shop.garena.my and refresh.");
+      return;
+    }
+    try{
+      const r3=await fetch("${activeSiteUrl}/api/admin/shell-accounts/sync",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-sync-secret":"${syncSecret}"},
+        body:JSON.stringify({username:u,explicitBalance:bal,syncSecret:"${syncSecret}"})
+      });
+      const d3=await r3.json();
+      if(d3.success){
+        alert("⚡ Shadow Store Synced Successfully!\\n\\nAccount: "+u+"\\nLive Balance: "+bal.toLocaleString()+" Shells");
+      }else{
+        alert("❌ Sync Failed: "+(d3.message||"Server rejected balance"));
+      }
+    }catch(err){
+      alert("❌ Connection Error: "+err.message);
+    }
+  })()`.replace(/\n\s*/g, ' ');
+
+  const bookmarkletCode = `javascript:void(${rawScript});`;
+  const consoleCode = rawScript;
 
   const copyBookmarklet = () => {
     navigator.clipboard.writeText(bookmarkletCode);
     setCopiedBookmarklet(true);
-    showToast('success', 'Bookmarklet code copied to clipboard! Paste it into a new browser bookmark.');
+    showToast('success', 'Bookmarklet code copied! Right-click your bookmarks bar -> Add page -> paste as URL.');
     setTimeout(() => setCopiedBookmarklet(false), 3000);
+  };
+
+  const copyConsoleCode = () => {
+    navigator.clipboard.writeText(consoleCode);
+    showToast('success', 'Console script copied! Paste it in Chrome F12 Console on shop.garena.my.');
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
@@ -827,89 +876,85 @@ export default function AdminShellAccountsPage() {
               </button>
             </div>
 
-            {/* Draggable Bookmark Button */}
-            <div className="space-y-3 p-5 rounded-2xl bg-[#0e0c1f] border border-cyan-900/60 text-center">
-              <span className="text-[11px] font-mono font-bold uppercase text-slate-400 tracking-wider block">
-                🖱️ Drag this button directly into your Browser Bookmarks Bar:
-              </span>
-
-              <a
-                href={bookmarkletCode}
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert('Drag this button directly to your browser bookmarks bar (or click "Copy Code" below)!');
-                }}
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider shadow-xl shadow-cyan-500/25 border border-cyan-300/40 cursor-grab active:cursor-grabbing transition-all select-none"
-              >
-                <Bookmark className="w-4 h-4 text-cyan-200 shrink-0" />
-                <span>⚡ Sync to Shadow Store</span>
-              </a>
-
-              <p className="text-[10px] text-slate-400 font-mono">
-                Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">Ctrl + Shift + B</kbd> (or <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">Cmd + Shift + B</kbd> on Mac) to show your bookmarks bar.
-              </p>
-            </div>
-
-            {/* How It Works Steps */}
-            <div className="space-y-2 text-xs">
-              <span className="text-[10px] font-mono font-bold uppercase text-slate-400 tracking-wider block">
-                How to use (3 Simple Steps):
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-cyan-400 text-[11px]">
-                    <span className="w-4 h-4 rounded-full bg-cyan-950 border border-cyan-500/50 flex items-center justify-center text-[10px]">1</span>
-                    <span>Install Once</span>
+            {/* Method Cards */}
+            <div className="space-y-4">
+              {/* Method 1: Console Run (Fastest & Guaranteed) */}
+              <div className="p-4 rounded-2xl bg-[#0e0c1f] border border-cyan-500/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 font-mono text-[10px] font-bold uppercase">
+                      Method 1 • Fastest & 100% Guaranteed
+                    </span>
                   </div>
-                  <p className="text-[10px] text-slate-400">
-                    Drag the button above to your bookmarks bar.
-                  </p>
+                  <button
+                    type="button"
+                    onClick={copyConsoleCode}
+                    className="px-3 py-1.5 rounded-xl bg-cyan-950 border border-cyan-500/60 hover:bg-cyan-900 text-cyan-200 hover:text-white text-xs font-bold font-mono flex items-center gap-1.5 transition-all shadow-md"
+                  >
+                    <Copy className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Copy Console Script</span>
+                  </button>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-purple-400 text-[11px]">
-                    <span className="w-4 h-4 rounded-full bg-purple-950 border border-purple-500/50 flex items-center justify-center text-[10px]">2</span>
-                    <span>Open Garena</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400">
-                    Open <a href="https://shop.garena.my" target="_blank" rel="noreferrer" className="text-cyan-400 underline inline-flex items-center gap-0.5">shop.garena.my <ExternalLink className="w-2.5 h-2.5" /></a> where you are logged in.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-emerald-400 text-[11px]">
-                    <span className="w-4 h-4 rounded-full bg-emerald-950 border border-emerald-500/50 flex items-center justify-center text-[10px]">3</span>
-                    <span>Click Bookmark</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400">
-                    Click the bookmark! A neon HUD syncs live stock in 1 sec.
-                  </p>
+                <div className="text-xs text-slate-300 space-y-1.5 font-sans">
+                  <p className="font-bold text-white text-[11px]">How to run via Chrome / Edge Developer Console:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-slate-400 text-[11px]">
+                    <li>Open <a href="https://shop.garena.my" target="_blank" rel="noreferrer" className="text-cyan-400 underline inline-flex items-center gap-0.5">shop.garena.my <ExternalLink className="w-2.5 h-2.5" /></a> (where you are logged in).</li>
+                    <li>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">F12</kbd> (or right click &rarr; <em>Inspect</em>) and click the <strong>Console</strong> tab.</li>
+                    <li>Paste the copied script and press <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">Enter</kbd>! A popup alert will confirm live stock sync immediately.</li>
+                  </ol>
                 </div>
               </div>
-            </div>
 
-            {/* Manual Copy Option */}
-            <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <span className="text-[11px] text-slate-400 font-mono">
-                Can't drag? Copy the code and paste as bookmark URL:
-              </span>
-              <button
-                type="button"
-                onClick={copyBookmarklet}
-                className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-500 text-slate-200 hover:text-white text-xs font-bold font-mono flex items-center gap-2 transition-all shrink-0"
-              >
-                {copiedBookmarklet ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    <span className="text-emerald-400">Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 text-cyan-400" />
-                    <span>Copy Bookmarklet Code</span>
-                  </>
-                )}
-              </button>
+              {/* Method 2: Browser Bookmark */}
+              <div className="p-4 rounded-2xl bg-[#0e0c1f] border border-purple-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold uppercase">
+                      Method 2 • Browser Bookmark
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyBookmarklet}
+                    className="px-3 py-1.5 rounded-xl bg-purple-950 border border-purple-500/60 hover:bg-purple-900 text-purple-200 hover:text-white text-xs font-bold font-mono flex items-center gap-1.5 transition-all shadow-md"
+                  >
+                    {copiedBookmarklet ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Copy Bookmark URL</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="text-xs text-slate-300 space-y-1.5 font-sans">
+                  <p className="font-bold text-white text-[11px]">How to add to Chrome / Edge Bookmarks Bar:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-slate-400 text-[11px]">
+                    <li>Right-click anywhere on your browser's Bookmarks Bar &rarr; select <strong>Add page...</strong> (or <em>Add bookmark</em>).</li>
+                    <li>Name: <code className="text-cyan-300 font-mono">⚡ Sync Shells</code></li>
+                    <li>URL: Paste the copied code &rarr; click <strong>Save</strong>.</li>
+                    <li>Whenever you are on <code className="text-cyan-300 font-mono">shop.garena.my</code>, just click your bookmark!</li>
+                  </ol>
+                </div>
+              </div>
+
+              {/* Method 3: Chrome Extension */}
+              <div className="p-4 rounded-2xl bg-[#0e0c1f] border border-slate-800 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold uppercase">
+                    Method 3 • Official Chrome Extension
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Ready-to-use unpacked Chrome Extension created in your project at <code className="text-white font-mono bg-slate-900 px-1 py-0.5 rounded">garena-sync-extension/</code>. Open <code className="text-cyan-400 font-mono">chrome://extensions</code>, turn on <strong>Developer mode</strong>, click <strong>Load unpacked</strong>, and select this folder!
+                </p>
+              </div>
             </div>
           </div>
         </div>

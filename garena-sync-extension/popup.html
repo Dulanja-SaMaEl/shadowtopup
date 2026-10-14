@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shadow Store Garena Sync</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d0b1d;
+      color: #fff;
+      padding: 16px;
+      border: 1px solid #3b0764;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #1e1b4b;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .title {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #38bdf8, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card {
+      background: #141229;
+      border: 1px solid #2e1065;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+      font-size: 11px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .row:last-child { margin-bottom: 0; }
+    .label { color: #94a3b8; }
+    .val { font-weight: 700; color: #38bdf8; font-family: monospace; }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #06b6d4;
+      background: linear-gradient(135deg, #06b6d4, #6366f1, #a855f7);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(6, 182, 212, 0.35);
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      opacity: 0.95;
+      box-shadow: 0 6px 25px rgba(6, 182, 212, 0.5);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      display: none;
+      line-height: 1.4;
+    }
+    .status.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      display: block;
+    }
+    .status.error {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fb7185;
+      display: block;
+    }
+    .status.info {
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      color: #38bdf8;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span style="font-size: 18px;">⚡</span>
+    <div>
+      <div class="title">Shadow Store Sync</div>
+      <div style="font-size: 9px; color: #94a3b8;">Garena Shell Live Inventory Engine</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <span class="label">Target Server:</span>
+      <span class="val">shadowstorelk.com</span>
+    </div>
+    <div class="row">
+      <span class="label">Primary Account:</span>
+      <span class="val">SHADOW_TOPUP1</span>
+    </div>
+  </div>
+
+  <button id="syncBtn" class="btn">⚡ Sync Live Shells Now</button>
+
+  <div id="statusBox" class="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
