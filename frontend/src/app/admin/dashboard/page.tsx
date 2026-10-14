@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { fetchDatabaseOrders, DatabaseOrder } from '@/lib/ordersService';
 import AdminStockEnduranceWidget from '@/components/AdminStockEnduranceWidget';
+import { Package } from '@/types/database';
+import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
 import {
   ExpectedProfitsConfig,
   MultiTierExpectedProfitsConfig,
@@ -41,101 +43,6 @@ import {
   Boxes,
 } from 'lucide-react';
 
-const SHELL_UNIT_COST_LKR = 2.60; // 1 Garena Shell base cost in LKR
-
-const recommendedPricingMatrix = [
-  {
-    name: '100 Diamonds',
-    shells: 100,
-    baseCost: 100 * SHELL_UNIT_COST_LKR, // 260 LKR
-    recNormal: 350.00,
-    recSilver: 320.00,
-    recGold: 300.00,
-    estProfit: 350.00 - (100 * SHELL_UNIT_COST_LKR), // 90 LKR
-    margin: 25.7,
-  },
-  {
-    name: '310 Diamonds',
-    shells: 300,
-    baseCost: 300 * SHELL_UNIT_COST_LKR, // 780 LKR
-    recNormal: 1050.00,
-    recSilver: 980.00,
-    recGold: 920.00,
-    estProfit: 1050.00 - (300 * SHELL_UNIT_COST_LKR), // 270 LKR
-    margin: 25.7,
-  },
-  {
-    name: '520 Diamonds',
-    shells: 500,
-    baseCost: 500 * SHELL_UNIT_COST_LKR, // 1300 LKR
-    recNormal: 1750.00,
-    recSilver: 1620.00,
-    recGold: 1500.00,
-    estProfit: 1750.00 - (500 * SHELL_UNIT_COST_LKR), // 450 LKR
-    margin: 25.7,
-  },
-  {
-    name: '1060 Diamonds',
-    shells: 1000,
-    baseCost: 1000 * SHELL_UNIT_COST_LKR, // 2600 LKR
-    recNormal: 3450.00,
-    recSilver: 3200.00,
-    recGold: 3000.00,
-    estProfit: 3450.00 - (1000 * SHELL_UNIT_COST_LKR), // 850 LKR
-    margin: 24.6,
-  },
-  {
-    name: '2180 Diamonds',
-    shells: 2000,
-    baseCost: 2000 * SHELL_UNIT_COST_LKR, // 5200 LKR
-    recNormal: 6900.00,
-    recSilver: 6400.00,
-    recGold: 6000.00,
-    estProfit: 6900.00 - (2000 * SHELL_UNIT_COST_LKR), // 1700 LKR
-    margin: 24.6,
-  },
-  {
-    name: '5600 Diamonds',
-    shells: 5000,
-    baseCost: 5000 * SHELL_UNIT_COST_LKR, // 13000 LKR
-    recNormal: 17500.00,
-    recSilver: 16200.00,
-    recGold: 15000.00,
-    estProfit: 17500.00 - (5000 * SHELL_UNIT_COST_LKR), // 4500 LKR
-    margin: 25.7,
-  },
-  {
-    name: 'Weekly Membership',
-    shells: 210,
-    baseCost: 210 * SHELL_UNIT_COST_LKR, // 546 LKR
-    recNormal: 650.00,
-    recSilver: 600.00,
-    recGold: 550.00,
-    estProfit: 650.00 - (210 * SHELL_UNIT_COST_LKR), // 104 LKR
-    margin: 16.0,
-  },
-  {
-    name: 'Weekly Lite',
-    shells: 70,
-    baseCost: 70 * SHELL_UNIT_COST_LKR, // 182 LKR
-    recNormal: 280.00,
-    recSilver: 250.00,
-    recGold: 230.00,
-    estProfit: 280.00 - (70 * SHELL_UNIT_COST_LKR), // 98 LKR
-    margin: 35.0,
-  },
-  {
-    name: 'Monthly Membership',
-    shells: 1050,
-    baseCost: 1050 * SHELL_UNIT_COST_LKR, // 2730 LKR
-    recNormal: 3200.00,
-    recSilver: 3000.00,
-    recGold: 2800.00,
-    estProfit: 3200.00 - (1050 * SHELL_UNIT_COST_LKR), // 470 LKR
-    margin: 14.7,
-  },
-];
-
 export default function AdminDashboardPage() {
   const [totalSales, setTotalSales] = useState(0);
   const [totalUsers, setTotalUsers] = useState(8);
@@ -146,9 +53,32 @@ export default function AdminDashboardPage() {
   const [allDbOrders, setAllDbOrders] = useState<DatabaseOrder[]>([]);
   const [totalShellStock, setTotalShellStock] = useState(6495);
   const [basePrice1300, setBasePrice1300] = useState(3380);
+  const [dbPackages, setDbPackages] = useState<Package[]>([]);
 
   const unitShellCost = (basePrice1300 || 3380) / 1300;
   const currentStockValueLkr = totalShellStock * unitShellCost;
+
+  const displayPackages = dbPackages.length > 0 ? dbPackages : OFFICIAL_GARENA_PACKAGES;
+  const pricingMatrixRows = displayPackages.map((pkg) => {
+    const shells = pkg.shell_cost || 0;
+    const baseCost = shells * unitShellCost;
+    const recNormal = Number(pkg.normal_price) || 0;
+    const recSilver = Number(pkg.silver_price) || recNormal;
+    const recGold = Number(pkg.gold_price) || recNormal;
+    const estProfit = recNormal - baseCost;
+    const margin = recNormal > 0 ? (estProfit / recNormal) * 100 : 0;
+    return {
+      id: pkg.id,
+      name: pkg.package_name,
+      shells,
+      baseCost,
+      recNormal,
+      recSilver,
+      recGold,
+      estProfit,
+      margin,
+    };
+  });
 
   // Expected Profits & Dynamic Package Breakdown State
   const [expectedProfits, setExpectedProfits] = useState<ExpectedProfitsConfig>(DEFAULT_EXPECTED_PROFITS);
@@ -421,11 +351,26 @@ export default function AdminDashboardPage() {
 
         setTodayRevenue(todaySum);
 
-        // Fetch Live Shell Inventory & Base Pricing for real-time Stock Value
+        // Fetch Live Active Packages directly from Supabase
         try {
-          const [enduranceRes, pricingRes] = await Promise.all([
+          const { data: pkgs } = await supabase
+            .from('packages')
+            .select('*')
+            .eq('is_active', true)
+            .order('shell_cost', { ascending: true });
+          if (pkgs && pkgs.length > 0) {
+            setDbPackages(pkgs);
+          }
+        } catch (pErr) {
+          console.warn('Note fetching direct supabase packages for dashboard:', pErr);
+        }
+
+        // Fetch Live Shell Inventory, Base Pricing & Live Packages API
+        try {
+          const [enduranceRes, pricingRes, packagesRes] = await Promise.all([
             fetch('/api/admin/stock-endurance'),
             fetch('/api/admin/pricing-rules'),
+            fetch('/api/packages'),
           ]);
           const enduranceData = await enduranceRes.json();
           if (enduranceData.success && typeof enduranceData.totalShellStock === 'number') {
@@ -435,8 +380,12 @@ export default function AdminDashboardPage() {
           if (pricingData.success && pricingData.pricingRules && pricingData.pricingRules.basePrice1300) {
             setBasePrice1300(Number(pricingData.pricingRules.basePrice1300));
           }
+          const packagesData = await packagesRes.json();
+          if (packagesData.success && Array.isArray(packagesData.packages) && packagesData.packages.length > 0) {
+            setDbPackages(packagesData.packages);
+          }
         } catch (e) {
-          console.warn('Note fetching stock endurance or pricing rules for dashboard:', e);
+          console.warn('Note fetching stock endurance, pricing rules, or packages for dashboard:', e);
         }
       } catch (err) {
         console.error('Error loading dashboard stats from database:', err);
@@ -1581,8 +1530,8 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {recommendedPricingMatrix.map((item, idx) => (
-                <tr key={idx} className="hover:bg-slate-900/50 transition-colors">
+              {pricingMatrixRows.map((item, idx) => (
+                <tr key={item.id || idx} className="hover:bg-slate-900/50 transition-colors">
                   <td className="p-4 font-bold text-white flex items-center gap-2">
                     <Zap className="w-3.5 h-3.5 text-cyan-400" /> {item.name}
                   </td>
@@ -1591,10 +1540,20 @@ export default function AdminDashboardPage() {
                   <td className="p-4 font-mono font-bold text-emerald-400">LKR {item.recNormal.toFixed(2)}</td>
                   <td className="p-4 font-mono text-cyan-300">LKR {item.recSilver.toFixed(2)}</td>
                   <td className="p-4 font-mono text-amber-300">LKR {item.recGold.toFixed(2)}</td>
-                  <td className="p-4 font-mono font-bold text-emerald-300">+LKR {item.estProfit.toFixed(2)}</td>
+                  <td className={`p-4 font-mono font-bold ${item.estProfit >= 0 ? 'text-emerald-300' : 'text-red-400'}`}>
+                    {item.estProfit >= 0 ? `+LKR ${item.estProfit.toFixed(2)}` : `-LKR ${Math.abs(item.estProfit).toFixed(2)}`}
+                  </td>
                   <td className="p-4">
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
-                      +{item.margin.toFixed(1)}%
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold ${
+                        item.margin >= 20
+                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                          : item.margin >= 10
+                          ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+                          : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                      }`}
+                    >
+                      {item.margin >= 0 ? `+${item.margin.toFixed(1)}%` : `${item.margin.toFixed(1)}%`}
                     </span>
                   </td>
                 </tr>
