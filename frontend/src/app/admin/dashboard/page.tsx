@@ -463,53 +463,9 @@ export default function AdminDashboardPage() {
         </Link>
       </div>
 
-      {/* Top 5 Live Stock & Metric Cards (Purple Theme) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {/* Card 1: Total Revenue Indicator */}
-        <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-950/70 via-[#141229] to-[#120e24] border border-purple-600/50 relative overflow-hidden shadow-xl shadow-purple-950/30 group hover:border-purple-500/80 transition-all">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-mono font-black uppercase tracking-widest text-purple-300 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-purple-400" /> TOTAL REVENUE
-                </span>
-                <button
-                  onClick={() => {
-                    setEditingProfits({ ...expectedProfits });
-                    setProfitModalOpen(true);
-                  }}
-                  className="px-1.5 py-0.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-[9px] font-mono text-purple-200 border border-purple-500/40 flex items-center gap-1 transition-all"
-                  title="Configure Expected Profit Formula"
-                >
-                  <Sliders className="w-2.5 h-2.5" /> Formula
-                </button>
-              </div>
-              <h3 className="text-2xl font-black text-white font-mono">
-                LKR {totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
-              <div className="flex flex-col gap-1 mt-1">
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 text-[10px] font-mono font-bold w-fit">
-                  <Percent className="w-3 h-3" /> +{profitMargin.toFixed(1)}% NET MARGIN
-                </div>
-                <span className="text-[9px] font-mono text-purple-400 font-bold truncate">
-                  Est. Profit: LKR {totalProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setEditingProfits({ ...expectedProfits });
-                setProfitModalOpen(true);
-              }}
-              className="w-10 h-10 rounded-2xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0 transition-transform active:scale-95"
-              title="Edit Expected Profit Formula"
-            >
-              <TrendingUp className="w-5 h-5 text-purple-300" />
-            </button>
-          </div>
-        </div>
-
-        {/* Card 2: Today's Sales */}
+      {/* Top 4 Live Stock & Metric Cards (Purple Theme) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Today's Sales */}
         <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/60 relative overflow-hidden group hover:border-purple-600/50 transition-all">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
@@ -529,13 +485,18 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Card 3: Total Sales (Exact completed transaction volume) */}
+        {/* Card 2: Total Sales (Exact completed transaction volume) */}
         <div className="p-6 rounded-2xl bg-[#141229] border border-purple-950/60 relative overflow-hidden group hover:border-purple-600/50 transition-all">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-300 flex items-center gap-1">
-                <DollarSign className="w-3 h-3 text-purple-400" /> Total Sales
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-300 flex items-center gap-1">
+                  <DollarSign className="w-3 h-3 text-purple-400" /> Total Sales
+                </span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[9px] font-mono font-bold">
+                  +{profitMargin.toFixed(1)}% margin
+                </span>
+              </div>
               <h3 className="text-2xl font-black text-white font-mono">
                 LKR {totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
