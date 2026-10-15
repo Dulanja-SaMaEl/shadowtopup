@@ -52,14 +52,7 @@ export async function GET(request: NextRequest) {
 
     const accounts = accountsData && accountsData.length > 0
       ? accountsData
-      : [
-          {
-            id: 'shell_1',
-            account_username: 'SHADOW_TOPUP1',
-            available_balance: 6495,
-            is_main: true,
-          },
-        ];
+      : [];
 
     const totalShellStock = accounts.reduce(
       (sum: number, acc: any) => sum + Number(acc.available_balance || 0),

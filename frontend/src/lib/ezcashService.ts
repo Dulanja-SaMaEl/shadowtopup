@@ -21,26 +21,25 @@ export interface EZCashVerifyResult {
   raw?: any;
 }
 
-const DEFAULT_TOKEN = 'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
-
-/**
- * Verify a pending eZ Cash transaction from the SMS Gateway.
- * Double-claim protection is enforced at the gateway: verified transactions
- * are automatically marked as claimed and removed from pending queue.
- */
-export async function verifyEZCashTransaction(rawTrxId: string): Promise<EZCashVerifyResult> {
-  const cleanTrxId = String(rawTrxId || '').trim();
-
+export async function verifyEZCashTransaction(trxId: string): Promise<EZCashVerifyResult> {
+  const cleanTrxId = String(trxId || '').trim();
   if (!cleanTrxId) {
     return {
       success: false,
       status: 'error',
-      message: 'RN number is required. Please enter the RN number from your Dialog eZ Cash SMS.',
+      message: 'Transaction ID is required.',
     };
   }
 
   // Token is read strictly from server-side environment
-  const apiToken = process.env.EZCASH_API_TOKEN || process.env.UC_BOT_API_KEY || DEFAULT_TOKEN;
+  const apiToken = (process.env.EZCASH_API_TOKEN || process.env.UC_BOT_API_KEY || '').trim();
+  if (!apiToken) {
+    return {
+      success: false,
+      status: 'error',
+      message: 'Payment verification service is temporarily unavailable (missing API configuration).',
+    };
+  }
   const endpoint = 'https://ffapi.ucbot.net/verify';
 
   try {

@@ -7,7 +7,7 @@
     "default_popup": "popup.html",
     "default_title": "Sync Garena Shells to Shadow Store"
   },
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "content_scripts": [
     {
       "matches": ["https://shop.garena.my/*"],

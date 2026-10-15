@@ -25,11 +25,11 @@ In the Vercel project settings, add the following environment variables:
 | Variable | Description | Example / Default |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase Project URL | `https://your-id.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Public Anon Key | `eyJhbGciOi...` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Secret Service Role Key | `eyJhbGciOi...` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Public Anon Key | `your_supabase_anon_key` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Secret Service Role Key | `your_supabase_service_role_key` |
 | `UC_BOT_EMAIL` | Registered UCBot account email | `admin@shadowtopup.com` |
 | `UC_BOT_API_KEY` | UCBot API Token (UUID format) | `a29b37d3-...` |
-| `GARENA_SHELL_AUTOCODE` | Garena Authenticator secret key | `5ZEEJ3VDKEXSSD6J` |
+| `GARENA_SHELL_AUTOCODE` | Garena Authenticator secret key | `YOUR_16_CHAR_SECRET_KEY` |
 | `EZCASH_API_TOKEN` | Dialog eZ Cash verification token | `a29b37d3-...` |
 | `NEXT_PUBLIC_EZCASH_NUMBER` | Dialog eZ Cash recipient number | `0765604635` |
 | `NEXT_PUBLIC_EZCASH_NAME` | Dialog eZ Cash recipient name | `Shadow Store` |

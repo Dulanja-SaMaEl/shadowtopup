@@ -3,9 +3,8 @@
  * Runs silently in the background whenever shop.garena.my is open.
  */
 
-const SUPABASE_URL = 'https://vdqyxwenhzhucmqiyogi.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkcXl4d2VuaHpodWNtcWl5b2dpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjkxNjA5NSwiZXhwIjoyMTAyNDkyMDk1fQ._28ze6ZDKyHPi7rz3Rk8gVXk2sw6th0Uu1GqikpAWys';
-const ACCOUNT_USERNAME = 'SHADOW_TOPUP1';
+const DEFAULT_SUPABASE_URL = 'https://vdqyxwenhzhucmqiyogi.supabase.co';
+
 
 let lastSyncedBalance = null;
 
@@ -54,7 +53,7 @@ function showSyncPill(text, isError = false) {
 
 async function performAutoSync() {
   let balance = null;
-  let username = ACCOUNT_USERNAME;
+  let username = '';
 
   // 1. Try reading from visible DOM (if dropdown is open)
   const shellSvg = document.querySelector('svg[aria-label="Shell"]');
@@ -109,14 +108,31 @@ async function performAutoSync() {
   // Don't re-sync if balance hasn't changed
   if (lastSyncedBalance === balance) return;
 
-  // Update Supabase directly
+  // Update Supabase directly if configured
   try {
+    const config = await new Promise((resolve) => {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'accountUsername'], (res) => resolve(res || {}));
+      } else {
+        resolve({});
+      }
+    });
+
+    const supabaseUrl = config.supabaseUrl || DEFAULT_SUPABASE_URL;
+    const supabaseKey = config.supabaseKey;
+    const syncUsername = config.accountUsername || username;
+
+    if (!supabaseKey || !syncUsername) {
+      // Secret key or username not configured in extension popup
+      return;
+    }
+
     const nowIso = new Date().toISOString();
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/shell_accounts?account_username=eq.${encodeURIComponent(username)}`, {
+    const res = await fetch(`${supabaseUrl}/rest/v1/shell_accounts?account_username=eq.${encodeURIComponent(syncUsername)}`, {
       method: 'PATCH',
       headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
       },
@@ -130,7 +146,7 @@ async function performAutoSync() {
     if (res.ok) {
       lastSyncedBalance = balance;
       showSyncPill(`Shadow Store: ${balance.toLocaleString()} Shells Synced`);
-      console.log(`[ShadowStore AutoSync] Successfully synced ${balance} Shells to database.`);
+      console.log(`[ShadowStore AutoSync] Successfully synced ${balance} Shells for ${syncUsername}.`);
     }
   } catch (err) {
     console.warn('[ShadowStore AutoSync] Failed to sync:', err);

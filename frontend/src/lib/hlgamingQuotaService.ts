@@ -30,23 +30,25 @@ export function getHLGamingAccounts(): HLGamingAccount[] {
     const keys = key1.split(',').map((k) => k.trim()).filter(Boolean);
     const count = Math.max(uids.length, keys.length);
     for (let i = 0; i < count; i++) {
-      accounts.push({
-        name: `Account #${i + 1}`,
-        useruid: uids[i] || uids[0] || 'Xv00AKjlBJMgOpxr05VP2Sreu0z1',
-        apiKey: keys[i] || keys[0] || 'Kjt47EN5VEvYVa77afIsd4hEAFicFg',
-      });
+      if (uids[i] && keys[i]) {
+        accounts.push({
+          name: `Account #${i + 1}`,
+          useruid: uids[i],
+          apiKey: keys[i],
+        });
+      }
     }
-  } else {
+  } else if (uid1 && key1) {
     accounts.push({
       name: 'Account #1 (Primary)',
-      useruid: uid1 || 'Xv00AKjlBJMgOpxr05VP2Sreu0z1',
-      apiKey: key1 || 'Kjt47EN5VEvYVa77afIsd4hEAFicFg',
+      useruid: uid1,
+      apiKey: key1,
     });
   }
 
   // 2. Account 2 (Secondary / Rotation Key)
-  const uid2 = (process.env.HL_GAMING_USERUID_2 || 'IGlCKbprmSTAEH09keqWr6s3fP42').trim();
-  const key2 = (process.env.HL_GAMING_API_KEY_2 || 'yGRHKhY0kQuc8adZ4EEcNq7A1thzFb').trim();
+  const uid2 = (process.env.HL_GAMING_USERUID_2 || '').trim();
+  const key2 = (process.env.HL_GAMING_API_KEY_2 || '').trim();
   if (uid2 && key2 && !accounts.some((a) => a.apiKey === key2)) {
     accounts.push({
       name: 'Account #2 (Secondary)',

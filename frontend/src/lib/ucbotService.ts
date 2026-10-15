@@ -156,7 +156,7 @@ export async function executeUCBotTopup(
   shellAutocode?: string
 ): Promise<UCBotTopupResult> {
   const cleanUid = String(playerUid || '').trim();
-  const ucBotToken = process.env.UC_BOT_API_KEY || 'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
+  const ucBotToken = (process.env.UC_BOT_API_KEY || '').trim();
   // Resolve each package individually (names like "1,060 Diamond" contain commas, so never split a single name)
   const packageList = Array.isArray(packageName) ? packageName : [packageName];
   const packId = packageList.map((p) => resolveUCBotPackId(p)).join(',');
@@ -164,14 +164,27 @@ export async function executeUCBotTopup(
   const generatedTxId = `UCB_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
   // Clean setup key / autocode (strip spaces, tabs, dashes often copied from Google Authenticator setup screen)
-  const defaultAutocode = process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J';
+  const defaultAutocode = (process.env.GARENA_SHELL_AUTOCODE || '').trim();
+  const defaultUsername = (process.env.GARENA_SHELL_USERNAME || '').trim();
+  const defaultPassword = (process.env.GARENA_SHELL_PASSWORD || '').trim();
+
   const isMasked = shellAutocode && (shellAutocode.includes('•') || shellAutocode.includes('*'));
   const rawAutocode = (shellAutocode && shellAutocode.trim() !== '' && !isMasked) ? shellAutocode : defaultAutocode;
-  const cleanAutocode = String(rawAutocode).replace(/[\s-]+/g, '').trim();
+  const cleanAutocode = String(rawAutocode || '').replace(/[\s-]+/g, '').trim();
+
+  const resolvedUsername = shellUsername || defaultUsername;
+  const resolvedPassword = shellPassword || defaultPassword;
+
+  if (!resolvedUsername || !resolvedPassword) {
+    return {
+      success: false,
+      message: 'Garena Shell account credentials not configured. Please add an active account in Admin Shell Accounts.',
+    };
+  }
 
   console.log(`[UC Bot Topup Engine] Initiating automated topup execution for ${packageLabel} (Pack ID: ${packId})...`);
   console.log(`[UC Bot Topup Engine] Target Player UID: ${cleanUid}`);
-  console.log(`[UC Bot Topup Engine] Using Garena Account: ${shellUsername || 'SHADOW_TOPUP1'} with 2FA Autocode configured`);
+  console.log(`[UC Bot Topup Engine] Using Garena Account: ${resolvedUsername} with 2FA Autocode configured`);
 
   try {
     // 1. Retrieve player details using HL Gaming verification API
@@ -185,8 +198,8 @@ export async function executeUCBotTopup(
       playerid: cleanUid,
       code: 'lkshell',
       package: packId,
-      username: shellUsername || 'SHADOW_TOPUP1',
-      password: shellPassword || 'Shadow123@',
+      username: resolvedUsername,
+      password: resolvedPassword,
       autocode: cleanAutocode
     };
 

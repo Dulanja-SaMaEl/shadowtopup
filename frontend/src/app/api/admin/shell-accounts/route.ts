@@ -31,24 +31,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, accounts });
     }
 
-    // Default seeded shell accounts if database table is fresh
-    const defaultAccounts = [
-      {
-        id: 'shell_1',
-        account_username: 'SHADOW_TOPUP1',
-        password: 'Shadow123@',
-        autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
-        has_password: true,
-        has_autocode: true,
-        available_balance: 6495,
-        is_main: true,
-        last_synced_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ];
-
-    return NextResponse.json({ success: true, accounts: defaultAccounts });
+    return NextResponse.json({ success: true, accounts: [] });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
@@ -73,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     const usernameStr = String(account_username || '').trim();
     const passwordStr = String(password || '').trim();
-    const autocodeStr = String(autocode || process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J').replace(/[\s-]+/g, '').trim();
+    const autocodeStr = String(autocode || process.env.GARENA_SHELL_AUTOCODE || '').replace(/[\s-]+/g, '').trim();
 
     if (!usernameStr || !passwordStr) {
       return NextResponse.json({ success: false, message: 'Username and password are required' }, { status: 400 });

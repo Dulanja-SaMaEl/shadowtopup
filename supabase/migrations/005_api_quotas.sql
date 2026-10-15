@@ -41,11 +41,11 @@ INSERT INTO public.api_quotas (
 VALUES (
     'hlgaming_freefire',
     25,
-    11,
+    0,
     NOW(),
     CURRENT_DATE,
-    'Xv00AKjlBJMgOpxr05VP2Sreu0z1',
-    'Kjt47EN5VEvYVa77afIsd4hEAFicFg',
+    NULL,
+    NULL,
     'HL Gaming Official Free Fire Player UID Verification API (25 requests/day limit)'
 )
 ON CONFLICT (service_name) DO UPDATE

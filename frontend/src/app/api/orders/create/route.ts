@@ -53,7 +53,7 @@ async function dispatchCartTopups<T extends CartDispatchItem>(
 ): Promise<{ results: CartDispatchResult<T>[]; lastPostBalance?: number }> {
   const dbAutocode = shellAcc?.autocode ? String(shellAcc.autocode).trim() : '';
   const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
-  const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
+  const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '');
 
   // 1. Group by Player UID (keeps cart order)
   const groups = new Map<string, T[]>();
@@ -93,8 +93,8 @@ async function dispatchCartTopups<T extends CartDispatchItem>(
         bundle.uid,
         isMulti ? codes : codes[0],
         'sg',
-        shellAcc?.account_username || 'SHADOW_TOPUP1',
-        shellAcc?.password || 'Shadow123@',
+        shellAcc?.account_username || process.env.GARENA_SHELL_USERNAME || '',
+        shellAcc?.password || process.env.GARENA_SHELL_PASSWORD || '',
         shellAutocode
       );
     } catch (e: any) {
@@ -284,9 +284,9 @@ export async function POST(request: NextRequest) {
         if (!targetShellAcc) {
           targetShellAcc = {
             id: 'shell_fallback_1',
-            account_username: 'SHADOW_TOPUP1',
-            password: 'Shadow123@',
-            autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
+            account_username: process.env.GARENA_SHELL_USERNAME || '',
+            password: process.env.GARENA_SHELL_PASSWORD || '',
+            autocode: process.env.GARENA_SHELL_AUTOCODE || '',
             available_balance: 6508,
             is_main: true,
           };
@@ -981,9 +981,9 @@ export async function POST(request: NextRequest) {
       if (!targetShellAcc) {
         targetShellAcc = {
           id: 'shell_fallback_1',
-          account_username: 'SHADOW_TOPUP1',
-          password: 'Shadow123@',
-          autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
+          account_username: process.env.GARENA_SHELL_USERNAME || '',
+          password: process.env.GARENA_SHELL_PASSWORD || '',
+          autocode: process.env.GARENA_SHELL_AUTOCODE || '',
           available_balance: 6508,
           is_main: true,
         };
@@ -1030,7 +1030,7 @@ export async function POST(request: NextRequest) {
       try {
         const dbAutocode = targetShellAcc?.autocode ? String(targetShellAcc.autocode).trim() : '';
         const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
-        const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
+        const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '');
 
         const targetPackageIdentifier = (dbPackage.package_code && String(dbPackage.package_code).trim())
           ? String(dbPackage.package_code).trim()
@@ -1040,8 +1040,8 @@ export async function POST(request: NextRequest) {
           sanitizedPlayerUid,
           targetPackageIdentifier,
           'sg',
-          targetShellAcc?.account_username || 'SHADOW_TOPUP1',
-          targetShellAcc?.password || 'Shadow123@',
+          targetShellAcc?.account_username || process.env.GARENA_SHELL_USERNAME || '',
+          targetShellAcc?.password || process.env.GARENA_SHELL_PASSWORD || '',
           shellAutocode
         );
         topupDispatchMsg = ucBotRes.message;
@@ -1113,7 +1113,7 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', targetShellAcc.id);
-      } else {
+      } else if (targetShellAcc?.account_username) {
         await adminSupabase
           .from('shell_accounts')
           .update({
@@ -1121,7 +1121,7 @@ export async function POST(request: NextRequest) {
             last_synced_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq('account_username', targetShellAcc?.account_username || 'SHADOW_TOPUP1');
+          .eq('account_username', targetShellAcc.account_username);
       }
     } else if (paymentMethod === 'ez_cash') {
       // 4.B Handle Dialog eZ Cash Payment with Instant UCBot Delivery
@@ -1188,9 +1188,9 @@ export async function POST(request: NextRequest) {
       if (!targetShellAcc) {
         targetShellAcc = {
           id: 'shell_fallback_1',
-          account_username: 'SHADOW_TOPUP1',
-          password: 'Shadow123@',
-          autocode: process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J',
+          account_username: process.env.GARENA_SHELL_USERNAME || '',
+          password: process.env.GARENA_SHELL_PASSWORD || '',
+          autocode: process.env.GARENA_SHELL_AUTOCODE || '',
           available_balance: 6508,
           is_main: true,
         };
@@ -1227,7 +1227,7 @@ export async function POST(request: NextRequest) {
       try {
         const dbAutocode = targetShellAcc?.autocode ? String(targetShellAcc.autocode).trim() : '';
         const isDbAutocodeValid = dbAutocode && !dbAutocode.includes('•') && !dbAutocode.includes('*') && dbAutocode.length >= 8;
-        const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J');
+        const shellAutocode = isDbAutocodeValid ? dbAutocode : (process.env.GARENA_SHELL_AUTOCODE || '');
 
         const targetPackageIdentifier = (dbPackage.package_code && String(dbPackage.package_code).trim())
           ? String(dbPackage.package_code).trim()
@@ -1237,8 +1237,8 @@ export async function POST(request: NextRequest) {
           sanitizedPlayerUid,
           targetPackageIdentifier,
           'sg',
-          targetShellAcc?.account_username || 'SHADOW_TOPUP1',
-          targetShellAcc?.password || 'Shadow123@',
+          targetShellAcc?.account_username || process.env.GARENA_SHELL_USERNAME || '',
+          targetShellAcc?.password || process.env.GARENA_SHELL_PASSWORD || '',
           shellAutocode
         );
         topupDispatchMsg = ucBotRes.message;

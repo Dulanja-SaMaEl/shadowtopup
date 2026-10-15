@@ -23,7 +23,11 @@ router.get('/status', (req, res) => {
  */
 router.post('/sync-balance', async (req, res) => {
   const { username } = req.body;
-  const cleanUsername = String(username || 'SHADOW_TOPUP1').trim();
+  const cleanUsername = String(username || '').trim();
+
+  if (!cleanUsername) {
+    return res.status(400).json({ success: false, message: 'Username is required' });
+  }
 
   return res.json({
     success: true,

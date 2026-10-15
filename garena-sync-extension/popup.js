@@ -1,5 +1,4 @@
-const SUPABASE_URL = 'https://vdqyxwenhzhucmqiyogi.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkcXl4d2VuaHpodWNtcWl5b2dpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjkxNjA5NSwiZXhwIjoyMTAyNDkyMDk1fQ._28ze6ZDKyHPi7rz3Rk8gVXk2sw6th0Uu1GqikpAWys';
+const DEFAULT_SUPABASE_URL = 'https://vdqyxwenhzhucmqiyogi.supabase.co';
 
 const syncBtn = document.getElementById('syncBtn');
 const statusBox = document.getElementById('statusBox');
@@ -22,12 +21,26 @@ syncBtn.addEventListener('click', async () => {
       return;
     }
 
-    // 2. Execute script in the active tab to read session balance
+    // 2. Load extension config
+    const config = await new Promise((resolve) => {
+      chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'accountUsername'], (res) => resolve(res || {}));
+    });
+
+    const supabaseUrl = config.supabaseUrl || DEFAULT_SUPABASE_URL;
+    const supabaseKey = config.supabaseKey;
+
+    if (!supabaseKey) {
+      showStatus('⚠️ Please configure your SUPABASE_SERVICE_ROLE_KEY in extension storage.', 'error');
+      syncBtn.disabled = false;
+      return;
+    }
+
+    // 3. Execute script in the active tab to read session balance
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: async () => {
         let bal = null;
-        let username = 'SHADOW_TOPUP1';
+        let username = '';
 
         // Method A: Check exact shop.garena.my Shell balance DOM element
         let shellSvg = document.querySelector('svg[aria-label="Shell"]');
@@ -79,15 +92,22 @@ syncBtn.addEventListener('click', async () => {
       return;
     }
 
+    const targetUsername = config.accountUsername || data.username;
+    if (!targetUsername) {
+      showStatus('⚠️ Please configure your Shell Account username in extension storage.', 'error');
+      syncBtn.disabled = false;
+      return;
+    }
+
     showStatus(`Found ${data.bal.toLocaleString()} Shells! Updating Shadow Store database...`, 'info');
 
-    // 3. Update Supabase Directly
+    // 4. Update Supabase Directly
     const nowIso = new Date().toISOString();
-    const postRes = await fetch(`${SUPABASE_URL}/rest/v1/shell_accounts?account_username=eq.${encodeURIComponent(data.username || 'SHADOW_TOPUP1')}`, {
+    const postRes = await fetch(`${supabaseUrl}/rest/v1/shell_accounts?account_username=eq.${encodeURIComponent(targetUsername)}`, {
       method: 'PATCH',
       headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
       },
@@ -99,7 +119,7 @@ syncBtn.addEventListener('click', async () => {
     });
 
     if (postRes.ok) {
-      showStatus(`✅ Synced Successfully!\nAccount: ${data.username}\nBalance: ${data.bal.toLocaleString()} Shells`, 'success');
+      showStatus(`✅ Synced Successfully!\nAccount: ${targetUsername}\nBalance: ${data.bal.toLocaleString()} Shells`, 'success');
     } else {
       const errTxt = await postRes.text();
       showStatus(`❌ Server returned error: ${errTxt}`, 'error');

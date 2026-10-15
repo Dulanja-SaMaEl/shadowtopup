@@ -105,10 +105,10 @@ export default function AdminDashboardPage() {
     status: 'healthy' | 'low' | 'exhausted';
   }>({
     dailyLimit: 25,
-    usedToday: 11,
-    remainingToday: 14,
-    developerUid: 'Xv00AKjlBJMgOpxr05VP2Sreu0z1',
-    apiKey: 'Kjt47EN5VEvYVa77afIsd4hEAFicFg',
+    usedToday: 0,
+    remainingToday: 25,
+    developerUid: '',
+    apiKey: '',
     limitResetAt: '',
     status: 'healthy',
   });

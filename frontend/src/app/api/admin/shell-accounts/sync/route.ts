@@ -28,10 +28,11 @@ export async function POST(request: NextRequest) {
       syncSecret ||
       (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '');
 
-    const validSecret =
+    const validSecret = (
       process.env.GARENA_SYNC_SECRET ||
       process.env.UC_BOT_API_KEY ||
-      'a29b37d3-dc90-4c79-9a7d-59b977b6e597';
+      ''
+    ).trim();
 
     let isAuthorized = false;
     if (providedSecret && providedSecret === validSecret) {
@@ -104,9 +105,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const usernameStr = String(username || dbUsername || 'SHADOW_TOPUP1').trim();
-    const passwordStr = String(password || dbPassword || 'Shadow123@').trim();
-    const autocodeStr = String(autocode || dbAutocode || process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J')
+    const usernameStr = String(username || dbUsername || process.env.GARENA_SHELL_USERNAME || '').trim();
+    const passwordStr = String(password || dbPassword || process.env.GARENA_SHELL_PASSWORD || '').trim();
+    const autocodeStr = String(autocode || dbAutocode || process.env.GARENA_SHELL_AUTOCODE || '')
       .replace(/[\s-]+/g, '')
       .trim();
 

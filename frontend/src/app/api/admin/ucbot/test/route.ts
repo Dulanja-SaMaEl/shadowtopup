@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Default fallbacks
-    shellUser = shellUser || 'SHADOW_TOPUP1';
-    shellPass = shellPass || 'Shadow123@';
-    shellAuto = shellAuto || process.env.GARENA_SHELL_AUTOCODE || '5ZEEJ3VDKEXSSD6J';
+    // Default fallbacks from environment
+    shellUser = shellUser || process.env.GARENA_SHELL_USERNAME || '';
+    shellPass = shellPass || process.env.GARENA_SHELL_PASSWORD || '';
+    shellAuto = shellAuto || process.env.GARENA_SHELL_AUTOCODE || '';
 
     console.log(`[UC Bot Test Dispatch] Testing topup for Player ID: ${targetUid}, Package: ${targetPackage}`);
     console.log(`[UC Bot Test Dispatch] Resolved Pack ID: ${resolveUCBotPackId(targetPackage)}`);

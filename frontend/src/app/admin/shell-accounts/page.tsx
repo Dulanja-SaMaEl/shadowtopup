@@ -15,9 +15,9 @@ export default function AdminShellAccountsPage() {
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Form states for Add
-  const [username, setUsername] = useState('SHADOW_TOPUP1');
-  const [password, setPassword] = useState('Shadow123@');
-  const [autocode, setAutocode] = useState('5ZEEJ3VDKEXSSD6J');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [autocode, setAutocode] = useState('');
   const [isMain, setIsMain] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -206,9 +206,9 @@ export default function AdminShellAccountsPage() {
         setAccounts([data.account, ...accounts.filter((a) => a.id !== data.account.id)]);
         showToast('success', data.message || `Added shell account ${username} successfully!`);
         setIsAddModalOpen(false);
-        setUsername('SHADOW_TOPUP1');
-        setPassword('Shadow-2008');
-        setAutocode('5ZEEJ3VDKEXSSD6J');
+        setUsername('');
+        setPassword('');
+        setAutocode('');
       } else {
         showToast('error', data.message || 'Failed to add shell account');
       }
@@ -328,9 +328,9 @@ export default function AdminShellAccountsPage() {
 
           <button
             onClick={() => {
-              setUsername('SHADOW_TOPUP1');
-              setPassword('Shadow-2008');
-              setAutocode('5ZEEJ3VDKEXSSD6J');
+              setUsername('');
+              setPassword('');
+              setAutocode('');
               setIsMain(true);
               setIsAddModalOpen(true);
             }}
@@ -428,7 +428,7 @@ export default function AdminShellAccountsPage() {
                           onClick={() => {
                             setEditAcc(acc);
                             setEditBalance(String(acc.available_balance || 0));
-                            setEditAutocode(acc.autocode || '5ZEEJ3VDKEXSSD6J');
+                            setEditAutocode(acc.autocode || '');
                           }}
                           className="px-3 py-1.5 rounded-xl bg-indigo-950/80 border border-indigo-800/80 text-indigo-300 hover:text-white hover:bg-indigo-900 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-all"
                           title="Edit Shell Account & Autocode"
@@ -491,7 +491,7 @@ export default function AdminShellAccountsPage() {
                   type="text"
                   value={editAutocode}
                   onChange={(e) => setEditAutocode(e.target.value)}
-                  placeholder="e.g. 5ZEEJ3VDKEXSSD6J"
+                  placeholder="e.g. 16-character 2FA Secret Key"
                   className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-cyan-300 font-bold focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
                 />
                 <span className="text-[9px] text-slate-500 mt-1 block">
@@ -564,7 +564,7 @@ export default function AdminShellAccountsPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. SHADOW_TOPUP1"
+                  placeholder="e.g. shell_account_1"
                   className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-bold focus:outline-none focus:border-cyan-500"
                 />
               </div>
@@ -576,7 +576,7 @@ export default function AdminShellAccountsPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="e.g. Shadow-2008"
+                  placeholder="••••••••••••"
                   className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-bold focus:outline-none focus:border-cyan-500"
                 />
               </div>
@@ -590,7 +590,7 @@ export default function AdminShellAccountsPage() {
                   required
                   value={autocode}
                   onChange={(e) => setAutocode(e.target.value)}
-                  placeholder="e.g. 5ZEEJ3VDKEXSSD6J"
+                  placeholder="e.g. 16-character 2FA Secret Key"
                   className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-cyan-300 font-bold focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
                 />
                 <span className="text-[9px] text-slate-500 mt-1 block">
@@ -693,11 +693,11 @@ export default function AdminShellAccountsPage() {
                 <div className="text-[10px] font-bold uppercase text-slate-500">Active Test Configuration:</div>
                 <div className="flex justify-between">
                   <span>Shell Account:</span>
-                  <span className="text-white font-bold">{accounts[0]?.account_username || 'SHADOW_TOPUP1'}</span>
+                  <span className="text-white font-bold">{accounts[0]?.account_username || 'None configured'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>2FA Autocode:</span>
-                  <span className="text-emerald-400 font-bold">5ZEEJ3VDKEXSSD6J</span>
+                  <span className="text-emerald-400 font-bold">{accounts[0]?.autocode ? 'Configured (Active)' : 'Not Configured'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Target Endpoint:</span>
