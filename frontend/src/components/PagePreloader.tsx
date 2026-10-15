@@ -10,22 +10,38 @@ export default function PagePreloader() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    // Only display on arrival at the home route ('/')
+    // Only display on arrival at the home route ('/') if not already seen in this session
     if (pathname === '/') {
+      if (typeof window !== 'undefined') {
+        const hasSeen = sessionStorage.getItem('shadow_preloader_seen');
+        const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        
+        if (hasSeen || prefersReducedMotion) {
+          setIsDismissed(true);
+          setShouldRender(false);
+          return;
+        }
+
+        try {
+          sessionStorage.setItem('shadow_preloader_seen', 'true');
+        } catch {
+          // sessionStorage may fail in private browsing; ignore
+        }
+      }
+
       setIsDismissed(false);
       setIsLoaded(false);
       setShouldRender(true);
 
-      // 1.5s letter sequence: letters S-H-A-D-O-W flip in with 0.2s stagger up to 1.0s
+      // Fast, snappy sequence: letters load in ~450ms, curtain splits and unmasks at ~900ms
       const loadTimer = setTimeout(() => {
         setIsLoaded(true);
-      }, 1500);
+      }, 450);
 
-      // At 2.4s: curtain split animation (0.9s duration) has finished completely
       const dismissTimer = setTimeout(() => {
         setIsDismissed(true);
         setShouldRender(false);
-      }, 2400);
+      }, 950);
 
       return () => {
         clearTimeout(loadTimer);

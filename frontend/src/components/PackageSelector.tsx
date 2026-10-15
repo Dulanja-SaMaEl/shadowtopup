@@ -506,7 +506,15 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
                 <div className="flex items-start gap-3">
                   <div className="w-12 h-12 rounded-lg bg-[#090714] border border-purple-950/80 flex items-center justify-center p-1.5 shrink-0">
-                    <img src={pkg.image_url} alt={pkg.package_name} className="max-w-full max-h-full object-contain" />
+                    <img
+                      src={pkg.image_url}
+                      alt={pkg.package_name || 'Free Fire Recharge Package'}
+                      loading="lazy"
+                      decoding="async"
+                      width={48}
+                      height={48}
+                      className="max-w-full max-h-full object-contain"
+                    />
                   </div>
                   <div>
                     <h3 className="font-bold text-white text-xs">{pkg.package_name}</h3>

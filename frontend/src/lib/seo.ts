@@ -176,7 +176,7 @@ export function generateGameProductSchema({
     },
   ];
 
-  const resolvedReviews = (reviews && reviews.length > 0 ? reviews : defaultReviews).map((r) => ({
+  const resolvedReviews = (reviews && reviews.length > 0 ? reviews : []).map((r) => ({
     '@type': 'Review',
     author: {
       '@type': 'Person',
@@ -206,14 +206,18 @@ export function generateGameProductSchema({
       '@type': 'Brand',
       name: 'Garena',
     },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: String(ratingValue),
-      reviewCount: Number(reviewCount),
-      bestRating: '5',
-      worstRating: '1',
-    },
-    review: resolvedReviews,
+    ...(resolvedReviews.length > 0
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: String(ratingValue),
+            reviewCount: Number(reviewCount || resolvedReviews.length),
+            bestRating: '5',
+            worstRating: '1',
+          },
+          review: resolvedReviews,
+        }
+      : {}),
     offers: {
       '@type': 'AggregateOffer',
       url: pageUrl,

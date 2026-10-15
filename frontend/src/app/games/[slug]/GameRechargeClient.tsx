@@ -126,7 +126,11 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
           {slug === 'free-fire' ? (
             <img
               src="/images/free-fire-icon.png"
-              alt="Free Fire"
+              alt="Garena Free Fire Official Game Logo"
+              width={64}
+              height={64}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
             />
           ) : (

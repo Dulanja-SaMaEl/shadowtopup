@@ -45,7 +45,7 @@ export default function Footer() {
               <li><Link href="/how-it-works" className="hover:text-purple-400 transition-colors">How Top-Up Works</Link></li>
               <li><Link href="/faq" className="hover:text-purple-400 transition-colors">Frequently Asked Questions</Link></li>
               <li><Link href="/contact" className="hover:text-purple-400 transition-colors">Contact & WhatsApp Support</Link></li>
-              <li><Link href="/dashboard" className="hover:text-purple-400 transition-colors">My Orders & Wallet</Link></li>
+              <li><Link href="/dashboard" rel="nofollow" className="hover:text-purple-400 transition-colors">My Orders & Wallet</Link></li>
             </ul>
           </div>
 
