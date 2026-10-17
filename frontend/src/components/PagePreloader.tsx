@@ -24,10 +24,16 @@ export default function PagePreloader() {
       return;
     }
 
+    // Lock body scrolling while preloader is active so background doesn't shift
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = 'hidden';
+    }
+
     // Check for user's prefers-reduced-motion accessibility setting
     if (typeof window !== 'undefined') {
       const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) {
+        if (typeof document !== 'undefined') document.body.style.overflow = '';
         setIsDismissed(true);
         return;
       }
@@ -36,6 +42,7 @@ export default function PagePreloader() {
     // Full animation sequence: letters S-H-A-D-O-W cascade in, hold full glow until ~3.2s
     const loadTimer = setTimeout(() => {
       setIsLoaded(true);
+      if (typeof document !== 'undefined') document.body.style.overflow = '';
     }, 3200);
 
     // At 4.15s: 4-panel curtain split animation (0.9s duration) completes and unmasks
@@ -44,6 +51,7 @@ export default function PagePreloader() {
     }, 4150);
 
     return () => {
+      if (typeof document !== 'undefined') document.body.style.overflow = '';
       clearTimeout(loadTimer);
       clearTimeout(dismissTimer);
     };
@@ -60,7 +68,10 @@ export default function PagePreloader() {
     <div
       id="preloader"
       className={`preloader ${isLoaded ? 'loaded' : ''}`}
-      onClick={() => setIsDismissed(true)}
+      onClick={() => {
+        if (typeof document !== 'undefined') document.body.style.overflow = '';
+        setIsDismissed(true);
+      }}
       role="status"
       aria-label="Loading Shadow Top Up"
     >
