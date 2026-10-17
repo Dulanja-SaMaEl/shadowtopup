@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShieldCheck, Check, Wallet, Landmark, Loader2, Zap, AlertCircle, Smartphone, Copy, Sparkles, Upload, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShieldCheck, Check, Wallet, Landmark, Loader2, Zap, AlertCircle, Smartphone, Copy, Sparkles, Upload, RefreshCw, CreditCard } from 'lucide-react';
 import { formatCurrency, calculatePackagePrice } from '@/lib/pricing';
 import { Package, UserRole } from '@/types/database';
 import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
@@ -12,7 +12,7 @@ import OrderProcessingModal from '@/components/OrderProcessingModal';
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, updatePlayerUid, clearCart, cartTotal, totalCount } = useCart();
-  const [paymentMethod, setPaymentMethod] = useState<'shadow_wallet' | 'ez_cash' | 'bank_transfer'>('shadow_wallet');
+  const [paymentMethod, setPaymentMethod] = useState<'shadow_wallet' | 'ez_cash' | 'dialog_pay' | 'bank_transfer'>('shadow_wallet');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [isRestocking, setIsRestocking] = useState(false);
@@ -312,8 +312,35 @@ export default function CartPage() {
         });
 
         clearCart();
+      } else if (paymentMethod === 'dialog_pay') {
+        // 3. DIALOG PAY BUSINESS CHECKOUT (Cards & Mobile Wallets via Genie)
+        setIsProcessingOrder(true);
+
+        const res = await fetch('/api/dialogpay/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: cartItems.map((item) => ({
+              packageId: item.packageId,
+              packageName: item.packageName,
+              playerUid: item.playerUid,
+              quantity: item.quantity,
+              price: getItemPrice(item),
+              shellCost: item.shellCost || 0,
+            })),
+          }),
+        });
+
+        const data = await res.json();
+        if (!data.success || !data.paymentUrl) {
+          throw new Error(data.message || 'Failed to initiate Dialog Pay checkout session.');
+        }
+
+        // Redirect customer to Dialog Pay hosted checkout portal
+        window.location.href = data.paymentUrl;
+        return;
       } else if (paymentMethod === 'bank_transfer') {
-        // 3. BANK TRANSFER CHECKOUT
+        // 4. BANK TRANSFER CHECKOUT
         let receiptUrl = null;
         if (receiptFile) {
           try {
@@ -579,7 +606,7 @@ export default function CartPage() {
                 {/* Payment Method Selection */}
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Payment Method</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('shadow_wallet')}
@@ -598,6 +625,22 @@ export default function CartPage() {
 
                     <button
                       type="button"
+                      onClick={() => setPaymentMethod('dialog_pay')}
+                      className={`p-3 rounded-lg border text-left flex items-center gap-2.5 transition-colors ${
+                        paymentMethod === 'dialog_pay'
+                          ? 'bg-purple-500/20 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.25)]'
+                          : 'bg-[#080711] border-white/10 text-slate-400 hover:border-white/20'
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <div>
+                        <span className="text-xs font-semibold block">Dialog Pay</span>
+                        <span className="text-[10px] text-cyan-400/80 block font-mono">Cards/Genie</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => setPaymentMethod('ez_cash')}
                       className={`p-3 rounded-lg border text-left flex items-center gap-2.5 transition-colors ${
                         paymentMethod === 'ez_cash'
@@ -608,7 +651,7 @@ export default function CartPage() {
                       <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
                       <div>
                         <span className="text-xs font-semibold block">eZ Cash</span>
-                        <span className="text-[10px] text-emerald-400/80 block font-mono">Auto-Verify</span>
+                        <span className="text-[10px] text-emerald-400/80 block font-mono">SMS Verify</span>
                       </div>
                     </button>
 
@@ -629,6 +672,22 @@ export default function CartPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Dialog Pay Details */}
+                {paymentMethod === 'dialog_pay' && (
+                  <div className="space-y-2.5 bg-[#080711] p-4 rounded-xl border border-purple-950/80">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-cyan-400" />
+                      <span className="text-xs font-bold text-white">Dialog Pay Business (Genie Business)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Pay instantly with Visa, Mastercard, or Genie Mobile Wallet through Dialog Axiata&apos;s secure payment gateway. Your Free Fire packages are auto-delivered immediately upon payment confirmation.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1 text-[10px] text-emerald-400 font-mono">
+                      <Zap className="w-3 h-3 text-emerald-400" /> Automated instant in-game fulfillment
+                    </div>
+                  </div>
+                )}
 
                 {/* Dialog eZ Cash Payment Details */}
                 {paymentMethod === 'ez_cash' && (

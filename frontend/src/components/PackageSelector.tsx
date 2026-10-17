@@ -23,7 +23,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const [cartToast, setCartToast] = useState<{ show: boolean; packageName: string; quantity: number } | null>(null);
   const [effectiveRole, setEffectiveRole] = useState<UserRole | undefined>(userRole);
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet' | 'ez_cash'>('shadow_wallet');
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet' | 'ez_cash' | 'dialog_pay'>('shadow_wallet');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [userStoreName, setUserStoreName] = useState<string | null>(null);
@@ -307,6 +307,40 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
       return;
     }
 
+    if (paymentMethod === 'dialog_pay') {
+      setIsProcessingOrder(true);
+      try {
+        const res = await fetch('/api/dialogpay/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            packageId: selectedPkg.id,
+            packageName: selectedPkg.package_name,
+            playerUid: verifiedPlayerUid,
+            playerNickname: verifiedPlayerNickname,
+          }),
+        });
+
+        const data = await res.json();
+        setIsProcessingOrder(false);
+
+        if (data.success && data.paymentUrl) {
+          window.location.href = data.paymentUrl;
+          return;
+        } else {
+          setMessage({
+            type: 'error',
+            text: data.message || 'Failed to initiate Dialog Pay session. Please try another payment method.',
+          });
+        }
+      } catch (err: any) {
+        setIsProcessingOrder(false);
+        setMessage({ type: 'error', text: err?.message || 'Failed to initiate Dialog Pay checkout.' });
+      }
+      setLoading(false);
+      return;
+    }
+
     if (paymentMethod === 'paypal') {
       try {
         const res = await fetch('/api/paypal/create-order', {
@@ -578,17 +612,17 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             <span>Step 3: Select Payment Method</span>
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
             <button
               type="button"
               onClick={() => setPaymentMethod('shadow_wallet')}
-              className={`p-3.5 rounded-lg border flex items-center gap-3 transition-all text-left ${
+              className={`p-3 rounded-lg border flex items-center gap-2.5 transition-all text-left ${
                 paymentMethod === 'shadow_wallet'
                   ? 'bg-[#181335] border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)] text-white ring-1 ring-purple-400/40'
                   : 'bg-[#090714] border-purple-950/70 text-slate-400 hover:border-purple-500/40 hover:text-white'
               }`}
             >
-              <Wallet className="w-5 h-5 text-purple-400 shrink-0" />
+              <Wallet className="w-4 h-4 text-purple-400 shrink-0" />
               <div>
                 <span className="font-semibold text-white block text-xs">Shadow Wallet</span>
                 <span className="text-[10px] text-emerald-400 font-mono block">
@@ -599,34 +633,52 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
 
             <button
               type="button"
+              onClick={() => setPaymentMethod('dialog_pay')}
+              className={`p-3 rounded-lg border flex items-center gap-2.5 transition-all text-left ${
+                paymentMethod === 'dialog_pay'
+                  ? 'bg-[#181335] border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)] text-white ring-1 ring-purple-400/40'
+                  : 'bg-[#090714] border-purple-950/70 text-slate-400 hover:border-purple-500/40 hover:text-white'
+              }`}
+            >
+              <CreditCard className="w-4 h-4 text-cyan-400 shrink-0" />
+              <div>
+                <span className="font-semibold text-white block text-xs flex items-center gap-1">
+                  Dialog Pay
+                </span>
+                <span className="text-[10px] text-cyan-400 font-mono block">Cards/Genie</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setPaymentMethod('ez_cash')}
-              className={`p-3.5 rounded-lg border flex items-center gap-3 transition-all text-left ${
+              className={`p-3 rounded-lg border flex items-center gap-2.5 transition-all text-left ${
                 paymentMethod === 'ez_cash'
                   ? 'bg-[#181335] border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)] text-white ring-1 ring-purple-400/40'
                   : 'bg-[#090714] border-purple-950/70 text-slate-400 hover:border-purple-500/40 hover:text-white'
               }`}
             >
-              <Smartphone className="w-5 h-5 text-emerald-400 shrink-0" />
+              <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
               <div>
                 <span className="font-semibold text-white block text-xs flex items-center gap-1">
                   Dialog eZ Cash
                 </span>
-                <span className="text-[10px] text-slate-400 block font-mono">Instant SMS verify</span>
+                <span className="text-[10px] text-slate-400 block font-mono">SMS verify</span>
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setPaymentMethod('paypal')}
-              className={`p-3.5 rounded-lg border flex items-center gap-3 transition-all text-left ${
+              className={`p-3 rounded-lg border flex items-center gap-2.5 transition-all text-left ${
                 paymentMethod === 'paypal'
                   ? 'bg-[#181335] border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)] text-white ring-1 ring-purple-400/40'
                   : 'bg-[#090714] border-purple-950/70 text-slate-400 hover:border-purple-500/40 hover:text-white'
               }`}
             >
-              <CreditCard className="w-5 h-5 text-cyan-400 shrink-0" />
+              <CreditCard className="w-4 h-4 text-blue-400 shrink-0" />
               <div>
-                <span className="font-semibold text-white block text-xs">PayPal Express</span>
+                <span className="font-semibold text-white block text-xs">PayPal</span>
                 <span className="text-[10px] text-slate-400 block">International</span>
               </div>
             </button>
@@ -634,19 +686,34 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             <button
               type="button"
               onClick={() => setPaymentMethod('bank_transfer')}
-              className={`p-3.5 rounded-lg border flex items-center gap-3 transition-all text-left ${
+              className={`p-3 rounded-lg border flex items-center gap-2.5 transition-all text-left ${
                 paymentMethod === 'bank_transfer'
                   ? 'bg-[#181335] border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)] text-white ring-1 ring-purple-400/40'
                   : 'bg-[#090714] border-purple-950/70 text-slate-400 hover:border-purple-500/40 hover:text-white'
               }`}
             >
-              <Landmark className="w-5 h-5 text-purple-300 shrink-0" />
+              <Landmark className="w-4 h-4 text-purple-300 shrink-0" />
               <div>
                 <span className="font-semibold text-white block text-xs">Bank Transfer</span>
                 <span className="text-[10px] text-slate-400 block">Slip upload</span>
               </div>
             </button>
           </div>
+
+          {paymentMethod === 'dialog_pay' && (
+            <div className="bg-[#090714] p-4 rounded-lg border border-purple-950/80 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs font-bold text-white">Dialog Pay Business (Genie Business IPG)</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Pay securely using Visa, Mastercard, or Genie Mobile Wallet through Dialog Axiata PLC. Your in-game top-up will be delivered instantly upon payment confirmation.
+              </p>
+              <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-mono">
+                <Zap className="w-3 h-3 text-emerald-400" /> Instant in-game delivery (&lt;30s)
+              </div>
+            </div>
+          )}
 
           {paymentMethod === 'ez_cash' && (
             <div className="space-y-3 bg-[#090714] p-4 rounded-lg border border-purple-950/80">
