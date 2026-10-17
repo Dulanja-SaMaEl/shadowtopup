@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { fetchDatabaseOrders, DatabaseOrder } from '@/lib/ordersService';
@@ -16,6 +16,7 @@ import {
   DEFAULT_TIER_PROFITS,
   getTierProfitConfig,
   normalizeExpectedProfits,
+  generateAutoProfitsFromPackages,
 } from '@/lib/expectedProfitsConfig';
 import {
   ShoppingBag,
@@ -80,12 +81,20 @@ export default function AdminDashboardPage() {
     };
   });
 
+  // Auto-calculated expected profits derived dynamically from live catalog & shell unit cost
+  const autoProfitsConfig = useMemo(() => {
+    return generateAutoProfitsFromPackages(displayPackages, basePrice1300);
+  }, [displayPackages, basePrice1300]);
+
   // Expected Profits & Dynamic Package Breakdown State
   const [expectedProfits, setExpectedProfits] = useState<ExpectedProfitsConfig>(DEFAULT_EXPECTED_PROFITS);
   const [editingProfits, setEditingProfits] = useState<ExpectedProfitsConfig>(DEFAULT_EXPECTED_PROFITS);
   const [profitModalOpen, setProfitModalOpen] = useState(false);
   const [savingProfits, setSavingProfits] = useState(false);
   const [activeTierTab, setActiveTierTab] = useState<UserTier>('normal');
+
+  const isAutoCalculating = expectedProfits.autoCalculate !== false;
+  const effectiveProfits = isAutoCalculating ? autoProfitsConfig : expectedProfits;
 
   const [profitBreakdown, setProfitBreakdown] = useState({
     weekly: { count: 0, sales: 0, profit: 0 },
@@ -118,25 +127,81 @@ export default function AdminDashboardPage() {
   const [calibrateDailyLimit, setCalibrateDailyLimit] = useState(25);
   const [savingQuota, setSavingQuota] = useState(false);
 
-  // Dynamic calculation of order expected profit based on customer tier
-  function classifyAndCalculateOrderProfit(order: DatabaseOrder, config: ExpectedProfitsConfig) {
-    const role: UserTier = (order.customerRole === 'gold' || order.customerRole === 'silver') ? order.customerRole : 'normal';
+  // Dynamic calculation of order expected profit based on customer tier and live catalog
+  function classifyAndCalculateOrderProfit(
+    order: DatabaseOrder,
+    config: ExpectedProfitsConfig,
+    packagesList: Package[] = displayPackages,
+    shellUnitRate: number = unitShellCost
+  ) {
+    const role: UserTier =
+      order.customerRole === 'gold' || order.customerRole === 'silver'
+        ? order.customerRole
+        : 'normal';
     const tierConfig: ExpectedProfitsTierConfig = getTierProfitConfig(config, role);
     const name = (order.package_name || '').toLowerCase();
 
-    if (name.includes('lite')) {
+    // Determine category
+    const isLite = name.includes('lite');
+    const isWeekly = !isLite && name.includes('weekly');
+    const isMonthly = name.includes('monthly');
+    const category = isLite
+      ? ('lite' as const)
+      : isWeekly
+      ? ('weekly' as const)
+      : isMonthly
+      ? ('monthly' as const)
+      : ('etc' as const);
+
+    // If AUTO-CALCULATE mode is active (default):
+    if (config.autoCalculate !== false) {
+      const matchedPkg = packagesList.find((p) => {
+        const pName = (p.package_name || '').toLowerCase();
+        const pCode = ((p as any).code || '').toUpperCase();
+        if (pName === name) return true;
+        if (isLite && (pName.includes('lite') || pCode === 'LITE')) return true;
+        if (isWeekly && (pName.includes('weekly subscription') || pCode === 'WEEKLY')) return true;
+        if (isMonthly && (pName.includes('monthly subscription') || pCode === 'MONTHLY')) return true;
+        if (name.includes('100') && pName.includes('100')) return true;
+        if (name.includes('310') && pName.includes('310')) return true;
+        if (name.includes('520') && pName.includes('520')) return true;
+        if (name.includes('1060') && pName.includes('1060')) return true;
+        if (name.includes('2180') && pName.includes('2180')) return true;
+        if (name.includes('5600') && pName.includes('5600')) return true;
+        if (name.includes('11500') && pName.includes('11500')) return true;
+        return false;
+      });
+
+      if (matchedPkg && (matchedPkg.shell_cost || 0) > 0) {
+        const shells = matchedPkg.shell_cost || 0;
+        const unitCost = shells * shellUnitRate;
+        const unitPrice =
+          role === 'gold'
+            ? Number(matchedPkg.gold_price) || Number(matchedPkg.normal_price) || 0
+            : role === 'silver'
+            ? Number(matchedPkg.silver_price) || Number(matchedPkg.normal_price) || 0
+            : Number(matchedPkg.normal_price) || 0;
+
+        const units = Math.max(1, Math.round(order.totalAmount / (unitPrice || 1)));
+        const orderCost = units * unitCost;
+        // Realized profit: Gross Cash Collected - Shell Fulfillment Cost
+        const profit = Math.max(0, order.totalAmount - orderCost);
+        return { category, profit, units, tier: role };
+      }
+    }
+
+    // Manual formula fallback:
+    if (category === 'lite') {
       const denom = role === 'gold' ? 230 : role === 'silver' ? 250 : 280;
       const units = Math.max(1, Math.round(order.totalAmount / denom));
       return { category: 'lite' as const, profit: units * (tierConfig.lite ?? 93), units, tier: role };
     }
-
-    if (name.includes('weekly')) {
+    if (category === 'weekly') {
       const denom = role === 'gold' ? 550 : role === 'silver' ? 600 : 650;
       const units = Math.max(1, Math.round(order.totalAmount / denom));
       return { category: 'weekly' as const, profit: units * (tierConfig.weekly ?? 104), units, tier: role };
     }
-
-    if (name.includes('monthly')) {
+    if (category === 'monthly') {
       const denom = role === 'gold' ? 2800 : role === 'silver' ? 3000 : 3200;
       const units = Math.max(1, Math.round(order.totalAmount / denom));
       return { category: 'monthly' as const, profit: units * (tierConfig.monthly ?? 470), units, tier: role };
@@ -184,7 +249,12 @@ export default function AdminDashboardPage() {
     return { category: 'etc' as const, profit: fallbackProfit, units: 1, tier: role };
   }
 
-  function recalculateProfitsWithOrders(orders: DatabaseOrder[], config: ExpectedProfitsConfig) {
+  function recalculateProfitsWithOrders(
+    orders: DatabaseOrder[],
+    config: ExpectedProfitsConfig,
+    packagesList: Package[] = displayPackages,
+    shellUnitRate: number = unitShellCost
+  ) {
     const completedOrders = orders.filter((o) => o.fulfillmentStatus === 'COMPLETED');
     const completedSum = completedOrders.reduce((acc, o) => acc + o.totalAmount, 0);
 
@@ -194,7 +264,7 @@ export default function AdminDashboardPage() {
     let eCount = 0, eSales = 0, eProfit = 0;
 
     completedOrders.forEach((o) => {
-      const res = classifyAndCalculateOrderProfit(o, config);
+      const res = classifyAndCalculateOrderProfit(o, config, packagesList, shellUnitRate);
       if (res.category === 'weekly') {
         wCount += res.units;
         wSales += o.totalAmount;
@@ -268,7 +338,7 @@ export default function AdminDashboardPage() {
         localStorage.setItem('shadow_expected_profits', JSON.stringify(editingProfits));
       }
       setExpectedProfits(editingProfits);
-      recalculateProfitsWithOrders(allDbOrders, editingProfits);
+      recalculateProfitsWithOrders(allDbOrders, editingProfits, displayPackages, unitShellCost);
 
       await fetch('/api/admin/expected-profits', {
         method: 'POST',
@@ -283,6 +353,13 @@ export default function AdminDashboardPage() {
       setSavingProfits(false);
     }
   };
+
+  // Re-run profit calculations automatically whenever orders, formulas, packages, or shell unit costs change
+  useEffect(() => {
+    if (allDbOrders.length > 0) {
+      recalculateProfitsWithOrders(allDbOrders, expectedProfits, displayPackages, unitShellCost);
+    }
+  }, [allDbOrders, expectedProfits, displayPackages, unitShellCost]);
 
   const loadQuota = async () => {
     setLoadingQuota(true);
@@ -508,30 +585,74 @@ export default function AdminDashboardPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className={`w-2.5 h-2.5 rounded-full ${isAutoCalculating ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
               <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
                 <Calculator className="w-4 h-4 text-emerald-400" />
                 Package Profit Indicators (Formula Breakdown)
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
-                Weekly + Monthly + Lite + Etc.
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1.5 ${
+                isAutoCalculating
+                  ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                  : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+              }`}>
+                {isAutoCalculating ? (
+                  <>
+                    <Zap className="w-3 h-3 text-emerald-400" />
+                    Auto-Calculating (Live Shell Rate: LKR {unitShellCost.toFixed(2)}/sh)
+                  </>
+                ) : (
+                  <>
+                    <Sliders className="w-3 h-3 text-amber-400" />
+                    Manual Formula Override Active
+                  </>
+                )}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Live realized profits calculated dynamically per package using your expected profit formula.
+              {isAutoCalculating
+                ? `Live realized profits calculated automatically from package shell costs & exchange rate (1,300 shells @ LKR ${basePrice1300.toLocaleString()}).`
+                : 'Realized profits calculated using your custom manual formula config.'}
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              setEditingProfits({ ...expectedProfits });
-              setProfitModalOpen(true);
-            }}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-emerald-900/30 flex items-center gap-2 transition-all active:scale-95 shrink-0"
-          >
-            <Sliders className="w-3.5 h-3.5" />
-            Manually Set Expected Profit
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                const nextMode = !isAutoCalculating;
+                const updatedConfig = { ...expectedProfits, autoCalculate: nextMode };
+                setExpectedProfits(updatedConfig);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('shadow_expected_profits', JSON.stringify(updatedConfig));
+                }
+                recalculateProfitsWithOrders(allDbOrders, updatedConfig, displayPackages, unitShellCost);
+                fetch('/api/admin/expected-profits', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(updatedConfig),
+                });
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold font-mono tracking-wider flex items-center gap-1.5 transition-all active:scale-95 border ${
+                isAutoCalculating
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
+                  : 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
+              }`}
+              title="Toggle between Auto-Calculating and Manual Override"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              {isAutoCalculating ? 'Engine: Auto (Live)' : 'Engine: Manual'}
+            </button>
+
+            <button
+              onClick={() => {
+                setEditingProfits({ ...expectedProfits });
+                setProfitModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-emerald-900/30 flex items-center gap-2 transition-all active:scale-95 shrink-0"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              Formula Settings & Sync
+            </button>
+          </div>
         </div>
 
         {/* The 4 Category Profit Indicator Cards */}
@@ -553,20 +674,22 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
               <div className="flex justify-between text-slate-400">
-                <span>Formula (3 Tiers):</span>
-                <span className="text-blue-300 font-bold">LKR {expectedProfits.normal?.weekly ?? 104} / unit</span>
+                <span>{isAutoCalculating ? 'Live Math (3 Tiers):' : 'Formula (3 Tiers):'}</span>
+                <span className="text-blue-300 font-bold">LKR {effectiveProfits.normal?.weekly ?? 104} / unit</span>
               </div>
               <div className="flex justify-between text-[10px] text-slate-400 bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800">
-                <span>Normal: <b className="text-emerald-400">{expectedProfits.normal?.weekly ?? 104}</b></span>
-                <span>Silver: <b className="text-cyan-400">{expectedProfits.silver?.weekly ?? 54}</b></span>
-                <span>Gold: <b className="text-amber-400">{expectedProfits.gold?.weekly ?? 25}</b></span>
+                <span>Normal: <b className="text-emerald-400">{effectiveProfits.normal?.weekly ?? 104}</b></span>
+                <span>Silver: <b className="text-cyan-400">{effectiveProfits.silver?.weekly ?? 54}</b></span>
+                <span>Gold: <b className="text-amber-400">{effectiveProfits.gold?.weekly ?? 25}</b></span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Gross Revenue:</span>
                 <span className="text-slate-300">LKR {profitBreakdown.weekly.sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="text-[9px] text-slate-500 text-right mt-1">
-                Formula: tier expected profit × units
+                {isAutoCalculating
+                  ? `Live formula: revenue − (86 shells × LKR ${unitShellCost.toFixed(2)})`
+                  : 'Formula: tier expected profit × units'}
               </div>
             </div>
           </div>
@@ -588,20 +711,22 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
               <div className="flex justify-between text-slate-400">
-                <span>Formula (3 Tiers):</span>
-                <span className="text-amber-300 font-bold">LKR {expectedProfits.normal?.monthly ?? 470} / unit</span>
+                <span>{isAutoCalculating ? 'Live Math (3 Tiers):' : 'Formula (3 Tiers):'}</span>
+                <span className="text-amber-300 font-bold">LKR {effectiveProfits.normal?.monthly ?? 470} / unit</span>
               </div>
               <div className="flex justify-between text-[10px] text-slate-400 bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800">
-                <span>Normal: <b className="text-emerald-400">{expectedProfits.normal?.monthly ?? 470}</b></span>
-                <span>Silver: <b className="text-cyan-400">{expectedProfits.silver?.monthly ?? 270}</b></span>
-                <span>Gold: <b className="text-amber-400">{expectedProfits.gold?.monthly ?? 70}</b></span>
+                <span>Normal: <b className="text-emerald-400">{effectiveProfits.normal?.monthly ?? 470}</b></span>
+                <span>Silver: <b className="text-cyan-400">{effectiveProfits.silver?.monthly ?? 270}</b></span>
+                <span>Gold: <b className="text-amber-400">{effectiveProfits.gold?.monthly ?? 70}</b></span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Gross Revenue:</span>
                 <span className="text-slate-300">LKR {profitBreakdown.monthly.sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="text-[9px] text-slate-500 text-right mt-1">
-                Formula: tier expected profit × units
+                {isAutoCalculating
+                  ? `Live formula: revenue − (430 shells × LKR ${unitShellCost.toFixed(2)})`
+                  : 'Formula: tier expected profit × units'}
               </div>
             </div>
           </div>
@@ -623,20 +748,22 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
               <div className="flex justify-between text-slate-400">
-                <span>Formula (3 Tiers):</span>
-                <span className="text-purple-300 font-bold">LKR {expectedProfits.normal?.lite ?? 93} / unit</span>
+                <span>{isAutoCalculating ? 'Live Math (3 Tiers):' : 'Formula (3 Tiers):'}</span>
+                <span className="text-purple-300 font-bold">LKR {effectiveProfits.normal?.lite ?? 93} / unit</span>
               </div>
               <div className="flex justify-between text-[10px] text-slate-400 bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800">
-                <span>Normal: <b className="text-emerald-400">{expectedProfits.normal?.lite ?? 93}</b></span>
-                <span>Silver: <b className="text-cyan-400">{expectedProfits.silver?.lite ?? 68}</b></span>
-                <span>Gold: <b className="text-amber-400">{expectedProfits.gold?.lite ?? 48}</b></span>
+                <span>Normal: <b className="text-emerald-400">{effectiveProfits.normal?.lite ?? 93}</b></span>
+                <span>Silver: <b className="text-cyan-400">{effectiveProfits.silver?.lite ?? 68}</b></span>
+                <span>Gold: <b className="text-amber-400">{effectiveProfits.gold?.lite ?? 48}</b></span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Gross Revenue:</span>
                 <span className="text-slate-300">LKR {profitBreakdown.lite.sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="text-[9px] text-slate-500 text-right mt-1">
-                Formula: tier expected profit × units
+                {isAutoCalculating
+                  ? `Live formula: revenue − (18 shells × LKR ${unitShellCost.toFixed(2)})`
+                  : 'Formula: tier expected profit × units'}
               </div>
             </div>
           </div>
@@ -658,20 +785,22 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
               <div className="flex justify-between text-slate-400">
-                <span>Expected Margin:</span>
-                <span className="text-emerald-300 font-bold">~{expectedProfits.normal?.fallbackMarginPercent ?? 26}%</span>
+                <span>{isAutoCalculating ? 'Live Margin Rate:' : 'Expected Margin:'}</span>
+                <span className="text-emerald-300 font-bold">~{effectiveProfits.normal?.fallbackMarginPercent ?? 26}%</span>
               </div>
               <div className="flex justify-between text-[10px] text-slate-400 bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800">
-                <span>Normal: <b className="text-emerald-400">{expectedProfits.normal?.fallbackMarginPercent ?? 26}%</b></span>
-                <span>Silver: <b className="text-cyan-400">{expectedProfits.silver?.fallbackMarginPercent ?? 15}%</b></span>
-                <span>Gold: <b className="text-amber-400">{expectedProfits.gold?.fallbackMarginPercent ?? 8}%</b></span>
+                <span>Normal: <b className="text-emerald-400">{effectiveProfits.normal?.fallbackMarginPercent ?? 26}%</b></span>
+                <span>Silver: <b className="text-cyan-400">{effectiveProfits.silver?.fallbackMarginPercent ?? 15}%</b></span>
+                <span>Gold: <b className="text-amber-400">{effectiveProfits.gold?.fallbackMarginPercent ?? 8}%</b></span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Gross Revenue:</span>
                 <span className="text-slate-300">LKR {profitBreakdown.etc.sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="text-[9px] text-slate-500 text-right mt-1">
-                Formula: 100d–11500d + tier margin
+                {isAutoCalculating
+                  ? 'Live formula: 100d–11500d shell costs + tier margin'
+                  : 'Formula: 100d–11500d + tier margin'}
               </div>
             </div>
           </div>
@@ -943,7 +1072,7 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Manual Expected Profit Formula Configurator Modal */}
+      {/* Expected Profit Formula Configurator Modal */}
       {profitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
           <div className="relative w-full max-w-2xl bg-[#121028] border border-emerald-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl text-white my-8 max-h-[90vh] flex flex-col space-y-6">
@@ -955,12 +1084,11 @@ export default function AdminDashboardPage() {
                     <Calculator className="w-4 h-4" />
                   </div>
                   <h3 className="text-base font-black uppercase tracking-wider text-white">
-                    Manual Expected Profit Formula Configurator
+                    Expected Profit Formula & Engine Configurator
                   </h3>
                 </div>
                 <p className="text-xs text-slate-400">
-                  Manually define expected net profit per package. Total Profit updates dynamically using:{' '}
-                  <span className="text-emerald-400 font-mono font-bold">Weekly + Monthly + Lite + Etc.</span>
+                  Configure dynamic auto-calculation or define custom expected profits per package.
                 </p>
               </div>
               <button
@@ -973,6 +1101,75 @@ export default function AdminDashboardPage() {
 
             {/* Scrollable Form Content */}
             <div className="overflow-y-auto pr-2 space-y-6 flex-1">
+              {/* Engine Mode Switcher Card */}
+              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-emerald-400" />
+                    Calculation Engine Mode:
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                    editingProfits.autoCalculate !== false
+                      ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                      : 'bg-amber-500/15 border border-amber-500/30 text-amber-300'
+                  }`}>
+                    {editingProfits.autoCalculate !== false ? '● Auto-Calculate Active' : '○ Manual Formula Override'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingProfits((prev) => ({ ...prev, autoCalculate: true }))}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      editingProfits.autoCalculate !== false
+                        ? 'bg-emerald-500/15 border-emerald-500/50 text-white shadow-lg shadow-emerald-950/40'
+                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-emerald-400 mb-1">
+                      <Zap className="w-3.5 h-3.5" /> Auto-Calculate (Live Shell Costs)
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      Derives profits dynamically: Revenue − (Shells × LKR {unitShellCost.toFixed(2)}). Zero maintenance.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditingProfits((prev) => ({ ...prev, autoCalculate: false }))}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      editingProfits.autoCalculate === false
+                        ? 'bg-amber-500/15 border-amber-500/50 text-white shadow-lg shadow-amber-950/40'
+                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-amber-400 mb-1">
+                      <Sliders className="w-3.5 h-3.5" /> Manual Formula Override
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      Use static profit numbers per tier entered in the fields below.
+                    </p>
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-cyan-400" />
+                    Rate: <strong>1,300 shells = LKR {basePrice1300.toLocaleString()} (LKR {unitShellCost.toFixed(2)}/shell)</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const liveAuto = generateAutoProfitsFromPackages(displayPackages, basePrice1300);
+                      setEditingProfits({ ...liveAuto, autoCalculate: true });
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 font-bold hover:text-white transition-all flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Sync Tiers with Live Catalog
+                  </button>
+                </div>
+              </div>
               {/* 3 User Types Tier Selector Tabs */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -1375,7 +1572,7 @@ export default function AdminDashboardPage() {
                 let goldCount = 0, goldProfit = 0;
 
                 completedOrders.forEach((o) => {
-                  const res = classifyAndCalculateOrderProfit(o, editingProfits);
+                  const res = classifyAndCalculateOrderProfit(o, editingProfits, displayPackages, unitShellCost);
                   if (res.category === 'weekly') simW += res.profit;
                   else if (res.category === 'monthly') simM += res.profit;
                   else if (res.category === 'lite') simL += res.profit;

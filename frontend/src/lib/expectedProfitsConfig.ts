@@ -15,6 +15,7 @@ export interface ExpectedProfitsTierConfig {
 }
 
 export interface MultiTierExpectedProfitsConfig {
+  autoCalculate?: boolean;
   normal: ExpectedProfitsTierConfig;
   silver: ExpectedProfitsTierConfig;
   gold: ExpectedProfitsTierConfig;
@@ -70,6 +71,7 @@ export const DEFAULT_TIER_PROFITS: Record<UserTier, ExpectedProfitsTierConfig> =
 };
 
 export const DEFAULT_EXPECTED_PROFITS: MultiTierExpectedProfitsConfig = {
+  autoCalculate: true,
   normal: { ...DEFAULT_TIER_PROFITS.normal },
   silver: { ...DEFAULT_TIER_PROFITS.silver },
   gold: { ...DEFAULT_TIER_PROFITS.gold },
@@ -86,12 +88,93 @@ export function getTierProfitConfig(
   return DEFAULT_TIER_PROFITS.normal;
 }
 
+export function generateAutoProfitsFromPackages(
+  packages: any[],
+  basePrice1300: number = 3380
+): MultiTierExpectedProfitsConfig {
+  const unitShellCost = (basePrice1300 || 3380) / 1300;
+
+  const findPkg = (predicate: (p: any) => boolean) => {
+    return (packages || []).find(predicate);
+  };
+
+  const getTierProfit = (
+    pkg: any,
+    tier: UserTier,
+    fallbackShells: number,
+    fallbackDefaultProfit: number
+  ): number => {
+    if (!pkg) return fallbackDefaultProfit;
+    const shells = pkg.shell_cost ?? fallbackShells;
+    const cost = shells * unitShellCost;
+    const price =
+      tier === 'gold'
+        ? Number(pkg.gold_price) || Number(pkg.normal_price) || 0
+        : tier === 'silver'
+        ? Number(pkg.silver_price) || Number(pkg.normal_price) || 0
+        : Number(pkg.normal_price) || 0;
+    const profit = Math.round((price - cost) * 100) / 100;
+    return profit > 0 ? profit : fallbackDefaultProfit;
+  };
+
+  const weeklyPkg = findPkg((p) => {
+    const n = (p.package_name || '').toLowerCase();
+    const c = (p.code || '').toLowerCase();
+    return c === 'weekly' || (n.includes('weekly') && !n.includes('lite'));
+  });
+
+  const monthlyPkg = findPkg((p) => {
+    const n = (p.package_name || '').toLowerCase();
+    const c = (p.code || '').toLowerCase();
+    return c === 'monthly' || n.includes('monthly');
+  });
+
+  const litePkg = findPkg((p) => {
+    const n = (p.package_name || '').toLowerCase();
+    const c = (p.code || '').toLowerCase();
+    return c === 'lite' || n.includes('lite');
+  });
+
+  const d100Pkg = findPkg((p) => (p.package_name || '').includes('100') || p.diamond_amount === 100);
+  const d310Pkg = findPkg((p) => (p.package_name || '').includes('310') || p.diamond_amount === 310);
+  const d520Pkg = findPkg((p) => (p.package_name || '').includes('520') || p.diamond_amount === 520);
+  const d1060Pkg = findPkg((p) => (p.package_name || '').includes('1060') || p.diamond_amount === 1060);
+  const d2180Pkg = findPkg((p) => (p.package_name || '').includes('2180') || p.diamond_amount === 2180);
+  const d5600Pkg = findPkg((p) => (p.package_name || '').includes('5600') || p.diamond_amount === 5600);
+  const d11500Pkg = findPkg((p) => (p.package_name || '').includes('11500') || p.diamond_amount === 11500);
+
+  const buildTier = (tier: UserTier): ExpectedProfitsTierConfig => ({
+    weekly: getTierProfit(weeklyPkg, tier, 86, DEFAULT_TIER_PROFITS[tier].weekly),
+    monthly: getTierProfit(monthlyPkg, tier, 430, DEFAULT_TIER_PROFITS[tier].monthly),
+    lite: getTierProfit(litePkg, tier, 18, DEFAULT_TIER_PROFITS[tier].lite),
+    d100: getTierProfit(d100Pkg, tier, 40, DEFAULT_TIER_PROFITS[tier].d100),
+    d310: getTierProfit(d310Pkg, tier, 124, DEFAULT_TIER_PROFITS[tier].d310),
+    d520: getTierProfit(d520Pkg, tier, 208, DEFAULT_TIER_PROFITS[tier].d520),
+    d1060: getTierProfit(d1060Pkg, tier, 416, DEFAULT_TIER_PROFITS[tier].d1060),
+    d2180: getTierProfit(d2180Pkg, tier, 832, DEFAULT_TIER_PROFITS[tier].d2180),
+    d5600: getTierProfit(d5600Pkg, tier, 2080, DEFAULT_TIER_PROFITS[tier].d5600),
+    d11500: getTierProfit(d11500Pkg, tier, 4160, DEFAULT_TIER_PROFITS[tier].d11500),
+    fallbackMarginPercent: DEFAULT_TIER_PROFITS[tier].fallbackMarginPercent,
+  });
+
+  return {
+    autoCalculate: true,
+    normal: buildTier('normal'),
+    silver: buildTier('silver'),
+    gold: buildTier('gold'),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export function normalizeExpectedProfits(raw: any): MultiTierExpectedProfitsConfig {
   if (!raw) return { ...DEFAULT_EXPECTED_PROFITS };
+
+  const autoCalculate = raw.autoCalculate !== undefined ? Boolean(raw.autoCalculate) : true;
 
   // If already in 3-tier format:
   if (raw.normal && typeof raw.normal.weekly === 'number') {
     return {
+      autoCalculate,
       normal: { ...DEFAULT_TIER_PROFITS.normal, ...raw.normal },
       silver: { ...DEFAULT_TIER_PROFITS.silver, ...(raw.silver || {}) },
       gold: { ...DEFAULT_TIER_PROFITS.gold, ...(raw.gold || {}) },
@@ -102,6 +185,7 @@ export function normalizeExpectedProfits(raw: any): MultiTierExpectedProfitsConf
   // If legacy single flat format:
   if (typeof raw.weekly === 'number') {
     return {
+      autoCalculate,
       normal: {
         weekly: raw.weekly ?? DEFAULT_TIER_PROFITS.normal.weekly,
         monthly: raw.monthly ?? DEFAULT_TIER_PROFITS.normal.monthly,
