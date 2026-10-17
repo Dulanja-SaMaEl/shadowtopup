@@ -13,6 +13,16 @@ export default function PagePreloader() {
     // Only display on arrival at the home route ('/') if not already seen in this session
     if (pathname === '/') {
       if (typeof window !== 'undefined') {
+        // If the user explicitly refreshes the page, clear the seen flag so they can view the full animation
+        try {
+          const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+          if (navEntries.length > 0 && navEntries[0].type === 'reload') {
+            sessionStorage.removeItem('shadow_preloader_seen');
+          }
+        } catch {
+          // Ignore if performance navigation API is unavailable
+        }
+
         const hasSeen = sessionStorage.getItem('shadow_preloader_seen');
         const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         
@@ -33,15 +43,16 @@ export default function PagePreloader() {
       setIsLoaded(false);
       setShouldRender(true);
 
-      // Fast, snappy sequence: letters load in ~450ms, curtain splits and unmasks at ~900ms
+      // Full animation sequence: letters S-H-A-D-O-W cascade in, hold full glow until ~2.0s
       const loadTimer = setTimeout(() => {
         setIsLoaded(true);
-      }, 450);
+      }, 2000);
 
+      // At 2.9s: 4-panel curtain split animation (0.9s duration) completes and unmasks
       const dismissTimer = setTimeout(() => {
         setIsDismissed(true);
         setShouldRender(false);
-      }, 950);
+      }, 2900);
 
       return () => {
         clearTimeout(loadTimer);

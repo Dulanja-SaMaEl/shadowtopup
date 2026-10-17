@@ -301,7 +301,7 @@ export default async function HomePage() {
               {/* Left Column: Clear Value Prop with Tactical HUD */}
               <div className="lg:col-span-7 space-y-5">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-                  Instant Free Fire Diamonds &amp; Weekly Memberships in{' '}
+                  Instant Free Fire Diamonds &amp; Memberships in{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-300 to-purple-300">
                     Sri Lanka
                   </span>
