@@ -112,8 +112,16 @@ export default function ContactClient() {
             </span>
             <span className="text-sm font-bold text-white block mt-0.5">Dulanja Abeysinghe</span>
             <a
+              href="https://wa.me/94765917189?text=Hello%20Dulanja%2C%20contacting%20regarding%20Shadow%20Store"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs sm:text-sm text-emerald-400 hover:text-emerald-300 font-bold font-mono transition-colors flex items-center gap-1.5 mt-1"
+            >
+              <Phone className="w-3.5 h-3.5" /> 076 591 7189 (WhatsApp)
+            </a>
+            <a
               href="mailto:dulanja150abeysinghe@gmail.com"
-              className="text-xs sm:text-sm text-cyan-300 hover:text-cyan-200 font-mono transition-colors block break-all mt-1"
+              className="text-xs text-cyan-300 hover:text-cyan-200 font-mono transition-colors block break-all mt-0.5"
             >
               dulanja150abeysinghe@gmail.com
             </a>

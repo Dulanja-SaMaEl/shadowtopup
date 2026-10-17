@@ -33,15 +33,15 @@ export default function PagePreloader() {
       }
     }
 
-    // Full animation sequence: letters S-H-A-D-O-W cascade in, hold full glow until ~2.0s
+    // Full animation sequence: letters S-H-A-D-O-W cascade in, hold full glow until ~3.2s
     const loadTimer = setTimeout(() => {
       setIsLoaded(true);
-    }, 2000);
+    }, 3200);
 
-    // At 2.9s: 4-panel curtain split animation (0.9s duration) completes and unmasks
+    // At 4.15s: 4-panel curtain split animation (0.9s duration) completes and unmasks
     const dismissTimer = setTimeout(() => {
       setIsDismissed(true);
-    }, 2900);
+    }, 4150);
 
     return () => {
       clearTimeout(loadTimer);

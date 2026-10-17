@@ -77,13 +77,19 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-[11px] text-slate-400">
             <span>Sri Lanka Gaming Recharge Services</span>
             <span className="hidden sm:inline text-slate-700">•</span>
-            <span>
+            <span className="flex flex-wrap items-center gap-1.5">
               Developer:{' '}
               <a
-                href="mailto:dulanja150abeysinghe@gmail.com"
-                className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+                href="https://wa.me/94765917189?text=Hello%20Dulanja%2C%20contacting%20regarding%20Shadow%20Store"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-cyan-400 hover:text-emerald-400 font-medium transition-colors inline-flex items-center gap-1.5"
+                title="Direct WhatsApp: 076 591 7189"
               >
-                Dulanja Abeysinghe
+                <span>Dulanja Abeysinghe</span>
+                <span className="text-emerald-400 text-[10px] font-mono font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30 hover:bg-emerald-500/20">
+                  WhatsApp: 076 591 7189
+                </span>
               </a>
             </span>
           </div>

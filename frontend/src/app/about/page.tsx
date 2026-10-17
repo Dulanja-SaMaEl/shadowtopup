@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Zap, ShieldCheck, Award, Cpu, Home, ChevronRight, CheckCircle2, Mail, Code } from 'lucide-react';
+import { Zap, ShieldCheck, Award, Cpu, Home, ChevronRight, CheckCircle2, Mail, Code, Phone } from 'lucide-react';
 import {
   SITE_NAME,
   createCanonicalUrl,
@@ -128,12 +128,22 @@ export default function AboutPage() {
               <h2 className="text-2xl font-black text-white">Lead Developer</h2>
               <p className="text-base font-bold text-slate-200">Dulanja Abeysinghe</p>
             </div>
-            <a
-              href="mailto:dulanja150abeysinghe@gmail.com"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold transition-all w-fit"
-            >
-              <Mail className="w-4 h-4" /> dulanja150abeysinghe@gmail.com
-            </a>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <a
+                href="https://wa.me/94765917189?text=Hello%20Dulanja%2C%20contacting%20regarding%20Shadow%20Store"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold transition-all w-fit shadow-sm"
+              >
+                <Phone className="w-4 h-4" /> 076 591 7189 (WhatsApp)
+              </a>
+              <a
+                href="mailto:dulanja150abeysinghe@gmail.com"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold transition-all w-fit"
+              >
+                <Mail className="w-4 h-4" /> dulanja150abeysinghe@gmail.com
+              </a>
+            </div>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
             Architected and engineered the Shadow Store platform from the ground up, implementing high-speed Garena API integrations, automated Dialog eZ Cash verification, real-time Player UID verification, and high-performance serverless edge deployment.
