@@ -5,66 +5,52 @@ import { usePathname } from 'next/navigation';
 
 export default function PagePreloader() {
   const pathname = usePathname();
-  const [shouldRender, setShouldRender] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    // Only display on arrival at the home route ('/') if not already seen in this session
-    if (pathname === '/') {
+    // Clear any legacy sessionStorage flags from earlier versions
+    try {
       if (typeof window !== 'undefined') {
-        // If the user explicitly refreshes the page, clear the seen flag so they can view the full animation
-        try {
-          const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-          if (navEntries.length > 0 && navEntries[0].type === 'reload') {
-            sessionStorage.removeItem('shadow_preloader_seen');
-          }
-        } catch {
-          // Ignore if performance navigation API is unavailable
-        }
-
-        const hasSeen = sessionStorage.getItem('shadow_preloader_seen');
-        const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        
-        if (hasSeen || prefersReducedMotion) {
-          setIsDismissed(true);
-          setShouldRender(false);
-          return;
-        }
-
-        try {
-          sessionStorage.setItem('shadow_preloader_seen', 'true');
-        } catch {
-          // sessionStorage may fail in private browsing; ignore
-        }
+        sessionStorage.removeItem('shadow_preloader_seen');
       }
-
-      setIsDismissed(false);
-      setIsLoaded(false);
-      setShouldRender(true);
-
-      // Full animation sequence: letters S-H-A-D-O-W cascade in, hold full glow until ~2.0s
-      const loadTimer = setTimeout(() => {
-        setIsLoaded(true);
-      }, 2000);
-
-      // At 2.9s: 4-panel curtain split animation (0.9s duration) completes and unmasks
-      const dismissTimer = setTimeout(() => {
-        setIsDismissed(true);
-        setShouldRender(false);
-      }, 2900);
-
-      return () => {
-        clearTimeout(loadTimer);
-        clearTimeout(dismissTimer);
-      };
-    } else {
-      setIsDismissed(true);
-      setShouldRender(false);
+    } catch {
+      // Ignore
     }
-  }, [pathname]);
 
-  if (!shouldRender || isDismissed) {
+    // Skip preloader on admin dashboard pages
+    if (pathname && pathname.startsWith('/admin')) {
+      setIsDismissed(true);
+      return;
+    }
+
+    // Check for user's prefers-reduced-motion accessibility setting
+    if (typeof window !== 'undefined') {
+      const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        setIsDismissed(true);
+        return;
+      }
+    }
+
+    // Full animation sequence: letters S-H-A-D-O-W cascade in, hold full glow until ~2.0s
+    const loadTimer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 2000);
+
+    // At 2.9s: 4-panel curtain split animation (0.9s duration) completes and unmasks
+    const dismissTimer = setTimeout(() => {
+      setIsDismissed(true);
+    }, 2900);
+
+    return () => {
+      clearTimeout(loadTimer);
+      clearTimeout(dismissTimer);
+    };
+  }, []);
+
+  // Do not render on admin pages or once dismissed
+  if ((pathname && pathname.startsWith('/admin')) || isDismissed) {
     return null;
   }
 
