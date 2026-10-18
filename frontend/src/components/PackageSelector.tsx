@@ -39,6 +39,27 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const ezCashReceiverNumber = process.env.NEXT_PUBLIC_EZCASH_NUMBER || '0765604635';
   const ezCashReceiverName = process.env.NEXT_PUBLIC_EZCASH_NAME || 'Shadow Store';
 
+  // Bank details state
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<string>('');
+  const [copiedBankAcc, setCopiedBankAcc] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadBankAccounts() {
+      try {
+        const res = await fetch('/api/bank-details');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.accounts) && data.accounts.length > 0) {
+          setBankAccounts(data.accounts);
+          setSelectedBankId(data.accounts[0].id);
+        }
+      } catch (e) {
+        console.warn('Bank accounts fetch note:', e);
+      }
+    }
+    loadBankAccounts();
+  }, []);
+
   // Category counts for clean tab badges
   const membershipPkgs = packages.filter((pkg) => pkg.package_type === 'weekly_pass' || pkg.package_type === 'monthly_pass' || pkg.package_type === 'evo_access');
   const levelUpPkgs = packages.filter((pkg) => pkg.package_type === 'levelup_pass');
@@ -763,16 +784,98 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
           )}
 
           {paymentMethod === 'bank_transfer' && (
-            <div className="space-y-2 bg-[#090714] p-4 rounded-lg border border-purple-950/80">
-              <label className="block text-xs font-semibold text-slate-300">
-                Upload Payment Receipt Slip
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#181335] file:text-purple-300 hover:file:bg-[#201b44] cursor-pointer"
-              />
+            <div className="space-y-3 bg-[#090714] p-4 rounded-lg border border-purple-950/80">
+              {/* Bank Selection if multiple accounts exist */}
+              {bankAccounts.length > 1 && (
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono uppercase text-purple-400 font-semibold">
+                    Select Deposit Bank
+                  </label>
+                  <select
+                    value={selectedBankId}
+                    onChange={(e) => setSelectedBankId(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#110e24] border border-purple-950/80 rounded-lg text-white font-semibold text-xs focus:outline-none focus:border-purple-500"
+                  >
+                    {bankAccounts.map((b) => (
+                      <option key={b.id} value={b.id} className="bg-[#110e24] text-white">
+                        {b.bank_name} - {b.account_number}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {(() => {
+                const activeAcc = bankAccounts.find((b) => b.id === selectedBankId) || bankAccounts[0];
+                if (activeAcc) {
+                  return (
+                    <div className="p-3.5 rounded-xl bg-[#110e24] border border-purple-900/50 text-xs space-y-2 text-slate-300">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono uppercase text-purple-400 font-semibold flex items-center gap-1.5">
+                          <Landmark className="w-3.5 h-3.5" />
+                          <span>Official Deposit Account</span>
+                        </span>
+                        {activeAcc.branch_name && (
+                          <span className="text-[10px] font-mono text-purple-300/80 bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-800/40">
+                            {activeAcc.branch_name}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="font-extrabold text-sm text-white">{activeAcc.bank_name}</p>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-purple-950/60">
+                        <span className="text-slate-400 text-xs">Account No:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-emerald-400 tracking-wider text-sm">
+                            {activeAcc.account_number}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(activeAcc.account_number);
+                              setCopiedBankAcc(activeAcc.id);
+                              setTimeout(() => setCopiedBankAcc(null), 2500);
+                            }}
+                            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                            title="Copy Account Number"
+                          >
+                            {copiedBankAcc === activeAcc.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-purple-950/60">
+                        <span className="text-slate-400">Account Name:</span>
+                        <span className="font-bold text-white tracking-wide">{activeAcc.account_name}</span>
+                      </div>
+
+                      {activeAcc.instructions && (
+                        <p className="text-[11px] text-slate-400 pt-1 border-t border-purple-950/60 leading-relaxed italic">
+                          {activeAcc.instructions}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Upload Payment Receipt Slip
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#181335] file:text-purple-300 hover:file:bg-[#201b44] cursor-pointer"
+                />
+              </div>
             </div>
           )}
 

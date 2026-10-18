@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   Wallet,
+  Landmark,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -128,8 +129,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ],
     },
     {
-      title: 'FREE FIRE TOP-UP',
+      title: 'PAYMENT & TOP-UP',
       items: [
+        { label: 'Bank Details', href: '/admin/bank-details', icon: Landmark },
         { label: 'Shell Accounts', href: '/admin/shell-accounts', icon: Database },
         { label: 'Packages', href: '/admin/packages', icon: Package },
         { label: 'Pricing Rules', href: '/admin/pricing-rules', icon: Sliders },

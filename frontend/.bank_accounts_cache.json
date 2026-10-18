@@ -1,0 +1,50 @@
+[
+  {
+    "id": "bank-sampath-118055314226",
+    "bank_name": "Sampath Bank PLC",
+    "account_name": "D.I.R.D. WIJESINGHE",
+    "account_number": "118055314226",
+    "branch_name": "HEAD OFFICE",
+    "instructions": "Please deposit or transfer the exact order amount and upload a clear screenshot of the bank receipt/slip.",
+    "is_active": true,
+    "display_order": 1,
+    "created_at": "2026-10-18T03:30:00.000Z",
+    "updated_at": "2026-10-18T03:30:00.000Z"
+  },
+  {
+    "id": "bank-dialog-001023077550",
+    "bank_name": "Dialog Finance PLC",
+    "account_name": "D.I.R.D. WIJESINGHE",
+    "account_number": "001023077550",
+    "branch_name": "HEAD OFFICE",
+    "instructions": "Please deposit or transfer the exact order amount and upload a clear screenshot of the transfer confirmation.",
+    "is_active": true,
+    "display_order": 2,
+    "created_at": "2026-10-18T03:30:00.000Z",
+    "updated_at": "2026-10-18T03:30:00.000Z"
+  },
+  {
+    "id": "bank-boc-75566748",
+    "bank_name": "Bank of Ceylon",
+    "account_name": "D.I.R.D. WIJESINGHE",
+    "account_number": "75566748",
+    "branch_name": "HAKMANA BRANCH",
+    "instructions": "Please deposit or transfer the exact order amount and upload a clear screenshot of the bank receipt/slip.",
+    "is_active": true,
+    "display_order": 3,
+    "created_at": "2026-10-18T03:30:00.000Z",
+    "updated_at": "2026-10-18T03:30:00.000Z"
+  },
+  {
+    "id": "bank-nsb-300058079751",
+    "bank_name": "National Savings Bank (NSB)",
+    "account_name": "D.I.R.D. WIJESINGHE",
+    "account_number": "300058079751",
+    "branch_name": "HAKMANA BRANCH",
+    "instructions": "Please deposit or transfer the exact order amount and upload a clear screenshot of the bank receipt/slip.",
+    "is_active": true,
+    "display_order": 4,
+    "created_at": "2026-10-18T03:30:00.000Z",
+    "updated_at": "2026-10-18T03:30:00.000Z"
+  }
+]
