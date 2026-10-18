@@ -2,6 +2,8 @@ import crypto from 'crypto';
 
 export interface DialogPayConfig {
   apiKey: string;
+  publicKey?: string;
+  appId?: string;
   baseUrl: string;
   environment: 'sandbox' | 'production';
   appUrl: string;
@@ -32,18 +34,30 @@ export interface DialogPayTransactionResponse {
  * Returns Dialog Pay Business configuration from environment variables
  */
 export function getDialogPayConfig(): DialogPayConfig {
-  const apiKey = process.env.DIALOG_PAY_API_KEY || '';
-  const environment = (process.env.DIALOG_PAY_ENV || 'sandbox').toLowerCase() === 'production'
-    ? 'production'
-    : 'sandbox';
+  const apiKey = (process.env.DIALOG_PAY_API_KEY || '').trim();
+  const publicKey = (process.env.DIALOG_PAY_PUBLIC_KEY || '').trim();
+  const appId = (process.env.DIALOG_PAY_APP_ID || '').trim();
+
+  // If environment is explicitly production OR the key indicates production, use production
+  const envVar = (process.env.DIALOG_PAY_ENV || '').toLowerCase().trim();
+  const isProduction =
+    envVar === 'production' ||
+    publicKey.startsWith('pk_production_') ||
+    (!envVar && apiKey.length > 0);
+
+  const environment = isProduction ? 'production' : 'sandbox';
 
   const baseUrl = environment === 'production'
     ? 'https://api.geniebiz.lk'
     : 'https://api.uat.geniebiz.lk';
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const appUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    'https://www.shadowstorelk.com'
+  ).replace(/\/$/, '');
 
-  return { apiKey, baseUrl, environment, appUrl };
+  return { apiKey, publicKey, appId, baseUrl, environment, appUrl };
 }
 
 /**
@@ -75,7 +89,11 @@ export async function createDialogPayTransaction(
     amount: amountInCents,
     currency: 'LKR',
     redirectUrl,
+    returnUrl: redirectUrl,
+    callbackUrl: redirectUrl,
     webhook: webhookUrl,
+    webhookUrl: webhookUrl,
+    notifyUrl: webhookUrl,
     localId: params.orderId,
     customerReference: params.customerReference || `Order ${params.orderId}`,
     customer: {

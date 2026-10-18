@@ -23,7 +23,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
   const [cartToast, setCartToast] = useState<{ show: boolean; packageName: string; quantity: number } | null>(null);
   const [effectiveRole, setEffectiveRole] = useState<UserRole | undefined>(userRole);
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer' | 'shadow_wallet' | 'ez_cash' | 'dialog_pay'>('shadow_wallet');
+  const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'shadow_wallet' | 'ez_cash' | 'dialog_pay'>('shadow_wallet');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [userStoreName, setUserStoreName] = useState<string | null>(null);
@@ -362,31 +362,6 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
       return;
     }
 
-    if (paymentMethod === 'paypal') {
-      try {
-        const res = await fetch('/api/paypal/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: price,
-            transactionId: Date.now(),
-            packageName: selectedPkg.package_name,
-          }),
-        });
-
-        const data = await res.json();
-        if (data.approvalUrl) {
-          window.location.href = data.approvalUrl;
-        } else {
-          setMessage({ type: 'error', text: data.error || 'Failed to initiate PayPal transaction' });
-        }
-      } catch (err) {
-        setMessage({ type: 'error', text: 'Failed to process payment request' });
-      }
-      setLoading(false);
-      return;
-    }
-
     if (paymentMethod === 'bank_transfer') {
       let receiptUrl = null;
 
@@ -633,7 +608,7 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
             <span>Step 3: Select Payment Method</span>
           </h3>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             <button
               type="button"
               onClick={() => setPaymentMethod('shadow_wallet')}
@@ -685,22 +660,6 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                   Dialog eZ Cash
                 </span>
                 <span className="text-[10px] text-slate-400 block font-mono">SMS verify</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('paypal')}
-              className={`p-3 rounded-lg border flex items-center gap-2.5 transition-all text-left ${
-                paymentMethod === 'paypal'
-                  ? 'bg-[#181335] border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)] text-white ring-1 ring-purple-400/40'
-                  : 'bg-[#090714] border-purple-950/70 text-slate-400 hover:border-purple-500/40 hover:text-white'
-              }`}
-            >
-              <CreditCard className="w-4 h-4 text-blue-400 shrink-0" />
-              <div>
-                <span className="font-semibold text-white block text-xs">PayPal</span>
-                <span className="text-[10px] text-slate-400 block">International</span>
               </div>
             </button>
 

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { Phone, MessageCircle } from 'lucide-react';
 
 export default function PagePreloader() {
   const pathname = usePathname();
@@ -27,7 +26,7 @@ export default function PagePreloader() {
 
     // Full animation sequence:
     // 0.0s - 1.5s: Letters S-H-A-D-O-W flip in with neon glow
-    // 1.5s - 3.6s: Hold full pulsing glow & display developer hotline
+    // 1.5s - 3.6s: Hold full pulsing glow & display portal slogan
     // 3.6s: Trigger curtain split (0.85s smooth split)
     const loadTimer = setTimeout(() => {
       setIsLoaded(true);
@@ -79,22 +78,14 @@ export default function PagePreloader() {
         </div>
         <p className="text-center">Loading Experience</p>
 
-        {/* Developer WhatsApp Contact Badge */}
-        <div className="mt-7 flex flex-col items-center gap-2">
-          <a
-            href="https://wa.me/94765917189?text=Hello%20Developer,%20contacting%20from%20Shadow%20Top%20Up%20portal"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-purple-950/70 border border-purple-500/40 text-purple-200 text-xs font-semibold hover:border-emerald-400 hover:text-emerald-300 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] backdrop-blur-md cursor-pointer"
-            title="Chat directly with Developer on WhatsApp"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+        {/* Official Gaming Slogan */}
+        <div className="mt-5 flex items-center justify-center">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-950/60 border border-purple-800/50 shadow-[0_0_15px_rgba(168,85,247,0.25)] backdrop-blur-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="text-[11px] font-semibold text-purple-200 tracking-wider uppercase font-mono">
+              Sri Lanka&apos;s #1 Instant Gaming Store
             </span>
-            <MessageCircle className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
-            <span>Developer Hotline: <strong className="text-white group-hover:text-emerald-300 font-mono tracking-wide">076 591 7189</strong></span>
-          </a>
+          </div>
         </div>
       </div>
 
