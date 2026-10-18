@@ -149,26 +149,88 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Invalid order amount.' }, { status: 400 });
     }
 
-    // 2. Create a pending order in the database
-    const { data: newOrder, error: orderErr } = await adminSupabase
+    // 2. Create a pending order in the database with schema-resilient columns
+    let newOrder: any = null;
+    let orderErr: any = null;
+
+    // Check if packageId is a genuine DB package ID or in-memory catalog
+    const isDbPackage = allDbPackages && allDbPackages.some((p: any) => p.id === orderCartDetails[0]?.packageId);
+    const safePackageId = isDbPackage ? orderCartDetails[0].packageId : null;
+
+    const primaryPayload: any = {
+      user_id: authUser.id,
+      total_amount: totalAmount,
+      status: 'pending',
+      package_name: orderDescription,
+      free_fire_player_id: targetUid,
+      payment_method: 'dialog_pay',
+      admin_note: `Dialog Pay initiated | Player: ${targetUid}${targetNickname ? ` (${targetNickname})` : ''} | Cart: ${JSON.stringify(orderCartDetails)}`,
+    };
+
+    if (safePackageId) {
+      primaryPayload.package_id = safePackageId;
+    }
+
+    // Attempt 1: Standard shadowtopup schema (free_fire_player_id)
+    const { data: ord1, error: err1 } = await adminSupabase
       .from('orders')
-      .insert([{
-        user_id: authUser.id,
-        package_id: orderCartDetails[0].packageId || null,
-        package_name: orderDescription,
-        player_uid: targetUid,
-        player_nickname: targetNickname || null,
-        total_amount: totalAmount,
-        payment_method: 'dialog_pay',
-        status: 'pending',
-        admin_note: `Dialog Pay initiated | Cart: ${JSON.stringify(orderCartDetails)}`,
-      }])
+      .insert([primaryPayload])
       .select()
       .single();
 
-    if (orderErr || !newOrder) {
-      console.error('[DialogPay] Failed to create order in database:', orderErr);
-      return NextResponse.json({ success: false, message: 'Failed to record pending order.' }, { status: 500 });
+    if (!err1 && ord1) {
+      newOrder = ord1;
+    } else {
+      console.warn('[DialogPay] Primary order insert failed, trying schema variants:', err1?.message);
+      // Attempt 2: Schema with player_uid
+      const fallbackPayload: any = {
+        user_id: authUser.id,
+        total_amount: totalAmount,
+        status: 'pending',
+        package_name: orderDescription,
+        player_uid: targetUid,
+        payment_method: 'dialog_pay',
+        admin_note: `Dialog Pay initiated | Player: ${targetUid} | Cart: ${JSON.stringify(orderCartDetails)}`,
+      };
+
+      const { data: ord2, error: err2 } = await adminSupabase
+        .from('orders')
+        .insert([fallbackPayload])
+        .select()
+        .single();
+
+      if (!err2 && ord2) {
+        newOrder = ord2;
+      } else {
+        // Attempt 3: Universal minimal core schema
+        const minimalPayload: any = {
+          user_id: authUser.id,
+          total_amount: totalAmount,
+          status: 'pending',
+          payment_method: 'dialog_pay',
+          admin_note: `Dialog Pay initiated | Player: ${targetUid} | Cart: ${JSON.stringify(orderCartDetails)}`,
+        };
+
+        const { data: ord3, error: err3 } = await adminSupabase
+          .from('orders')
+          .insert([minimalPayload])
+          .select()
+          .single();
+
+        if (!err3 && ord3) {
+          newOrder = ord3;
+        } else {
+          orderErr = err3 || err2 || err1;
+          console.error('[DialogPay] All order insert attempts failed:', orderErr);
+        }
+      }
+    }
+
+    if (!newOrder) {
+      return NextResponse.json({
+        success: false,
+        message: orderErr?.message ? `Database order record error: ${orderErr.message}` : 'Failed to record pending order.',
+      }, { status: 500 });
     }
 
     // 3. Initiate payment with Genie Business Connect API
@@ -193,11 +255,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Update order with Genie Business transaction ID
-    await adminSupabase.from('orders').update({
-      transaction_id: paymentRes.data.id,
+    // 4. Update order with Genie Business transaction ID / note
+    const updatePayload: any = {
       admin_note: `Dialog Pay TxID: ${paymentRes.data.id} | Portal URL: ${paymentRes.data.url} | Cart: ${JSON.stringify(orderCartDetails)}`,
-    }).eq('id', newOrder.id);
+    };
+
+    // Attempt to update transaction_id if the column exists
+    try {
+      await adminSupabase.from('orders').update({
+        transaction_id: paymentRes.data.id,
+        ...updatePayload,
+      }).eq('id', newOrder.id);
+    } catch {
+      await adminSupabase.from('orders').update(updatePayload).eq('id', newOrder.id);
+    }
 
     return NextResponse.json({
       success: true,

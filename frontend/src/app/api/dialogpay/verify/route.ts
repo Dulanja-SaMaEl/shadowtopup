@@ -33,9 +33,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/orders?dialogpay_success=true&order_id=${encodeURIComponent(orderId)}`);
     }
 
-    // 3. If transaction_id exists, verify live state with Genie Business API
-    if (order.transaction_id) {
-      const txCheck = await getDialogPayTransaction(order.transaction_id);
+    // 3. Extract transaction ID from order column, admin_note, or URL params
+    const txId =
+      order.transaction_id ||
+      order.admin_note?.match(/TxID:\s*([^\s|]+)/)?.[1] ||
+      url.searchParams.get('transaction_id') ||
+      url.searchParams.get('id');
+
+    if (txId) {
+      const txCheck = await getDialogPayTransaction(txId);
 
       if (txCheck.success && txCheck.transaction) {
         const liveState = txCheck.transaction.state.toUpperCase();
@@ -44,7 +50,7 @@ export async function GET(request: NextRequest) {
           // Trigger fulfillment
           await fulfillDialogPayOrder({
             orderId: order.id,
-            transactionId: order.transaction_id,
+            transactionId: txId,
             provider: txCheck.transaction.provider,
             payerId: txCheck.transaction.payerId,
           });

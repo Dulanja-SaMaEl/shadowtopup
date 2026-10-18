@@ -52,7 +52,7 @@ export async function fulfillDialogPayOrder(options: FulfillDialogPayOrderOption
     cartItems = [{
       packageId: order.package_id,
       packageName: order.package_name,
-      playerUid: order.player_uid,
+      playerUid: order.free_fire_player_id || order.player_uid,
       quantity: 1,
       unitPrice: Number(order.total_amount),
       shellCost: 50,
