@@ -237,9 +237,7 @@ export async function POST(request: NextRequest) {
     const paymentRes = await createDialogPayTransaction({
       amountLkr: totalAmount,
       orderId: newOrder.id,
-      customerReference: `ShadowTopUp - ${orderDescription}`,
-      customerName: authUser.profile?.name || authUser.email?.split('@')[0] || 'Customer',
-      customerEmail: authUser.email,
+      customerReference: `Order ${String(newOrder.id).slice(0, 8)}`,
     });
 
     if (!paymentRes.success || !paymentRes.data?.url) {

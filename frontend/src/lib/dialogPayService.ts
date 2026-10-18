@@ -85,25 +85,16 @@ export async function createDialogPayTransaction(
   const redirectUrl = params.redirectUrl || `${config.appUrl}/api/dialogpay/verify?order_id=${encodeURIComponent(params.orderId)}`;
   const webhookUrl = params.webhookUrl || `${config.appUrl}/api/dialogpay/webhook`;
 
-  const requestBody = {
+  // Strictly follow Dialog Genie Business Connect V2 OpenAPI Schema:
+  // Branch 2 properties: amount, currency, redirectUrl, webhook, localId, customerReference, sendCustomerEmailReceipt
+  // (Do NOT pass extraneous alias fields or partial customer objects without full billing address)
+  const requestBody: Record<string, any> = {
     amount: amountInCents,
     currency: 'LKR',
-    redirectUrl,
-    returnUrl: redirectUrl,
-    callbackUrl: redirectUrl,
-    webhook: webhookUrl,
-    webhookUrl: webhookUrl,
-    notifyUrl: webhookUrl,
-    localId: params.orderId,
-    customerReference: params.customerReference || `Order ${params.orderId}`,
-    customer: {
-      name: params.customerName || 'Customer',
-      email: params.customerEmail || undefined,
-    },
-    paymentPortalExperience: {
-      skipCustomerForm: true,
-      externalWebsiteTermsAccepted: true,
-    },
+    redirectUrl: redirectUrl.slice(0, 200),
+    webhook: webhookUrl.slice(0, 200),
+    localId: String(params.orderId).slice(0, 100),
+    customerReference: String(params.customerReference || `Order ${params.orderId}`).slice(0, 100),
     sendCustomerEmailReceipt: true,
   };
 
@@ -118,9 +109,12 @@ export async function createDialogPayTransaction(
     });
 
     const data = await res.json();
+    console.log('[DialogPay] Gateway Response:', res.status, JSON.stringify(data));
 
     if (!res.ok || (!data.url && !data.id)) {
-      const errMsg = data?.message || data?.error || `Genie Business API returned status ${res.status}`;
+      const details = data?.details || data?.errors || data?.validationErrors || data?.data;
+      const detailStr = details ? ` (${typeof details === 'object' ? JSON.stringify(details) : details})` : '';
+      const errMsg = (data?.message || data?.error || `Genie Business API returned status ${res.status}`) + detailStr;
       return { success: false, error: errMsg };
     }
 
@@ -144,7 +138,7 @@ export async function createDialogPayTransaction(
 
 /**
  * Retrieves transaction details directly from Genie Business Connect API
- * Endpoint: GET /public/v2/transactions/{transactionId}
+ * Endpoint: GET /public/v2/transactions/{transactionId} with fallback to GET /public/transactions/{transactionId}
  */
 export async function getDialogPayTransaction(
   transactionId: string
@@ -156,7 +150,7 @@ export async function getDialogPayTransaction(
   }
 
   try {
-    const res = await fetch(`${config.baseUrl}/public/v2/transactions/${encodeURIComponent(transactionId)}`, {
+    let res = await fetch(`${config.baseUrl}/public/v2/transactions/${encodeURIComponent(transactionId)}`, {
       method: 'GET',
       headers: {
         Authorization: config.apiKey,
@@ -164,6 +158,18 @@ export async function getDialogPayTransaction(
       },
       cache: 'no-store',
     });
+
+    // Fallback to V1 public path if V2 returns 404
+    if (res.status === 404) {
+      res = await fetch(`${config.baseUrl}/public/transactions/${encodeURIComponent(transactionId)}`, {
+        method: 'GET',
+        headers: {
+          Authorization: config.apiKey,
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store',
+      });
+    }
 
     const data = await res.json();
 
