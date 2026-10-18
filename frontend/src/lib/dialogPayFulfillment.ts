@@ -29,12 +29,34 @@ export async function fulfillDialogPayOrder(options: FulfillDialogPayOrderOption
     return { success: false, message: 'Order not found' };
   }
 
-  // Idempotency: if already completed or refunded, do not deliver again!
+  // Strict idempotency: if already completed or finalized, never deliver again!
   if (order.status === 'completed') {
     return { success: true, message: 'Order already fulfilled and completed.', order };
   }
-  if (order.status === 'refunded' || order.status === 'rejected') {
-    return { success: false, message: `Order was previously marked ${order.status}.`, order };
+  if (
+    order.status === 'refunded' ||
+    order.status === 'rejected' ||
+    order.status === 'cancelled' ||
+    order.status === 'failed'
+  ) {
+    return { success: false, message: `Order was marked ${order.status}. Delivery blocked.`, order };
+  }
+
+  // Atomically lock order from 'pending' -> 'processing' to prevent race conditions
+  const { data: locked, error: lockErr } = await adminSupabase
+    .from('orders')
+    .update({
+      status: 'processing',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', orderId)
+    .eq('status', 'pending')
+    .select()
+    .single();
+
+  if (lockErr || !locked) {
+    console.log(`[DialogPay Fulfillment] Order ${orderId} is already locked or completed by another process.`);
+    return { success: true, message: 'Order is already being processed or completed.' };
   }
 
   // 2. Parse cart or package details from admin_note
@@ -130,27 +152,30 @@ export async function fulfillDialogPayOrder(options: FulfillDialogPayOrderOption
   // 6. Handle Delivery Outcome
   if (allDelivered) {
     // SUCCESS: Mark order completed
-    const updatedNote = `Dialog Pay TxID: ${transactionId}${providerInfo}${payerInfo} | Garena Trx: ${lastGarenaTxId} | ${deliveryNotes.join('; ')}`;
+    const updatedNote = `Dialog Pay TxID: ${transactionId}${providerInfo}${payerInfo} | Garena Trx: ${lastGarenaTxId} | Player: ${lastNickname || order.free_fire_player_id || 'UID'} | ${deliveryNotes.join('; ')}`;
     await adminSupabase.from('orders').update({
       status: 'completed',
-      transaction_id: transactionId,
-      player_nickname: lastNickname,
       admin_note: updatedNote,
+      verified_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq('id', order.id);
 
     // Record purchase transaction
-    await adminSupabase.from('purchase_transactions').insert([{
-      user_id: order.user_id,
-      package_id: order.package_id,
-      package_name: order.package_name,
-      free_fire_player_id: order.player_uid,
-      shells_deducted: shellsUsed,
-      price_paid: order.total_amount,
-      price_tier: order.profiles?.role || 'normal',
-      status: 'completed',
-      payment_method: 'dialog_pay',
-    }]);
+    try {
+      await adminSupabase.from('purchase_transactions').insert([{
+        user_id: order.user_id,
+        package_id: order.package_id || null,
+        package_name: order.package_name || 'Free Fire Package',
+        free_fire_player_id: order.free_fire_player_id || order.player_uid || targetShellAcc?.account_username || 'N/A',
+        shells_deducted: shellsUsed,
+        price_paid: order.total_amount,
+        price_tier: order.profiles?.role || 'normal',
+        status: 'completed',
+        payment_method: 'dialog_pay',
+      }]);
+    } catch (ptErr) {
+      console.warn('[DialogPay Fulfillment] purchase_transactions record failed (non-critical):', ptErr);
+    }
 
     // Send receipt email
     if (userEmail) {

@@ -88,6 +88,10 @@ export default function UserDashboardPage() {
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [viewReceiptModal, setViewReceiptModal] = useState<ReceiptData | null>(null);
+  const [dialogPayStatus, setDialogPayStatus] = useState<{
+    type: 'success' | 'pending' | 'cancel' | 'error';
+    message: string;
+  } | null>(null);
 
   const supabase = createClient();
 
@@ -142,6 +146,60 @@ export default function UserDashboardPage() {
                 receipt_url: o.paymentReceipt,
               }))
             );
+          }
+
+          // Check for Dialog Pay redirect outcome parameters
+          if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const isSuccess = params.get('dialogpay_success') === 'true';
+            const isPending = params.get('dialogpay_pending') === 'true';
+            const isCancel = params.get('dialogpay_cancel') === 'true';
+            const isError = params.get('dialogpay_error') || params.get('error');
+            const returnedOrderId = params.get('order_id');
+
+            if (isSuccess) {
+              setDialogPayStatus({
+                type: 'success',
+                message: 'Dialog Pay payment confirmed! Your Free Fire diamonds have been delivered directly to your account.',
+              });
+
+              if (returnedOrderId && Array.isArray(json.data)) {
+                const targetOrder = json.data.find(
+                  (o: any) => o.raw_id === returnedOrderId || (o.id || '').includes(returnedOrderId.slice(0, 8))
+                );
+                if (targetOrder) {
+                  setViewReceiptModal({
+                    orderId: String(targetOrder.id || returnedOrderId).replace('#', '').toUpperCase(),
+                    packageName: targetOrder.package_name || 'Free Fire Diamonds',
+                    playerUid: targetOrder.free_fire_player_id || 'Player UID',
+                    amount: targetOrder.totalAmount,
+                    paymentMethod: 'Dialog Pay (Genie Business)',
+                    status: 'COMPLETED & DELIVERED',
+                    date: targetOrder.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    time: 'Just now',
+                    customerName: userName || 'Customer',
+                    customerEmail: userEmail,
+                    storeName: json.user.store_name || null,
+                    resellerRole: json.user.role || 'normal',
+                  });
+                }
+              }
+            } else if (isPending) {
+              setDialogPayStatus({
+                type: 'pending',
+                message: 'Dialog Pay payment is awaiting gateway confirmation. Your order will be fulfilled automatically upon bank settlement.',
+              });
+            } else if (isCancel) {
+              setDialogPayStatus({
+                type: 'cancel',
+                message: 'Dialog Pay checkout session was cancelled. No charges were made and no diamonds were deducted.',
+              });
+            } else if (isError) {
+              setDialogPayStatus({
+                type: 'error',
+                message: 'An issue occurred during Dialog Pay verification. If payment was deducted, your order will sync automatically.',
+              });
+            }
           }
 
           // Fetch real-time packages for Package Pricing Tiers chart
@@ -476,6 +534,49 @@ export default function UserDashboardPage() {
         </div>
 
       <div className="max-w-6xl mx-auto px-4 space-y-8">
+        {/* Dialog Pay Status Notification Banner */}
+        {dialogPayStatus && (
+          <div
+            className={`p-4 sm:p-5 rounded-2xl border flex items-start justify-between gap-3 shadow-xl transition-all animate-in fade-in duration-300 ${
+              dialogPayStatus.type === 'success'
+                ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                : dialogPayStatus.type === 'pending'
+                ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+                : 'bg-slate-900/90 border-slate-700/80 text-slate-300'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {dialogPayStatus.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              ) : dialogPayStatus.type === 'pending' ? (
+                <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              ) : (
+                <X className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+              )}
+              <div>
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                  {dialogPayStatus.type === 'success'
+                    ? 'Payment Confirmed & Top-Up Delivered'
+                    : dialogPayStatus.type === 'pending'
+                    ? 'Payment Pending Confirmation'
+                    : 'Payment Cancelled'}
+                </h4>
+                <p className="text-xs text-slate-300/90 mt-1 leading-relaxed">
+                  {dialogPayStatus.message}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDialogPayStatus(null)}
+              className="text-slate-400 hover:text-white p-1 rounded transition-colors"
+              aria-label="Dismiss banner"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Admin Quick Access Bar */}
         {profile?.role === 'admin' && (
           <div className="bg-purple-950/60 border border-purple-800 p-5 sm:p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

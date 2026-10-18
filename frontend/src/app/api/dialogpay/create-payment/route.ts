@@ -256,16 +256,16 @@ export async function POST(request: NextRequest) {
     // 4. Update order with Genie Business transaction ID / note
     const updatePayload: any = {
       admin_note: `Dialog Pay TxID: ${paymentRes.data.id} | Portal URL: ${paymentRes.data.url} | Cart: ${JSON.stringify(orderCartDetails)}`,
+      updated_at: new Date().toISOString(),
     };
 
-    // Attempt to update transaction_id if the column exists
-    try {
-      await adminSupabase.from('orders').update({
-        transaction_id: paymentRes.data.id,
-        ...updatePayload,
-      }).eq('id', newOrder.id);
-    } catch {
-      await adminSupabase.from('orders').update(updatePayload).eq('id', newOrder.id);
+    const { error: updateErr } = await adminSupabase
+      .from('orders')
+      .update(updatePayload)
+      .eq('id', newOrder.id);
+
+    if (updateErr) {
+      console.warn('[DialogPay] Could not update order note with transaction ID:', updateErr.message);
     }
 
     return NextResponse.json({

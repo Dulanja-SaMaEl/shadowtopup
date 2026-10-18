@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || url.origin).replace(/\/$/, '');
 
   if (!orderId) {
-    return NextResponse.redirect(`${appUrl}/orders?error=missing_order_id`);
+    return NextResponse.redirect(`${appUrl}/dashboard?error=missing_order_id`);
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -25,12 +25,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (!order) {
-      return NextResponse.redirect(`${appUrl}/orders?error=order_not_found`);
+      return NextResponse.redirect(`${appUrl}/dashboard?error=order_not_found`);
     }
 
-    // 2. If already completed, redirect to success
+    // 2. If already completed, redirect to success dashboard
     if (order.status === 'completed') {
-      return NextResponse.redirect(`${appUrl}/orders?dialogpay_success=true&order_id=${encodeURIComponent(orderId)}`);
+      return NextResponse.redirect(`${appUrl}/dashboard?dialogpay_success=true&order_id=${encodeURIComponent(orderId)}`);
     }
 
     // 3. Extract transaction ID from order column, admin_note, or URL params
@@ -44,10 +44,10 @@ export async function GET(request: NextRequest) {
       const txCheck = await getDialogPayTransaction(txId);
 
       if (txCheck.success && txCheck.transaction) {
-        const liveState = txCheck.transaction.state.toUpperCase();
+        const liveState = (txCheck.transaction.state || '').toUpperCase();
 
+        // STRICT FULFILLMENT GATE: ONLY fulfill if gateway confirmed payment completely!
         if (liveState === 'CONFIRMED') {
-          // Trigger fulfillment
           await fulfillDialogPayOrder({
             orderId: order.id,
             transactionId: txId,
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
             payerId: txCheck.transaction.payerId,
           });
 
-          return NextResponse.redirect(`${appUrl}/orders?dialogpay_success=true&order_id=${encodeURIComponent(orderId)}`);
+          return NextResponse.redirect(`${appUrl}/dashboard?dialogpay_success=true&order_id=${encodeURIComponent(orderId)}`);
         } else if (liveState === 'CANCELLED' || liveState === 'FAILED') {
           await adminSupabase.from('orders').update({
             status: liveState.toLowerCase(),
@@ -63,15 +63,15 @@ export async function GET(request: NextRequest) {
             updated_at: new Date().toISOString(),
           }).eq('id', order.id);
 
-          return NextResponse.redirect(`${appUrl}/cart?dialogpay_cancel=true&order_id=${encodeURIComponent(orderId)}`);
+          return NextResponse.redirect(`${appUrl}/dashboard?dialogpay_cancel=true&order_id=${encodeURIComponent(orderId)}`);
         }
       }
     }
 
-    // Still pending / awaiting webhook confirmation
-    return NextResponse.redirect(`${appUrl}/orders?dialogpay_pending=true&order_id=${encodeURIComponent(orderId)}`);
+    // Still pending / awaiting customer payment or gateway confirmation
+    return NextResponse.redirect(`${appUrl}/dashboard?dialogpay_pending=true&order_id=${encodeURIComponent(orderId)}`);
   } catch (err: any) {
     console.error('[DialogPay Verify Error]:', err);
-    return NextResponse.redirect(`${appUrl}/orders?dialogpay_error=verification_error`);
+    return NextResponse.redirect(`${appUrl}/dashboard?dialogpay_error=verification_error`);
   }
 }

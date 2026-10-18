@@ -343,12 +343,12 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         });
 
         const data = await res.json();
-        setIsProcessingOrder(false);
 
         if (data.success && data.paymentUrl) {
           window.location.href = data.paymentUrl;
           return;
         } else {
+          setIsProcessingOrder(false);
           setMessage({
             type: 'error',
             text: data.message || 'Failed to initiate Dialog Pay session. Please try another payment method.',

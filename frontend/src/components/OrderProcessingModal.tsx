@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Gem, ShieldCheck, Lock, AlertTriangle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import React from 'react';
+import { ShieldCheck, Lock, Loader2, CreditCard, Sparkles, AlertCircle } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -12,33 +12,6 @@ interface Props {
   paymentMethod?: string;
 }
 
-const STEPS = [
-  {
-    title: 'Verifying Player Identity',
-    desc: 'Validating Free Fire UID & Garena Regional Server route',
-    minProgress: 0,
-    targetProgress: 25,
-  },
-  {
-    title: 'Authorizing Transaction',
-    desc: 'Securing API authentication & reserving Garena Shells',
-    minProgress: 25,
-    targetProgress: 55,
-  },
-  {
-    title: 'Crediting Diamonds & Pass',
-    desc: 'Recharging in-game balance directly to your Free Fire account',
-    minProgress: 55,
-    targetProgress: 85,
-  },
-  {
-    title: 'Finalizing Order Receipt',
-    desc: 'Generating certified transaction proof and Garena TxID',
-    minProgress: 85,
-    targetProgress: 98,
-  },
-];
-
 export default function OrderProcessingModal({
   isOpen,
   packageName,
@@ -47,214 +20,107 @@ export default function OrderProcessingModal({
   amount,
   paymentMethod,
 }: Props) {
-  const [progress, setProgress] = useState(5);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setProgress(5);
-      setElapsedSeconds(0);
-      return;
-    }
-
-    // Timer for elapsed seconds
-    const intervalTimer = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
-    }, 1000);
-
-    // Realistic progress ticker spanning ~16-20 seconds smoothly
-    const progressTimer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev < 25) {
-          return prev + Math.random() * 4 + 2; // quick start to 25% (0-3s)
-        } else if (prev < 55) {
-          return prev + Math.random() * 2 + 1; // 25-55% (3-8s)
-        } else if (prev < 85) {
-          return prev + Math.random() * 1.5 + 0.8; // 55-85% (8-14s)
-        } else if (prev < 96) {
-          return prev + Math.random() * 0.8 + 0.3; // 85-96% (14-18s)
-        }
-        return Math.min(prev + 0.1, 98); // hold at 98% until completion
-      });
-    }, 400);
-
-    return () => {
-      clearInterval(intervalTimer);
-      clearInterval(progressTimer);
-    };
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
-  const currentStepIndex = STEPS.findIndex(
-    (step, idx) =>
-      progress >= step.minProgress && (idx === STEPS.length - 1 || progress < STEPS[idx + 1].minProgress)
-  );
-
-  const activeIndex = currentStepIndex === -1 ? 0 : currentStepIndex;
+  const isDialogPay = paymentMethod === 'dialog_pay';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-y-auto">
-      {/* Background ambient lighting effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-cyan-500/15 rounded-full blur-[100px] pointer-events-none" />
-
-      <div className="relative w-full max-w-md bg-[#0b081c] border border-purple-800/50 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-purple-950/60 text-center space-y-6 overflow-hidden">
-        {/* Top Glowing Brand Header */}
-        <div className="flex items-center justify-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-          <span className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-cyan-400">
-            Automated Top-Up Gateway • Live Processing
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+    >
+      <div className="relative w-full max-w-md bg-[#0c0d14] border border-white/10 rounded-2xl p-6 sm:p-7 shadow-2xl text-center space-y-5 overflow-hidden">
+        
+        {/* Top Status & Security Pill */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono font-medium text-slate-300">
+          <Lock className="w-3.5 h-3.5 text-purple-400" />
+          <span>
+            {isDialogPay ? '256-Bit SSL Encrypted • Dialog Axiata IPG' : 'Automated Top-Up System • Official Garena API'}
           </span>
         </div>
 
-        {/* Central Animated Diamond Core */}
-        <div className="relative flex items-center justify-center py-2">
-          {/* Concentric pulsing rings */}
-          <div className="absolute w-28 h-28 rounded-full border border-purple-500/20 animate-ping opacity-30" />
-          <div className="absolute w-24 h-24 rounded-full border border-cyan-500/30 animate-pulse" />
-          <div className="absolute w-20 h-20 rounded-full bg-gradient-to-tr from-purple-600/30 via-cyan-500/20 to-purple-600/30 blur-md" />
-
-          {/* Central Spinning Glowing Orb */}
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-900 via-indigo-950 to-slate-900 border-2 border-cyan-400/80 shadow-lg shadow-cyan-500/30 flex items-center justify-center text-cyan-300 relative z-10">
-            <Gem className="w-8 h-8 animate-bounce text-cyan-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
+        {/* Central Clean State Indicator */}
+        <div className="flex flex-col items-center justify-center pt-2">
+          <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center relative">
+            {isDialogPay ? (
+              <CreditCard className="w-7 h-7 text-purple-400" />
+            ) : (
+              <Sparkles className="w-7 h-7 text-emerald-400" />
+            )}
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#0c0d14] border border-white/10 flex items-center justify-center">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+            </div>
           </div>
         </div>
 
-        {/* Title & Warning Reassurance Banner */}
-        <div className="space-y-2">
-          <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider">
-            Recharging Your Account...
-          </h3>
-          <p className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
-            Direct connection established with official Free Fire servers. Your package is being fulfilled.
+        {/* Heading & Contextual Subtext */}
+        <div className="space-y-1.5">
+          <h2 id="order-modal-title" className="text-lg sm:text-xl font-bold text-white tracking-tight">
+            {isDialogPay ? 'Connecting to Dialog Pay' : 'Processing Your Top-Up'}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-sm mx-auto">
+            {isDialogPay
+              ? 'Opening Dialog Axiata secure gateway (Visa, Mastercard, Genie & eZ Cash). Please complete your payment on the portal.'
+              : 'Securing server route and dispatching in-game items directly to your Free Fire account.'}
           </p>
         </div>
 
-        {/* Urgent Alert Reassurance Box */}
-        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-left flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-          <div className="text-[11px] leading-snug">
-            <strong className="block text-amber-200 font-bold uppercase tracking-wider">
-              Please Do Not Close Or Refresh
-            </strong>
-            <span className="text-amber-300/80">
-              Leaving this page may delay receipt generation. Your receipt will appear automatically once diamonds are credited.
-            </span>
-          </div>
-        </div>
-
-        {/* Order Details Mini-Card (If details available) */}
-        {(packageName || playerUid) && (
-          <div className="p-3.5 rounded-2xl bg-[#130f2e] border border-purple-900/40 text-left space-y-2 font-mono">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-400 text-[10px] uppercase">Package:</span>
-              <span className="text-cyan-300 font-black truncate max-w-[200px]">{packageName || 'Free Fire Package'}</span>
-            </div>
+        {/* Order Details Summary Card */}
+        {(packageName || playerUid || amount !== undefined) && (
+          <div className="rounded-xl bg-white/[0.02] border border-white/[0.07] p-3.5 text-left text-xs space-y-2 font-mono">
+            {packageName && (
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 text-[11px]">Package</span>
+                <span className="text-white font-medium truncate max-w-[200px]">{packageName}</span>
+              </div>
+            )}
             {playerUid && (
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400 text-[10px] uppercase">Target UID:</span>
-                <span className="text-emerald-400 font-bold">{playerUid}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 text-[11px]">Player UID</span>
+                <span className="text-emerald-400 font-semibold">{playerUid}</span>
               </div>
             )}
             {playerNickname && (
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400 text-[10px] uppercase">Player Name:</span>
-                <span className="text-white font-bold truncate max-w-[200px]">{playerNickname}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 text-[11px]">Player Name</span>
+                <span className="text-slate-200 font-medium truncate max-w-[200px]">{playerNickname}</span>
               </div>
             )}
             {amount !== undefined && (
-              <div className="flex justify-between items-center text-xs border-t border-purple-900/40 pt-1.5">
-                <span className="text-slate-400 text-[10px] uppercase">Total:</span>
-                <span className="text-white font-black">LKR {Number(amount).toFixed(2)}</span>
+              <div className="flex justify-between items-center border-t border-white/[0.06] pt-2">
+                <span className="text-slate-400 text-[11px]">Total Due</span>
+                <span className="text-white font-bold text-sm">LKR {Number(amount).toFixed(2)}</span>
               </div>
             )}
           </div>
         )}
 
-        {/* Progress Bar & Percentage */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 font-bold uppercase">
-            <span className="flex items-center gap-1.5 text-cyan-400">
-              <Sparkles className="w-3 h-3 text-cyan-400 animate-spin" />
-              Processing: {Math.floor(progress)}%
+        {/* Reassurance Callout Box */}
+        <div className={`p-3 rounded-xl border text-left flex items-start gap-2.5 text-xs ${
+          isDialogPay
+            ? 'bg-purple-950/20 border-purple-500/20 text-purple-200'
+            : 'bg-amber-950/20 border-amber-500/20 text-amber-200'
+        }`}>
+          <AlertCircle className={`w-4 h-4 shrink-0 mt-0.5 ${isDialogPay ? 'text-purple-400' : 'text-amber-400'}`} />
+          <div className="leading-snug text-[11px]">
+            <strong className="block font-semibold">
+              {isDialogPay ? 'Fulfillment after payment completion' : 'Please keep this tab open'}
+            </strong>
+            <span className="text-slate-300">
+              {isDialogPay
+                ? 'Your top-up will be credited automatically once your payment is confirmed by the gateway.'
+                : 'Your certified transaction receipt will display automatically as soon as delivery is finalized.'}
             </span>
-            <span className="text-purple-300 font-mono">
-              Elapsed: {elapsedSeconds}s (~15s)
-            </span>
-          </div>
-
-          <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-purple-900/60">
-            <div
-              className="h-full bg-gradient-to-r from-purple-600 via-cyan-500 to-emerald-400 rounded-full transition-all duration-300 shadow-md shadow-cyan-500/50"
-              style={{ width: `${Math.min(100, Math.max(5, progress))}%` }}
-            />
           </div>
         </div>
 
-        {/* Multi-Step Real-time Status Tracker */}
-        <div className="space-y-2 text-left pt-1">
-          {STEPS.map((step, idx) => {
-            const isCompleted = progress >= step.targetProgress;
-            const isCurrent = idx === activeIndex;
-
-            return (
-              <div
-                key={idx}
-                className={`p-2.5 rounded-xl border flex items-center gap-3 transition-all ${
-                  isCurrent
-                    ? 'bg-purple-900/30 border-cyan-500/50 shadow-md shadow-cyan-500/10'
-                    : isCompleted
-                    ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
-                    : 'bg-slate-950/40 border-slate-900 text-slate-500 opacity-60'
-                }`}
-              >
-                <div className="shrink-0">
-                  {isCompleted ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  ) : isCurrent ? (
-                    <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
-                  ) : (
-                    <div className="w-4 h-4 rounded-full border border-slate-700 flex items-center justify-center text-[9px] font-mono text-slate-500">
-                      {idx + 1}
-                    </div>
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4
-                      className={`text-xs font-bold truncate ${
-                        isCurrent
-                          ? 'text-cyan-300'
-                          : isCompleted
-                          ? 'text-emerald-300'
-                          : 'text-slate-400'
-                      }`}
-                    >
-                      {step.title}
-                    </h4>
-                    {isCurrent && (
-                      <span className="text-[9px] font-mono font-bold text-cyan-400 uppercase tracking-widest animate-pulse">
-                        In Progress
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-slate-400 truncate">{step.desc}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Bottom Trust & Security Indicator */}
-        <div className="pt-2 border-t border-purple-950/40 flex items-center justify-center gap-3 text-[10px] font-mono text-slate-400">
-          <span className="flex items-center gap-1 text-slate-300">
-            <Lock className="w-3 h-3 text-cyan-400" /> 256-Bit SSL Encrypted
-          </span>
-          <span className="text-slate-700">•</span>
-          <span className="flex items-center gap-1 text-slate-300">
-            <ShieldCheck className="w-3 h-3 text-emerald-400" /> Official Garena API
+        {/* Bottom Status Indicator */}
+        <div className="pt-1 flex items-center justify-center gap-2 text-xs text-slate-400">
+          <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+          <span>
+            {isDialogPay ? 'Redirecting to payment portal...' : 'Finalizing order verification...'}
           </span>
         </div>
       </div>

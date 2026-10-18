@@ -942,7 +942,7 @@ export default function CartPage() {
         packageName={cartItems.length === 1 ? cartItems[0].packageName : `Batch Top-Up (${totalCount} Items)`}
         playerUid={cartItems[0]?.playerUid}
         amount={effectiveCartTotal}
-        paymentMethod={paymentMethod === 'ez_cash' ? 'Dialog eZ Cash' : paymentMethod === 'bank_transfer' ? 'Bank Transfer' : 'Shadow Wallet'}
+        paymentMethod={paymentMethod}
       />
 
       {/* Transaction Receipt Modal */}
