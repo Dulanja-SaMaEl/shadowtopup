@@ -9,6 +9,7 @@ import { Package, UserRole } from '@/types/database';
 import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
 import TransactionReceiptModal from '@/components/TransactionReceiptModal';
 import OrderProcessingModal from '@/components/OrderProcessingModal';
+import { VisaLogo, MastercardLogo, EzCashLogo, ShadowWalletLogo, BankTransferLogo, GenieLogo } from '@/components/PaymentLogos';
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, updatePlayerUid, clearCart, cartTotal, totalCount } = useCart();
@@ -624,87 +625,125 @@ export default function CartPage() {
 
                 {/* Payment Method Selection */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Payment Method</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('shadow_wallet')}
-                      className={`p-3 rounded-lg border text-left flex items-center gap-2.5 transition-colors ${
-                        paymentMethod === 'shadow_wallet'
-                          ? 'bg-purple-500/20 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.25)]'
-                          : 'bg-[#080711] border-white/10 text-slate-400 hover:border-white/20'
-                      }`}
-                    >
-                      <Wallet className="w-4 h-4 text-purple-400 shrink-0" />
-                      <div>
-                        <span className="text-xs font-semibold block">Wallet</span>
-                        <span className="text-[10px] text-slate-400 block">Instant</span>
-                      </div>
-                    </button>
-
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Select Payment Method</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    {/* 1. Visa / Mastercard (Dialog Pay) */}
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('dialog_pay')}
-                      className={`p-3 rounded-lg border text-left flex items-center gap-2.5 transition-colors ${
+                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all text-left ${
                         paymentMethod === 'dialog_pay'
-                          ? 'bg-purple-500/20 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.25)]'
-                          : 'bg-[#080711] border-white/10 text-slate-400 hover:border-white/20'
+                          ? 'bg-[#181335] border-cyan-500/80 shadow-[0_0_18px_rgba(6,182,212,0.25)] text-white ring-1 ring-cyan-400/50'
+                          : 'bg-[#080711] border-white/10 text-slate-400 hover:border-cyan-500/40 hover:text-white'
                       }`}
                     >
-                      <CreditCard className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <div>
-                        <span className="text-xs font-semibold block">Dialog Pay</span>
-                        <span className="text-[10px] text-cyan-400/80 block font-mono">Cards/Genie</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center gap-1 shrink-0">
+                          <VisaLogo className="w-8 h-5" />
+                          <MastercardLogo className="w-8 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-white block text-xs truncate">Visa / MasterCard</span>
+                          <span className="text-[10px] text-cyan-400 font-mono block truncate">Dialog Pay • Genie</span>
+                        </div>
                       </div>
+                      <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 font-bold flex items-center gap-0.5">
+                        <Zap className="w-2.5 h-2.5" /> Instant
+                      </span>
                     </button>
 
+                    {/* 2. Dialog eZ Cash */}
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('ez_cash')}
-                      className={`p-3 rounded-lg border text-left flex items-center gap-2.5 transition-colors ${
+                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all text-left ${
                         paymentMethod === 'ez_cash'
-                          ? 'bg-purple-500/20 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.25)]'
-                          : 'bg-[#080711] border-white/10 text-slate-400 hover:border-white/20'
+                          ? 'bg-[#181335] border-amber-500/80 shadow-[0_0_18px_rgba(245,158,11,0.25)] text-white ring-1 ring-amber-400/50'
+                          : 'bg-[#080711] border-white/10 text-slate-400 hover:border-amber-500/40 hover:text-white'
                       }`}
                     >
-                      <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <div>
-                        <span className="text-xs font-semibold block">eZ Cash</span>
-                        <span className="text-[10px] text-emerald-400/80 block font-mono">SMS Verify</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <EzCashLogo className="w-10 h-5" />
+                        <div className="min-w-0">
+                          <span className="font-bold text-white block text-xs truncate">Dialog eZ Cash</span>
+                          <span className="text-[10px] text-amber-300/90 font-mono block truncate">Direct SMS Verify</span>
+                        </div>
                       </div>
+                      <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-0.5">
+                        <Zap className="w-2.5 h-2.5" /> Instant
+                      </span>
                     </button>
 
+                    {/* 3. Shadow Wallet */}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('shadow_wallet')}
+                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all text-left ${
+                        paymentMethod === 'shadow_wallet'
+                          ? 'bg-[#181335] border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.3)] text-white ring-1 ring-purple-400/50'
+                          : 'bg-[#080711] border-white/10 text-slate-400 hover:border-purple-500/40 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <ShadowWalletLogo className="w-8 h-5" />
+                        <div className="min-w-0">
+                          <span className="font-bold text-white block text-xs truncate">Shadow Wallet</span>
+                          <span className="text-[10px] text-purple-300 font-mono block truncate">
+                            {walletBalance !== null ? `Bal: LKR ${walletBalance.toLocaleString()}` : 'Prepaid Balance'}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/40 font-bold">
+                        0% Fee
+                      </span>
+                    </button>
+
+                    {/* 4. Bank Transfer */}
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('bank_transfer')}
-                      className={`p-3 rounded-lg border text-left flex items-center gap-2.5 transition-colors ${
+                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all text-left ${
                         paymentMethod === 'bank_transfer'
-                          ? 'bg-purple-500/20 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.25)]'
-                          : 'bg-[#080711] border-white/10 text-slate-400 hover:border-white/20'
+                          ? 'bg-[#181335] border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)] text-white ring-1 ring-purple-400/40'
+                          : 'bg-[#080711] border-white/10 text-slate-400 hover:border-purple-500/40 hover:text-white'
                       }`}
                     >
-                      <Landmark className="w-4 h-4 text-purple-400 shrink-0" />
-                      <div>
-                        <span className="text-xs font-semibold block">Bank</span>
-                        <span className="text-[10px] text-slate-400 block">Slip Upload</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <BankTransferLogo className="w-8 h-5" />
+                        <div className="min-w-0">
+                          <span className="font-bold text-white block text-xs truncate">Bank Transfer</span>
+                          <span className="text-[10px] text-slate-400 font-mono block truncate">Slip Upload</span>
+                        </div>
                       </div>
+                      <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-medium">
+                        Manual
+                      </span>
                     </button>
                   </div>
                 </div>
 
                 {/* Dialog Pay Details */}
                 {paymentMethod === 'dialog_pay' && (
-                  <div className="space-y-2.5 bg-[#080711] p-4 rounded-xl border border-purple-950/80">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-cyan-400" />
-                      <span className="text-xs font-bold text-white">Dialog Pay Business (Genie Business)</span>
+                  <div className="space-y-3 bg-[#080711] p-4 rounded-xl border border-cyan-950/60">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-purple-950/60">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <VisaLogo className="w-9 h-6" />
+                          <MastercardLogo className="w-9 h-6" />
+                          <GenieLogo className="w-10 h-6" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-white block">Visa &amp; Mastercard Online Payment</span>
+                          <span className="text-[10px] text-cyan-400 font-mono">Dialog Pay Business IPG</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/30">
+                        <Zap className="w-3 h-3 text-emerald-400" /> Automated Instant Fulfillment (&lt;30s)
+                      </div>
                     </div>
                     <p className="text-[11px] text-slate-300 leading-relaxed">
-                      Pay instantly with Visa, Mastercard, or Genie Mobile Wallet through Dialog Axiata&apos;s secure payment gateway. Your Free Fire packages are auto-delivered immediately upon payment confirmation.
+                      Pay instantly with any <strong>Visa</strong> or <strong>Mastercard</strong> credit/debit card, or <strong>Genie Mobile Wallet</strong> through Dialog Axiata PLC&apos;s secure gateway. Your Free Fire packages are auto-delivered immediately upon payment confirmation.
                     </p>
-                    <div className="flex items-center gap-2 pt-1 text-[10px] text-emerald-400 font-mono">
-                      <Zap className="w-3 h-3 text-emerald-400" /> Automated instant in-game fulfillment
-                    </div>
                   </div>
                 )}
 

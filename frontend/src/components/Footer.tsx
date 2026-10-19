@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { AlertTriangle } from 'lucide-react';
+import { AcceptedPaymentStrip } from '@/components/PaymentLogos';
 
 export default function Footer() {
   return (
@@ -59,6 +60,15 @@ export default function Footer() {
               <li><Link href="/privacy" className="hover:text-purple-400 transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
+        </div>
+
+        {/* Accepted Payment Methods Bar */}
+        <div className="p-4 rounded-xl bg-[#0e0c1f] border border-purple-900/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="space-y-0.5 text-center sm:text-left">
+            <span className="text-xs font-bold text-white block">Accepted Payment Methods in Sri Lanka</span>
+            <span className="text-[11px] text-slate-400">Automated instant delivery with 3D Secure card processing &amp; mobile wallets</span>
+          </div>
+          <AcceptedPaymentStrip />
         </div>
 
         {/* Third-Party Legal Disclaimer */}

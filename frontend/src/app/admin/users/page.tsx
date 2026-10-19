@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Users, Search, Plus, Eye, Edit2, Ban, X } from 'lucide-react';
+import { Users, Search, Plus, Eye, Edit2, Ban, X, Wallet, PlusCircle, MinusCircle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 interface UserItem {
   id: string;
@@ -11,22 +11,26 @@ interface UserItem {
   role: string;
   status: string;
   joined: string;
+  wallet_balance: number;
 }
 
 export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [users, setUsers] = useState<UserItem[]>([
-    { id: '1', name: 'Admin User', email: 'admin_test@example.com', role: 'USER', status: 'ACTIVE', joined: 'Aug 11, 2026' },
-    { id: '2', name: 'Dulanja Abeysinghe', email: 'dulanja150abeysinghe@gmail.com', role: 'SILVER', status: 'ACTIVE', joined: 'May 16, 2026' },
-    { id: '3', name: 'Admin User', email: 'admin@example.com', role: 'ADMIN', status: 'ACTIVE', joined: 'May 11, 2026' },
-    { id: '4', name: 'Test User', email: 'test@example.com', role: 'USER', status: 'ACTIVE', joined: 'May 11, 2026' },
-    { id: '5', name: 'User Two', email: 'user2@demo.com', role: 'USER', status: 'ACTIVE', joined: 'May 11, 2026' },
-  ]);
+  const [users, setUsers] = useState<UserItem[]>([]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
+
+  // Wallet adjustment modal state
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [walletTargetUser, setWalletTargetUser] = useState<UserItem | null>(null);
+  const [adjustAction, setAdjustAction] = useState<'add' | 'deduct'>('add');
+  const [adjustAmount, setAdjustAmount] = useState('');
+  const [adjustReason, setAdjustReason] = useState('');
+  const [adjusting, setAdjusting] = useState(false);
+  const [walletMsg, setWalletMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,22 +39,24 @@ export default function AdminUsersPage() {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    async function loadUsers() {
-      const { data } = await supabase.from('profiles').select('*');
-      if (data && data.length > 0) {
-        setUsers(
-          data.map((u) => ({
-            id: u.id,
-            name: u.name || 'User Account',
-            email: u.email || 'user@demo.com',
-            role: (u.role || 'USER').toUpperCase(),
-            status: u.is_banned ? 'BANNED' : 'ACTIVE',
-            joined: new Date(u.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-          }))
-        );
-      }
+  const loadUsers = async () => {
+    const { data } = await supabase.from('profiles').select('*');
+    if (data && data.length > 0) {
+      setUsers(
+        data.map((u) => ({
+          id: u.id,
+          name: u.name || 'User Account',
+          email: u.email || 'user@demo.com',
+          role: (u.role || 'USER').toUpperCase(),
+          status: u.is_banned ? 'BANNED' : 'ACTIVE',
+          joined: new Date(u.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+          wallet_balance: parseFloat(u.wallet_balance || 0),
+        }))
+      );
     }
+  };
+
+  useEffect(() => {
     loadUsers();
   }, []);
 
@@ -72,6 +78,7 @@ export default function AdminUsersPage() {
       role: role.toUpperCase(),
       status: 'ACTIVE',
       joined: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      wallet_balance: 0,
     };
 
     setUsers([...users, newUser]);
@@ -136,6 +143,67 @@ export default function AdminUsersPage() {
     setIsEditModalOpen(true);
   };
 
+  const openWalletModal = (u: UserItem) => {
+    setWalletTargetUser(u);
+    setAdjustAction('add');
+    setAdjustAmount('');
+    setAdjustReason('');
+    setWalletMsg(null);
+    setIsWalletModalOpen(true);
+  };
+
+  const handleWalletAdjust = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!walletTargetUser) return;
+
+    const num = parseFloat(adjustAmount);
+    if (isNaN(num) || num <= 0) {
+      setWalletMsg({ type: 'error', text: 'Please enter a valid amount greater than 0.' });
+      return;
+    }
+
+    if (adjustAction === 'deduct' && walletTargetUser.wallet_balance < num) {
+      setWalletMsg({
+        type: 'error',
+        text: `Cannot deduct LKR ${num.toFixed(2)}. User balance is only LKR ${walletTargetUser.wallet_balance.toFixed(2)}.`,
+      });
+      return;
+    }
+
+    setAdjusting(true);
+    setWalletMsg(null);
+
+    try {
+      const res = await fetch('/api/admin/wallet/adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: walletTargetUser.id,
+          action: adjustAction,
+          amount: num,
+          reason: adjustReason.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && typeof data.newBalance === 'number') {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === walletTargetUser.id ? { ...u, wallet_balance: data.newBalance } : u))
+        );
+        setWalletTargetUser((prev) => (prev ? { ...prev, wallet_balance: data.newBalance } : null));
+        setWalletMsg({ type: 'success', text: data.message });
+        setAdjustAmount('');
+        setAdjustReason('');
+      } else {
+        setWalletMsg({ type: 'error', text: data.message || 'Failed to adjust wallet balance.' });
+      }
+    } catch (err: any) {
+      setWalletMsg({ type: 'error', text: err?.message || 'Network error updating wallet balance.' });
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Page Header & Actions */}
@@ -179,6 +247,7 @@ export default function AdminUsersPage() {
               <tr>
                 <th className="p-4">User</th>
                 <th className="p-4">Role</th>
+                <th className="p-4">Wallet Balance</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Joined Date</th>
                 <th className="p-4">Actions</th>
@@ -211,6 +280,9 @@ export default function AdminUsersPage() {
                       {u.role === 'GOLD' ? 'ELITE RESELLER' : u.role === 'SILVER' ? 'STANDARD RESELLER' : u.role}
                     </span>
                   </td>
+                  <td className="p-4 font-mono font-bold text-emerald-400 text-xs">
+                    LKR {Number(u.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
                   <td className="p-4">
                     <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                       u.status === 'ACTIVE'
@@ -223,7 +295,14 @@ export default function AdminUsersPage() {
                   <td className="p-4 text-slate-400 font-mono text-[10px]">{u.joined}</td>
                   <td className="p-4 flex items-center gap-2">
                     <button
-                      onClick={() => alert(`User Details:\nName: ${u.name}\nEmail: ${u.email}\nRole: ${u.role}`)}
+                      onClick={() => openWalletModal(u)}
+                      className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 hover:text-white transition-colors"
+                      title="Add or Deduct Wallet Balance"
+                    >
+                      <Wallet className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => alert(`User Details:\nName: ${u.name}\nEmail: ${u.email}\nRole: ${u.role}\nWallet Balance: LKR ${Number(u.wallet_balance || 0).toFixed(2)}`)}
                       className="p-2 rounded-xl bg-[#121024] border border-purple-950/60 text-purple-300 hover:text-white"
                       title="View Details"
                     >
@@ -347,6 +426,190 @@ export default function AdminUsersPage() {
                 className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold uppercase tracking-wider"
               >
                 {saving ? 'Updating...' : 'Update Role'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Wallet Adjustment Modal (Add / Deduct Funds) */}
+      {isWalletModalOpen && walletTargetUser && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#141229] border border-purple-950/80 rounded-3xl p-6 space-y-5 shadow-2xl">
+            <div className="flex justify-between items-start">
+              <div>
+                <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold tracking-wider flex items-center gap-1.5">
+                  <Wallet className="w-3.5 h-3.5" /> Shadow Wallet Management
+                </span>
+                <h3 className="text-sm font-bold text-white mt-1">
+                  Adjust Balance: {walletTargetUser.name}
+                </h3>
+                <p className="text-[11px] text-slate-400 font-mono truncate max-w-[280px]">
+                  {walletTargetUser.email}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsWalletModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Current Balance Card */}
+            <div className="p-3.5 rounded-2xl bg-[#0e0c1f] border border-purple-900/40 flex items-center justify-between font-mono">
+              <span className="text-xs text-slate-400">Current Balance:</span>
+              <span className="text-sm font-extrabold text-emerald-400">
+                LKR {Number(walletTargetUser.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            {walletMsg && (
+              <div
+                className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+                  walletMsg.type === 'success'
+                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                    : 'bg-red-950/40 border-red-500/40 text-red-300'
+                }`}
+              >
+                {walletMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                )}
+                <span>{walletMsg.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleWalletAdjust} className="space-y-4 text-xs">
+              {/* Action Toggle (Add vs Deduct) */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Action Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAdjustAction('add')}
+                    className={`py-2.5 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                      adjustAction === 'add'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-400/50'
+                        : 'bg-[#0e0c1f] border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <PlusCircle className="w-4 h-4 text-emerald-400" />
+                    <span>Add Funds (+)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAdjustAction('deduct')}
+                    className={`py-2.5 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                      adjustAction === 'deduct'
+                        ? 'bg-red-500/20 border-red-500 text-red-300 ring-1 ring-red-400/50'
+                        : 'bg-[#0e0c1f] border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <MinusCircle className="w-4 h-4 text-red-400" />
+                    <span>Deduct Funds (-)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Amount Input */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Amount (LKR)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    required
+                    placeholder="Enter amount (e.g. 1000)"
+                    value={adjustAmount}
+                    onChange={(e) => setAdjustAmount(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-purple-500"
+                  />
+                  <span className="absolute right-3.5 top-2.5 text-xs font-mono font-bold text-slate-500">
+                    LKR
+                  </span>
+                </div>
+
+                {/* Quick Amount Pills */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  {[200, 500, 1000, 2500, 5000].map((quick) => (
+                    <button
+                      key={quick}
+                      type="button"
+                      onClick={() => setAdjustAmount(String(quick))}
+                      className="px-2 py-1 rounded-lg bg-[#0e0c1f] hover:bg-purple-950/60 border border-slate-800 text-[10px] font-mono text-slate-300 hover:text-white transition-colors"
+                    >
+                      +{quick}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reason / Note */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Reason / Admin Note (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bank slip verified / Reseller promotion / Manual refund"
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-[#0e0c1f] border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* New Projected Balance Preview */}
+              {adjustAmount && !isNaN(parseFloat(adjustAmount)) && parseFloat(adjustAmount) > 0 && (
+                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex justify-between items-center text-xs font-mono">
+                  <span className="text-slate-400">Projected Balance:</span>
+                  <span
+                    className={`font-bold ${
+                      adjustAction === 'add'
+                        ? 'text-emerald-400'
+                        : walletTargetUser.wallet_balance - parseFloat(adjustAmount) < 0
+                        ? 'text-red-400'
+                        : 'text-amber-300'
+                    }`}
+                  >
+                    LKR{' '}
+                    {(
+                      adjustAction === 'add'
+                        ? walletTargetUser.wallet_balance + parseFloat(adjustAmount)
+                        : walletTargetUser.wallet_balance - parseFloat(adjustAmount)
+                    ).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={adjusting}
+                className={`w-full py-3 rounded-xl font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                  adjustAction === 'add'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30'
+                    : 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30'
+                } disabled:opacity-50`}
+              >
+                {adjusting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : adjustAction === 'add' ? (
+                  <>
+                    <PlusCircle className="w-4 h-4" /> Confirm Add Funds
+                  </>
+                ) : (
+                  <>
+                    <MinusCircle className="w-4 h-4" /> Confirm Deduct Funds
+                  </>
+                )}
               </button>
             </form>
           </div>

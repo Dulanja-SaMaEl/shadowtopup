@@ -21,6 +21,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getRestockAlert } from '@/lib/restockAlertService';
 import { formatCurrency } from '@/lib/pricing';
 import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
+import { VisaLogo, MastercardLogo } from '@/components/PaymentLogos';
 import {
   SITE_NAME,
   createCanonicalUrl,
@@ -279,7 +280,28 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
-      <div className="space-y-16 pb-16">
+      <div className="space-y-12 pb-16">
+        {/* Visa & Mastercard Live Announcement Banner */}
+        <div className="bg-gradient-to-r from-purple-950 via-[#0e172a] to-cyan-950 border-b border-cyan-500/30 py-2.5 px-4 text-center text-xs text-slate-200 flex flex-wrap items-center justify-center gap-3 shadow-lg">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <VisaLogo className="w-7 h-4.5" />
+            <MastercardLogo className="w-7 h-4.5" />
+          </div>
+          <span className="font-semibold text-white">
+            <strong className="text-cyan-300">NOW ACCEPTING:</strong> Visa &amp; Mastercard Online Card Payments Live!
+          </span>
+          <span className="hidden sm:inline text-slate-500">•</span>
+          <span className="text-slate-300 text-[11px] font-mono flex items-center gap-1">
+            <Zap className="w-3 h-3 text-emerald-400" /> Instant Automated Delivery (&lt;30s)
+          </span>
+          <Link
+            href="/games/free-fire"
+            className="text-[11px] font-bold text-cyan-300 hover:text-cyan-200 underline decoration-cyan-400/50 underline-offset-2 ml-1"
+          >
+            Pay with Card &rarr;
+          </Link>
+        </div>
+
         {/* Notice Banner */}
         <div className="bg-[#110e24] border-b border-slate-800/80 py-2 px-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
           <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -308,7 +330,7 @@ export default async function HomePage() {
                 </h1>
 
                 <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
-                  Reload your Free Fire account in under 30 seconds with automatic Player UID nickname verification. Pay securely via Dialog eZ Cash, Sri Lankan bank transfer, or prepaid wallet.
+                  Reload your Free Fire account in under 30 seconds with automatic Player UID nickname verification. Pay securely via <strong className="text-white">Visa &amp; Mastercard</strong>, Dialog eZ Cash, Sri Lankan bank transfer, or prepaid wallet.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2 font-gaming">
@@ -332,13 +354,20 @@ export default async function HomePage() {
                 {/* Trust Highlights with Tactical Badges */}
                 <div className="pt-4 border-t border-purple-950/60 flex flex-wrap items-center gap-5 text-xs text-slate-400">
                   <span className="flex items-center gap-1.5 text-slate-300 font-mono">
+                    <span className="flex items-center gap-1">
+                      <VisaLogo className="w-6 h-4" />
+                      <MastercardLogo className="w-6 h-4" />
+                    </span>
+                    Visa / Mastercard Live
+                  </span>
+                  <span className="flex items-center gap-1.5 text-slate-300 font-mono">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Fast Delivery (&lt;30s)
                   </span>
                   <span className="flex items-center gap-1.5 text-slate-300 font-mono">
                     <ShieldCheck className="w-4 h-4 text-purple-400" /> Live Nickname Check
                   </span>
                   <span className="flex items-center gap-1.5 text-slate-300 font-mono">
-                    <Lock className="w-4 h-4 text-cyan-400" /> Dialog eZ Cash Verify
+                    <Lock className="w-4 h-4 text-cyan-400" /> Dialog eZ Cash
                   </span>
                 </div>
               </div>
