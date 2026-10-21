@@ -280,7 +280,7 @@ export default async function GameDetailPage({ params }: PageProps) {
               </span>
               <h3 className="text-sm font-bold text-white">Pay & Receive Instantly</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Checkout with Dialog eZ Cash SMS verification, Bank Slip upload, or Shadow Wallet. Diamonds are delivered to your Free Fire account in &lt;30s.
+                Checkout with Dialog eZ Cash SMS verification, Bank Slip upload, or Shadow Wallet. Diamonds are delivered to your Free Fire account instantly.
               </p>
             </div>
           </div>

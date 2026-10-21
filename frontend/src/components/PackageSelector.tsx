@@ -676,8 +676,8 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                   </span>
                 </div>
               </div>
-              <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/40 font-bold">
-                0% Fee
+              <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-0.5">
+                <Zap className="w-2.5 h-2.5" /> Instant
               </span>
             </button>
 
@@ -715,11 +715,11 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                   </div>
                   <div>
                     <span className="text-xs font-bold text-white block">Visa &amp; Mastercard Online Payment</span>
-                    <span className="text-[10px] text-cyan-400 font-mono">Dialog Pay Business IPG</span>
+
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/30">
-                  <Zap className="w-3 h-3 text-emerald-400" /> Automated Instant Delivery (&lt;30s)
+                  <Zap className="w-3 h-3 text-emerald-400" /> Automated Instant Delivery
                 </div>
               </div>
               <p className="text-[11px] text-slate-300 leading-relaxed">

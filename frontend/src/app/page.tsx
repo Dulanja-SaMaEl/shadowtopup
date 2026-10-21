@@ -94,7 +94,7 @@ const resellerTiers = [
 
 const platformGuarantees = [
   {
-    title: 'Direct UID Delivery in <30s',
+    title: 'Direct UID Delivery',
     desc: 'Automated Garena Shell dispatch connects directly to the regional server. Diamonds credit to the target account within 30 seconds of payment.',
     badge: 'Fast Dispatch',
   },
@@ -292,7 +292,7 @@ export default async function HomePage() {
           </span>
           <span className="hidden sm:inline text-slate-500">•</span>
           <span className="text-slate-300 text-[11px] font-mono flex items-center gap-1">
-            <Zap className="w-3 h-3 text-emerald-400" /> Instant Automated Delivery (&lt;30s)
+            <Zap className="w-3 h-3 text-emerald-400" /> Instant Automated Delivery
           </span>
           <Link
             href="/games/free-fire"
@@ -361,7 +361,7 @@ export default async function HomePage() {
                     Visa / Mastercard Live
                   </span>
                   <span className="flex items-center gap-1.5 text-slate-300 font-mono">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Fast Delivery (&lt;30s)
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Fast Automated Delivery
                   </span>
                   <span className="flex items-center gap-1.5 text-slate-300 font-mono">
                     <ShieldCheck className="w-4 h-4 text-purple-400" /> Live Nickname Check

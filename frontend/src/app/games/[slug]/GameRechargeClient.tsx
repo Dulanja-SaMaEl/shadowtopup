@@ -157,7 +157,7 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
           </p>
           <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-slate-400">
             <span className="flex items-center gap-1.5 text-slate-300 font-mono">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Fast Delivery (&lt;30s)
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Fast Automated Delivery
             </span>
             <span className="flex items-center gap-1.5 text-slate-300 font-mono">
               <ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> Live Nickname Verification

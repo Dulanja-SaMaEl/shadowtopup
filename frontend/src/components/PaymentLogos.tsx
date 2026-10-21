@@ -44,8 +44,12 @@ export function ShadowWalletLogo({ className = 'w-9 h-6' }: { className?: string
 
 export function BankTransferLogo({ className = 'w-9 h-6' }: { className?: string }) {
   return (
-    <div className={`${className} rounded-md bg-[#181a24] border border-slate-700 flex items-center justify-center shadow-sm shrink-0`}>
-      <Landmark className="w-3.5 h-3.5 text-purple-300" />
+    <div className={`${className} rounded-md bg-white border border-slate-300 flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden`}>
+      <img
+        src="/images/bank-transfer.jpg"
+        alt="Bank Transfer"
+        className="w-full h-full object-contain"
+      />
     </div>
   );
 }
