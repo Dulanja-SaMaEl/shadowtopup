@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import Pagination from '@/components/Pagination';
 import { Users, Search, Plus, Eye, Edit2, Ban, X, Wallet, PlusCircle, MinusCircle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 interface UserItem {
@@ -22,6 +23,8 @@ export default function AdminUsersPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // Wallet adjustment modal state
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -220,7 +223,7 @@ export default function AdminUsersPage() {
               type="text"
               placeholder="Search Name or Email..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full pl-9 pr-4 py-2 bg-[#121024] border border-purple-950/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
             />
           </div>
@@ -254,7 +257,7 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {filteredUsers.map((u) => (
+              {filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((u) => (
                 <tr key={u.id} className="hover:bg-slate-900/40">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -332,6 +335,15 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(filteredUsers.length / pageSize)}
+          totalItems={filteredUsers.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 15, 25, 50]}
+        />
       </div>
 
       {/* Add Modal */}

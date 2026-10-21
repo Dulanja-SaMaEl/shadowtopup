@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Pagination from '@/components/Pagination';
 import { Award, Clock, Star, Users, Check, X, ArrowUpCircle, ShieldCheck, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface ResellerUser {
@@ -20,6 +21,8 @@ export default function AdminResellersPage() {
   const [normalUsers, setNormalUsers] = useState<ResellerUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [normalUsersPage, setNormalUsersPage] = useState(1);
+  const [normalUsersPageSize, setNormalUsersPageSize] = useState(10);
 
   const loadResellers = async () => {
     setLoading(true);
@@ -454,7 +457,7 @@ export default function AdminResellersPage() {
                   </td>
                 </tr>
               ) : (
-                normalUsers.map((user) => (
+                normalUsers.slice((normalUsersPage - 1) * normalUsersPageSize, normalUsersPage * normalUsersPageSize).map((user) => (
                   <tr key={user.id} className="hover:bg-slate-900/50">
                     <td className="p-4 font-bold text-white">{user.name}</td>
                     <td className="p-4 font-mono text-slate-300">{user.email}</td>
@@ -481,6 +484,15 @@ export default function AdminResellersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={normalUsersPage}
+          totalPages={Math.ceil(normalUsers.length / normalUsersPageSize)}
+          totalItems={normalUsers.length}
+          pageSize={normalUsersPageSize}
+          onPageChange={setNormalUsersPage}
+          onPageSizeChange={setNormalUsersPageSize}
+          pageSizeOptions={[10, 20, 50]}
+        />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { fetchDatabaseOrders, updateDatabaseOrderReceipt, DatabaseOrder } from '@/lib/ordersService';
 import { Profile } from '@/types/database';
+import Pagination from '@/components/Pagination';
 import {
   Award,
   ShieldCheck,
@@ -65,6 +66,8 @@ export default function UserDashboardPage() {
   });
 
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersPageSize, setOrdersPageSize] = useState(10);
   const [packagesList, setPackagesList] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [resellerTier, setResellerTier] = useState<'silver' | 'gold'>('silver');
@@ -1135,11 +1138,20 @@ export default function UserDashboardPage() {
 
         {/* Recent Orders List */}
         <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-4">
-          <h3 className="text-xs font-black text-white uppercase tracking-wider">RECENT DATABASE ORDERS</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">RECENT DATABASE ORDERS</h3>
+            {transactions.length > 0 && (
+              <span className="text-[10px] font-mono text-purple-300 font-bold">
+                {transactions.length} Total Orders
+              </span>
+            )}
+          </div>
 
           {transactions.length > 0 ? (
             <div className="space-y-3">
-              {transactions.map((tx) => (
+              {transactions
+                .slice((ordersPage - 1) * ordersPageSize, ordersPage * ordersPageSize)
+                .map((tx) => (
                 <div
                   key={tx.id}
                   onClick={() => {
@@ -1203,6 +1215,15 @@ export default function UserDashboardPage() {
                   </div>
                 </div>
               ))}
+              <Pagination
+                currentPage={ordersPage}
+                totalPages={Math.ceil(transactions.length / ordersPageSize)}
+                totalItems={transactions.length}
+                pageSize={ordersPageSize}
+                onPageChange={setOrdersPage}
+                onPageSizeChange={setOrdersPageSize}
+                pageSizeOptions={[5, 10, 20]}
+              />
             </div>
           ) : (
             <div className="p-10 rounded-2xl bg-[#0e0c1f] border border-slate-800/80 text-center space-y-4">

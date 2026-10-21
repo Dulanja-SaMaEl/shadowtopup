@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Pagination from '@/components/Pagination';
 import { Wallet, Ticket, Plus, Copy, Check, Search, RefreshCw, AlertCircle, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 interface RedeemCode {
@@ -21,6 +22,8 @@ export default function AdminWalletPage() {
   const [generateCount, setGenerateCount] = useState('1');
   const [generating, setGenerating] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [apiError, setApiError] = useState<string | null>(null);
@@ -221,7 +224,7 @@ export default function AdminWalletPage() {
                 type="text"
                 placeholder="Search Code or User..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="w-full pl-8 pr-3 py-2 bg-[#0e0c1f] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
               />
               <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
@@ -255,7 +258,7 @@ export default function AdminWalletPage() {
                   </td>
                 </tr>
               ) : (
-                filteredCodes.map((c) => (
+                filteredCodes.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((c) => (
                   <tr key={c.id} className="hover:bg-slate-900/50">
                     <td className="p-4 font-bold text-cyan-300 text-xs">
                       {c.code}
@@ -302,6 +305,15 @@ export default function AdminWalletPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(filteredCodes.length / pageSize)}
+          totalItems={filteredCodes.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 20, 50]}
+        />
       </div>
     </div>
   );

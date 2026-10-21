@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { updateDatabaseOrderStatus, DatabaseOrder } from '@/lib/ordersService';
+import Pagination from '@/components/Pagination';
 import { Search, Filter, FileText, CheckCircle2, AlertCircle, XCircle, X, ExternalLink, Image as ImageIcon, RotateCcw } from 'lucide-react';
 
 export default function AdminOrdersPage() {
@@ -9,6 +10,8 @@ export default function AdminOrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [orders, setOrders] = useState<DatabaseOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<DatabaseOrder | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
     async function loadOrders() {
@@ -76,7 +79,7 @@ export default function AdminOrdersPage() {
               type="text"
               placeholder="Search ID, User, or Ref..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full pl-9 pr-4 py-2 bg-[#121024] border border-purple-950/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 font-mono"
             />
           </div>
@@ -88,7 +91,7 @@ export default function AdminOrdersPage() {
         {filterTabs.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveFilter(tab)}
+            onClick={() => { setActiveFilter(tab); setCurrentPage(1); }}
             className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
               activeFilter === tab
                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
@@ -118,7 +121,9 @@ export default function AdminOrdersPage() {
             </thead>
             <tbody className="divide-y divide-slate-800/60 text-slate-300">
               {filteredOrders.length > 0 ? (
-                filteredOrders.map((ord) => (
+                filteredOrders
+                  .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                  .map((ord) => (
                   <tr key={ord.raw_id} className="hover:bg-slate-900/40">
                     <td className="p-4 font-mono font-bold text-purple-400">{ord.id}</td>
                     <td className="p-4">
@@ -179,6 +184,15 @@ export default function AdminOrdersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(filteredOrders.length / pageSize)}
+          totalItems={filteredOrders.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 15, 25, 50]}
+        />
       </div>
 
       {/* Review Modal */}

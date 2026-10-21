@@ -153,10 +153,6 @@ export async function POST(request: NextRequest) {
     let newOrder: any = null;
     let orderErr: any = null;
 
-    // Check if packageId is a genuine DB package ID or in-memory catalog
-    const isDbPackage = allDbPackages && allDbPackages.some((p: any) => p.id === orderCartDetails[0]?.packageId);
-    const safePackageId = isDbPackage ? orderCartDetails[0].packageId : null;
-
     const primaryPayload: any = {
       user_id: authUser.id,
       total_amount: totalAmount,
@@ -167,11 +163,7 @@ export async function POST(request: NextRequest) {
       admin_note: `Dialog Pay initiated | Player: ${targetUid}${targetNickname ? ` (${targetNickname})` : ''} | Cart: ${JSON.stringify(orderCartDetails)}`,
     };
 
-    if (safePackageId) {
-      primaryPayload.package_id = safePackageId;
-    }
-
-    // Attempt 1: Standard shadowtopup schema (free_fire_player_id)
+    // Attempt 1: Standard shadowtopup schema (free_fire_player_id, package_name)
     const { data: ord1, error: err1 } = await adminSupabase
       .from('orders')
       .insert([primaryPayload])
@@ -202,11 +194,13 @@ export async function POST(request: NextRequest) {
       if (!err2 && ord2) {
         newOrder = ord2;
       } else {
-        // Attempt 3: Universal minimal core schema
+        // Attempt 3: Universal minimal core schema with UID
         const minimalPayload: any = {
           user_id: authUser.id,
           total_amount: totalAmount,
           status: 'pending',
+          package_name: orderDescription,
+          free_fire_player_id: targetUid,
           payment_method: 'dialog_pay',
           admin_note: `Dialog Pay initiated | Player: ${targetUid} | Cart: ${JSON.stringify(orderCartDetails)}`,
         };
@@ -234,10 +228,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Initiate payment with Genie Business Connect API
+    // Format customerReference to prominently include Player UID on merchant notifications
+    const shortOrderId = String(newOrder.id).slice(0, 8);
+    const allUids = Array.from(new Set(orderCartDetails.map((it: any) => it.playerUid).filter(Boolean)));
+    const uidLabel = allUids.length === 1
+      ? allUids[0]
+      : allUids.length > 1
+        ? `${allUids[0]}+${allUids.length - 1}`
+        : targetUid;
+
+    const customerRef = uidLabel
+      ? `UID ${uidLabel} (${shortOrderId})`
+      : `Order ${shortOrderId}`;
+
     const paymentRes = await createDialogPayTransaction({
       amountLkr: totalAmount,
       orderId: newOrder.id,
-      customerReference: `Order ${String(newOrder.id).slice(0, 8)}`,
+      customerReference: customerRef,
     });
 
     if (!paymentRes.success || !paymentRes.data?.url) {

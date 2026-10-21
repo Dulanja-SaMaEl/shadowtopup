@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchDatabaseOrders, DatabaseOrder } from '@/lib/ordersService';
+import Pagination from '@/components/Pagination';
 import { Receipt, Search, Filter, CheckCircle2, XCircle, AlertCircle, ExternalLink, Image as ImageIcon, Eye, X } from 'lucide-react';
 
 export default function AdminTransactionsPage() {
@@ -10,6 +11,8 @@ export default function AdminTransactionsPage() {
   const [transactions, setTransactions] = useState<DatabaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const loadTransactions = async () => {
     setLoading(true);
@@ -89,7 +92,7 @@ export default function AdminTransactionsPage() {
             </label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
               className="px-4 py-2.5 bg-[#0e0c1f] border border-purple-950/60 rounded-xl text-xs text-white focus:outline-none w-44 font-mono"
             >
               <option>All Statuses</option>
@@ -108,7 +111,7 @@ export default function AdminTransactionsPage() {
                 type="text"
                 placeholder="Search Customer, Email, Free Fire Player ID, Package..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="w-full pl-9 pr-4 py-2.5 bg-[#0e0c1f] border border-purple-950/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
               />
               <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
@@ -117,7 +120,7 @@ export default function AdminTransactionsPage() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setStatusFilter('All Statuses'); setSearchQuery(''); }}
+              onClick={() => { setStatusFilter('All Statuses'); setSearchQuery(''); setCurrentPage(1); }}
               className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider"
             >
               Reset
@@ -156,7 +159,7 @@ export default function AdminTransactionsPage() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((tx) => (
+                filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((tx) => (
                   <tr key={tx.raw_id} className="hover:bg-slate-900/50 transition-colors">
                     <td className="p-4 font-mono">
                       <span className="font-bold text-purple-400 block text-xs">{tx.id}</span>
@@ -238,6 +241,15 @@ export default function AdminTransactionsPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(filtered.length / pageSize)}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 15, 25, 50]}
+        />
       </div>
 
       {/* Receipt Image Lightbox Modal */}

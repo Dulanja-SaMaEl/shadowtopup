@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Package } from '@/types/database';
+import Pagination from '@/components/Pagination';
 import {
   Plus,
   Edit2,
@@ -58,6 +59,8 @@ export default function AdminPackagesPage() {
 
   // Filter tabs for admin view
   const [adminTab, setAdminTab] = useState<'all' | 'membership' | 'levelup' | 'diamond' | 'inactive'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -442,7 +445,7 @@ export default function AdminPackagesPage() {
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setAdminTab(tab.id as any)}
+            onClick={() => { setAdminTab(tab.id as any); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition-all ${
               adminTab === tab.id
                 ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
@@ -483,7 +486,7 @@ export default function AdminPackagesPage() {
                   </td>
                 </tr>
               ) : (
-                displayedPackages.map((pkg) => {
+                displayedPackages.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((pkg) => {
                   const baseCost = pkg.shell_cost * unitShellCost;
                   const normalProfit = pkg.normal_price - baseCost;
                   const silverProfit = (pkg.silver_price || 0) - baseCost;
@@ -593,6 +596,15 @@ export default function AdminPackagesPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(displayedPackages.length / pageSize)}
+          totalItems={displayedPackages.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 20, 30]}
+        />
       </div>
 
       {/* QUICK IMAGE UPDATE MODAL */}
