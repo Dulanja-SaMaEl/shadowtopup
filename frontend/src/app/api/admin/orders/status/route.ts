@@ -34,22 +34,51 @@ export async function POST(request: NextRequest) {
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch order details first to get user_id, amount, and package_name
+    // Fetch order details first to get user_id, amount, and package_name (UUID-safe query)
     let orderRow: any = null;
-    const { data: searchRows } = await adminSupabase
-      .from('orders')
-      .select('*')
-      .or(`id.eq.${targetId},id.ilike.${targetId}%`);
+    const isFullUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
 
-    if (searchRows && searchRows.length > 0) {
-      orderRow = searchRows[0];
-    } else {
-      const { data: txSearchRows } = await adminSupabase
-        .from('purchase_transactions')
+    if (isFullUuid) {
+      const { data: directOrder } = await adminSupabase
+        .from('orders')
         .select('*')
-        .or(`id.eq.${targetId},id.ilike.${targetId}%`);
-      if (txSearchRows && txSearchRows.length > 0) {
-        orderRow = txSearchRows[0];
+        .eq('id', targetId)
+        .maybeSingle();
+      if (directOrder) {
+        orderRow = directOrder;
+      } else {
+        const { data: directTx } = await adminSupabase
+          .from('purchase_transactions')
+          .select('*')
+          .eq('id', targetId)
+          .maybeSingle();
+        if (directTx) orderRow = directTx;
+      }
+    } else {
+      // Short ID resolution (e.g. F8E6) without causing Postgres UUID type mismatch errors
+      const cleanTarget = targetId.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const { data: recentOrders } = await adminSupabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      orderRow = (recentOrders || []).find((o: any) => {
+        const cleanId = String(o.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return cleanId.startsWith(cleanTarget);
+      });
+
+      if (!orderRow) {
+        const { data: recentTxs } = await adminSupabase
+          .from('purchase_transactions')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        orderRow = (recentTxs || []).find((t: any) => {
+          const cleanId = String(t.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cleanId.startsWith(cleanTarget);
+        });
       }
     }
 
@@ -107,7 +136,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (uppercaseStatus === 'COMPLETED' && autoFulfill && !isAlreadyDelivered) {
-      const targetPlayerUid = String(orderRow?.free_fire_player_id || orderRow?.player_uid || '').trim();
+      const targetPlayerUid = String(orderRow?.free_fire_player_id || orderRow?.player_uid || body?.playerUid || body?.playerId || '').trim();
 
       if (!targetPlayerUid || targetPlayerUid.length < 5) {
         return NextResponse.json({

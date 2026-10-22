@@ -104,7 +104,9 @@ export async function POST(request: NextRequest) {
       }
 
       targetUid = orderCartDetails[0].playerUid;
-      orderDescription = `Cart (${orderCartDetails.length} items)`;
+      orderDescription = orderCartDetails.length === 1
+        ? orderCartDetails[0].packageName
+        : `${orderCartDetails[0].packageName} (+${orderCartDetails.length - 1} more)`;
     } else {
       // CASE B: Single Package Direct Recharge
       const sanitizedUid = String(playerUid || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();

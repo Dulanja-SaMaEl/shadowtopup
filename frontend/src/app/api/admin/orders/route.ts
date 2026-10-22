@@ -67,6 +67,19 @@ export async function GET(request: NextRequest) {
       const cName = userProf?.name || 'Customer Account';
       const cEmail = userProf?.email || 'user@shadowstore.com';
 
+            let displayPkg = row.package_name || 'Free Fire Diamonds';
+      if (typeof displayPkg === 'string' && displayPkg.startsWith('Cart (') && row.admin_note) {
+        try {
+          const match = row.admin_note.match(/Cart:\s*(\[\{.*?\}\])/);
+          if (match && match[1]) {
+            const parsed = JSON.parse(match[1]);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              displayPkg = parsed.map((p: any) => p.packageName || p.name).filter(Boolean).join(', ');
+            }
+          }
+        } catch {}
+      }
+
       return {
         id: `#${(row.id || '').substring(0, 4).toUpperCase()}`,
         raw_id: row.id,
@@ -74,7 +87,7 @@ export async function GET(request: NextRequest) {
         customerName: cName,
         customerEmail: cEmail,
         free_fire_player_id: row.free_fire_player_id || '8777843685',
-        package_name: row.package_name || 'Free Fire Diamonds',
+        package_name: displayPkg,
         totalAmount: Number(row.total_amount || row.price_paid || 750.00),
         fulfillmentStatus: normStatus,
         paymentMethod: row.payment_method === 'ez_cash' ? 'DIALOG EZ CASH' : (row.payment_method || 'BANK TRANSFER').toUpperCase(),

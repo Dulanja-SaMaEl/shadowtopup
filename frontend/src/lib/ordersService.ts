@@ -116,13 +116,14 @@ export async function updateDatabaseOrderStatus(
   rawId: string,
   status: 'COMPLETED' | 'PENDING' | 'REJECTED' | 'REFUNDED',
   shortId?: string,
-  autoFulfill: boolean = true
+  autoFulfill: boolean = true,
+  playerUid?: string
 ): Promise<{ success: boolean; message?: string }> {
   try {
     const res = await fetch('/api/admin/orders/status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: rawId, shortId, status, autoFulfill }),
+      body: JSON.stringify({ orderId: rawId, shortId, status, autoFulfill, playerUid }),
     });
     const json = await res.json();
     return { success: Boolean(json.success), message: json.message };

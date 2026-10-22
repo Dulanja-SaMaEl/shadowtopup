@@ -56,8 +56,9 @@ export default function AdminOrdersPage() {
     
     setIsProcessing(true);
     try {
+      const uid = selectedOrder.free_fire_player_id || (selectedOrder as any).playerUid;
       // Update Supabase Database, Wallet Balance, and trigger UC Bot if autoFulfill
-      const res = await updateDatabaseOrderStatus(selectedOrder.raw_id, status, selectedOrder.id, autoFulfill);
+      const res = await updateDatabaseOrderStatus(selectedOrder.raw_id, status, selectedOrder.id, autoFulfill, uid);
 
       if (res.success) {
         setOrders(
