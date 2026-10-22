@@ -112,18 +112,23 @@ export async function fetchDatabaseOrders(): Promise<DatabaseOrder[]> {
   return [];
 }
 
-export async function updateDatabaseOrderStatus(rawId: string, status: 'COMPLETED' | 'PENDING' | 'REJECTED' | 'REFUNDED', shortId?: string): Promise<boolean> {
+export async function updateDatabaseOrderStatus(
+  rawId: string,
+  status: 'COMPLETED' | 'PENDING' | 'REJECTED' | 'REFUNDED',
+  shortId?: string,
+  autoFulfill: boolean = true
+): Promise<{ success: boolean; message?: string }> {
   try {
     const res = await fetch('/api/admin/orders/status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: rawId, shortId, status }),
+      body: JSON.stringify({ orderId: rawId, shortId, status, autoFulfill }),
     });
     const json = await res.json();
-    return Boolean(json.success);
-  } catch (err) {
+    return { success: Boolean(json.success), message: json.message };
+  } catch (err: any) {
     console.error('Error updating order status in database:', err);
-    return false;
+    return { success: false, message: err?.message || 'Network error updating order status' };
   }
 }
 

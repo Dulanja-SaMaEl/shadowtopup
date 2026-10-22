@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { updateDatabaseOrderStatus, DatabaseOrder } from '@/lib/ordersService';
 import Pagination from '@/components/Pagination';
-import { Search, Filter, FileText, CheckCircle2, AlertCircle, XCircle, X, ExternalLink, Image as ImageIcon, RotateCcw } from 'lucide-react';
+import { Search, Filter, FileText, CheckCircle2, AlertCircle, XCircle, X, ExternalLink, Image as ImageIcon, RotateCcw, Loader2, Zap } from 'lucide-react';
 
 export default function AdminOrdersPage() {
   const [activeFilter, setActiveFilter] = useState('ALL ORDERS');
@@ -12,6 +12,7 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<DatabaseOrder | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     async function loadOrders() {
@@ -50,17 +51,28 @@ export default function AdminOrdersPage() {
     return true;
   });
 
-  const handleUpdateStatus = async (status: 'COMPLETED' | 'PENDING' | 'REJECTED' | 'REFUNDED') => {
-    if (!selectedOrder) return;
+  const handleUpdateStatus = async (status: 'COMPLETED' | 'PENDING' | 'REJECTED' | 'REFUNDED', autoFulfill: boolean = true) => {
+    if (!selectedOrder || isProcessing) return;
     
-    // Update Supabase Database & Wallet Balance
-    await updateDatabaseOrderStatus(selectedOrder.raw_id, status);
+    setIsProcessing(true);
+    try {
+      // Update Supabase Database, Wallet Balance, and trigger UC Bot if autoFulfill
+      const res = await updateDatabaseOrderStatus(selectedOrder.raw_id, status, selectedOrder.id, autoFulfill);
 
-    // Update Local State
-    setOrders(
-      orders.map((o) => (o.raw_id === selectedOrder.raw_id ? { ...o, fulfillmentStatus: status } : o))
-    );
-    setSelectedOrder(null);
+      if (res.success) {
+        setOrders(
+          orders.map((o) => (o.raw_id === selectedOrder.raw_id ? { ...o, fulfillmentStatus: status } : o))
+        );
+        alert(res.message || `Order ${selectedOrder.id} marked as ${status}!`);
+        setSelectedOrder(null);
+      } else {
+        alert(`❌ Order Update Failed: ${res.message || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      alert(`Error updating order: ${err?.message || 'Network error'}`);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -269,40 +281,57 @@ export default function AdminOrdersPage() {
             {/* Action Buttons */}
             <div className="grid grid-cols-4 gap-2 pt-2">
               <button
+                disabled={isProcessing}
                 onClick={() => handleUpdateStatus('REJECTED')}
-                className="py-2.5 px-2 rounded-xl bg-red-950/80 border border-red-800 text-red-400 font-bold text-[9px] uppercase hover:bg-red-900/80 flex items-center justify-center gap-1"
+                className="py-2.5 px-2 rounded-xl bg-red-950/80 border border-red-800 text-red-400 font-bold text-[9px] uppercase hover:bg-red-900/80 flex items-center justify-center gap-1 disabled:opacity-50"
               >
                 <XCircle className="w-3.5 h-3.5" /> Reject
               </button>
               <button
+                disabled={isProcessing}
                 onClick={() => handleUpdateStatus('REFUNDED')}
-                className="py-2.5 px-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-200 border border-purple-600 font-bold text-[9px] uppercase shadow-lg shadow-purple-900/30 flex items-center justify-center gap-1"
+                className="py-2.5 px-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-200 border border-purple-600 font-bold text-[9px] uppercase shadow-lg shadow-purple-900/30 flex items-center justify-center gap-1 disabled:opacity-50"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-cyan-400" /> Refund
               </button>
               <button
-                onClick={() => handleUpdateStatus('COMPLETED')}
-                className="py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[9px] uppercase shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1"
+                disabled={isProcessing}
+                onClick={() => handleUpdateStatus('COMPLETED', true)}
+                className="py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[9px] uppercase shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1 disabled:opacity-50"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Delivering...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5" /> Approve & Deliver
+                  </>
+                )}
               </button>
               <button
+                disabled={isProcessing}
                 onClick={() => {
                   const uid = (selectedOrder as any)?.free_fire_player_id || (selectedOrder as any)?.playerUid || '1580121480';
                   if (uid) {
                     navigator.clipboard.writeText(uid);
                   }
-                  
-                  // Construct Bookmarklet Auto-Fulfill script
-                  const bookmarkletJs = `javascript:(function(){const uid='${uid}';const inp=document.querySelector('input[placeholder*="player ID"],input[placeholder*="Player ID"]');if(inp){inp.value=uid;inp.dispatchEvent(new Event('input',{bubbles:true}));const btns=Array.from(document.querySelectorAll('button'));const lBtn=btns.find(b=>b.textContent.trim()==='Login');if(lBtn)lBtn.click();setTimeout(()=>{const pEls=Array.from(document.querySelectorAll('div,button,span,p'));const p25=pEls.find(e=>e.innerText&&e.innerText.trim()==='25');if(p25)p25.click();setTimeout(()=>{const shBtn=Array.from(document.querySelectorAll('div,button,span,li,p')).find(e=>e.innerText&&e.innerText.trim().includes('Garena Shells'));if(shBtn)shBtn.click();},1500);},2500);}})();`;
-
-                  alert(`⚡ 1-Click Auto-Fulfill Ready!\n\n1. Player ID ${uid} copied to clipboard.\n2. Opening shop.garena.my...\n3. Click your 'Auto-Topup' bookmark to execute all 3 clicks in 1 second!`);
-                  
                   window.open(`https://shop.garena.my/app/100067/idlogin#auto_uid=${uid}`, '_blank');
                 }}
-                className="py-2.5 px-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[9px] uppercase shadow-lg shadow-cyan-600/30 flex items-center justify-center gap-1 text-center"
+                className="py-2.5 px-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[9px] uppercase shadow-lg shadow-cyan-600/30 flex items-center justify-center gap-1 text-center disabled:opacity-50"
               >
                 <ExternalLink className="w-3.5 h-3.5" /> ⚡ Auto-Fulfill
+              </button>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                disabled={isProcessing}
+                onClick={() => handleUpdateStatus('COMPLETED', false)}
+                className="text-[10px] text-slate-500 hover:text-slate-300 underline font-mono transition-colors disabled:opacity-50"
+                title="Mark order completed in database without executing automated UC Bot topup"
+              >
+                Mark completed only (bypass UC Bot dispatch)
               </button>
             </div>
           </div>
