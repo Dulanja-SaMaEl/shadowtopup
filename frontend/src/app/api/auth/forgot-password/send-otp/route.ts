@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { sendPasswordResetOtpEmail } from '@/lib/emailService';
+import { encryptAuthPayload, hashOtpCode } from '@/lib/authToken';
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,21 +65,22 @@ export async function POST(request: NextRequest) {
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // 3. Create cryptographically signed verification token
-    const secretKey = supabaseServiceKey || 'shadow-secret-key-2026';
+    // 3. Create cryptographically secure, encrypted verification token (OTP is NEVER exposed in plaintext)
+    const secretKey = supabaseServiceKey;
+    const otpHash = hashOtpCode(otpCode, cleanEmail, secretKey);
+
     const payload = {
       email: cleanEmail,
       userId: targetUserId,
       name: targetName,
-      otp: otpCode,
+      otpHash,
       purpose: 'password_reset',
       expiresAt,
     };
-    const payloadString = JSON.stringify(payload);
-    const hmac = crypto.createHmac('sha256', secretKey).update(payloadString).digest('hex');
-    const verificationToken = Buffer.from(JSON.stringify({ payload, hmac })).toString('base64url');
 
-    // 4. Send the OTP via Resend
+    const verificationToken = encryptAuthPayload(payload, secretKey);
+
+    // 4. Send the OTP via Email
     const emailResult = await sendPasswordResetOtpEmail(cleanEmail, targetName || 'Player', otpCode, 10);
     if (!emailResult.success) {
       return NextResponse.json(

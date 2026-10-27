@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/dashboard?dialogpay_success=true&order_id=${encodeURIComponent(orderId)}`);
     }
 
-    // 3. Extract transaction ID from order column, admin_note, or URL params
+    // 3. Extract transaction ID (prefer authoritative DB record over unverified URL query parameters)
     const txId =
       order.transaction_id ||
       order.admin_note?.match(/TxID:\s*([^\s|]+)/)?.[1] ||
@@ -48,6 +48,24 @@ export async function GET(request: NextRequest) {
 
         // STRICT FULFILLMENT GATE: ONLY fulfill if gateway confirmed payment completely!
         if (liveState === 'CONFIRMED') {
+          // Strict Integrity Binding: Ensure the gateway transaction belongs to this specific order!
+          const txLocalId = String(txCheck.transaction.localId || '').trim();
+          const expectedOrderId = String(order.id).trim();
+
+          if (txLocalId && txLocalId !== expectedOrderId) {
+            console.error(`[DialogPay Security Alert] Gateway transaction localId mismatch: Expected ${expectedOrderId}, got ${txLocalId}`);
+            return NextResponse.redirect(`${appUrl}/dashboard?error=transaction_mismatch`);
+          }
+
+          // Strict Amount Verification: Prevent partial / under-payment fraud
+          const expectedCents = Math.round(Number(order.total_amount) * 100);
+          const actualCents = Math.round(Number(txCheck.transaction.amount || 0));
+
+          if (actualCents < expectedCents) {
+            console.error(`[DialogPay Security Alert] Underpayment detected on order ${expectedOrderId}: Expected ${expectedCents} cents, got ${actualCents}`);
+            return NextResponse.redirect(`${appUrl}/dashboard?error=underpayment`);
+          }
+
           await fulfillDialogPayOrder({
             orderId: order.id,
             transactionId: txId,

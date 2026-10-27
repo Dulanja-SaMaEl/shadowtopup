@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { sendRegistrationOtpEmail } from '@/lib/emailService';
+import { encryptAuthPayload, hashOtpCode } from '@/lib/authToken';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,18 +56,20 @@ export async function POST(request: NextRequest) {
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // Create cryptographically signed verification token
-    const secretKey = supabaseServiceKey || 'shadow-secret-key-2026';
+    // Create cryptographically secure, AES-256-GCM encrypted verification token
+    const secretKey = supabaseServiceKey;
+    const otpHash = hashOtpCode(otpCode, cleanEmail, secretKey);
+
     const payload = {
       email: cleanEmail,
       name: trimmedName,
       password: rawPassword,
-      otp: otpCode,
+      otpHash,
+      purpose: 'registration',
       expiresAt,
     };
-    const payloadString = JSON.stringify(payload);
-    const hmac = crypto.createHmac('sha256', secretKey).update(payloadString).digest('hex');
-    const verificationToken = Buffer.from(JSON.stringify({ payload, hmac })).toString('base64url');
+
+    const verificationToken = encryptAuthPayload(payload, secretKey);
 
     // Send the OTP via Gmail SMTP
     const emailResult = await sendRegistrationOtpEmail(cleanEmail, trimmedName, otpCode, 10);

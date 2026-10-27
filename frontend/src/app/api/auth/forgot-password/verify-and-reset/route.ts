@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { sendPasswordChangedNotificationEmail } from '@/lib/emailService';
+import { decryptAuthPayload, hashOtpCode } from '@/lib/authToken';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,42 +34,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Decode and verify HMAC token
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const secretKey = supabaseServiceKey || 'shadow-secret-key-2026';
+    const secretKey = supabaseServiceKey;
 
-    let tokenData: any = null;
-    try {
-      const decodedString = Buffer.from(cleanToken, 'base64url').toString('utf8');
-      tokenData = JSON.parse(decodedString);
-    } catch {
+    // 1. Decrypt AES-256-GCM token
+    const payload = decryptAuthPayload<{
+      email: string;
+      userId: string;
+      name?: string;
+      otpHash: string;
+      purpose: string;
+      expiresAt: number;
+    }>(cleanToken, secretKey);
+
+    if (!payload || !payload.email || !payload.otpHash || !payload.userId) {
       return NextResponse.json(
-        { success: false, message: 'Invalid reset token format. Please request a new code.' },
+        { success: false, message: 'Invalid or corrupted reset session token. Please request a new code.' },
         { status: 400 }
       );
     }
 
-    const { payload, hmac } = tokenData || {};
-    if (!payload || !hmac) {
-      return NextResponse.json(
-        { success: false, message: 'Corrupted reset session token. Please request a new code.' },
-        { status: 400 }
-      );
-    }
-
-    // 2. Verify HMAC signature
-    const payloadString = JSON.stringify(payload);
-    const expectedHmac = crypto.createHmac('sha256', secretKey).update(payloadString).digest('hex');
-
-    if (hmac !== expectedHmac) {
-      return NextResponse.json(
-        { success: false, message: 'Security signature mismatch. Please request a new code.' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Verify purpose
+    // 2. Verify purpose
     if (payload.purpose !== 'password_reset') {
       return NextResponse.json(
         { success: false, message: 'Invalid token purpose. Please request a new password reset.' },
@@ -76,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Check expiration
+    // 3. Check expiration
     if (Date.now() > Number(payload.expiresAt || 0)) {
       return NextResponse.json(
         { success: false, message: 'Password reset code has expired (10 minutes limit). Please request a fresh code.' },
@@ -84,15 +71,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Check OTP match
-    if (submittedOtp !== String(payload.otp)) {
+    // 4. Verify OTP using constant-time HMAC comparison
+    const expectedHash = hashOtpCode(submittedOtp, payload.email, secretKey);
+    const expectedBuf = Buffer.from(expectedHash, 'hex');
+    const actualBuf = Buffer.from(payload.otpHash, 'hex');
+
+    if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
       return NextResponse.json(
         { success: false, message: 'Incorrect 6-digit verification code. Please check your email and try again.' },
         { status: 400 }
       );
     }
 
-    // 6. Update user's password in Supabase Auth
+    // 5. Update user's password in Supabase Auth
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
     const { error: updateErr } = await adminSupabase.auth.admin.updateUserById(payload.userId, {
@@ -107,20 +98,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 7. Send Security Confirmation Email asynchronously
+    // 6. Send Security Confirmation Email asynchronously
     sendPasswordChangedNotificationEmail(payload.email, payload.name || 'Player').catch((err) =>
       console.warn('[verify-and-reset] Notification email note:', err)
     );
 
     return NextResponse.json({
       success: true,
-      message: 'Password reset successfully! You can now log in with your new password.',
-      email: payload.email,
+      message: 'Your password has been reset successfully! You can now log in with your new password.',
     });
   } catch (err: any) {
     console.error('[verify-and-reset] Exception:', err);
     return NextResponse.json(
-      { success: false, message: err.message || 'Password reset failed' },
+      { success: false, message: err.message || 'Failed to verify code and reset password' },
       { status: 500 }
     );
   }

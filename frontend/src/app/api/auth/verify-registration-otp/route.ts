@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { sendWelcomeEmail } from '@/lib/emailService';
+import { decryptAuthPayload, hashOtpCode } from '@/lib/authToken';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,42 +26,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Decode and verify HMAC token
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const secretKey = supabaseServiceKey || 'shadow-secret-key-2026';
+    const secretKey = supabaseServiceKey;
 
-    let tokenData: any = null;
-    try {
-      const decodedString = Buffer.from(cleanToken, 'base64url').toString('utf8');
-      tokenData = JSON.parse(decodedString);
-    } catch {
+    // 1. Decrypt AES-256-GCM token
+    const payload = decryptAuthPayload<{
+      email: string;
+      name: string;
+      password: string;
+      otpHash: string;
+      purpose: string;
+      expiresAt: number;
+    }>(cleanToken, secretKey);
+
+    if (!payload || !payload.email || !payload.otpHash || !payload.password) {
       return NextResponse.json(
-        { success: false, message: 'Invalid verification token format. Please request a new code.' },
+        { success: false, message: 'Invalid or corrupted verification token. Please request a new code.' },
         { status: 400 }
       );
     }
 
-    const { payload, hmac } = tokenData || {};
-    if (!payload || !hmac) {
-      return NextResponse.json(
-        { success: false, message: 'Corrupted verification token. Please request a new code.' },
-        { status: 400 }
-      );
-    }
-
-    // Verify HMAC signature
-    const payloadString = JSON.stringify(payload);
-    const expectedHmac = crypto.createHmac('sha256', secretKey).update(payloadString).digest('hex');
-
-    if (hmac !== expectedHmac) {
-      return NextResponse.json(
-        { success: false, message: 'Security signature mismatch. Please request a new code.' },
-        { status: 400 }
-      );
-    }
-
-    // Check expiration
+    // 2. Check expiration
     if (Date.now() > Number(payload.expiresAt || 0)) {
       return NextResponse.json(
         { success: false, message: 'Verification code has expired. Please request a new one.' },
@@ -68,15 +55,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check OTP match
-    if (submittedOtp !== String(payload.otp)) {
+    // 3. Verify OTP using constant-time comparison
+    const expectedHash = hashOtpCode(submittedOtp, payload.email, secretKey);
+    const expectedBuf = Buffer.from(expectedHash, 'hex');
+    const actualBuf = Buffer.from(payload.otpHash, 'hex');
+
+    if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
       return NextResponse.json(
         { success: false, message: 'Incorrect 6-digit verification code. Please check your email and try again.' },
         { status: 400 }
       );
     }
 
-    // Create user in Supabase with verified email
+    // 4. Create user in Supabase with verified email
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
     const { data: createdUserData, error: createErr } = await adminSupabase.auth.admin.createUser({
@@ -89,7 +80,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (createErr || !createdUserData.user) {
-      // If user already exists in auth, try updating password or confirm
       if (createErr?.message?.toLowerCase().includes('already') || createErr?.message?.toLowerCase().includes('registered')) {
         return NextResponse.json(
           { success: false, message: 'This email is already registered. Please sign in.' },
@@ -98,39 +88,38 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json(
         { success: false, message: `Account creation failed: ${createErr?.message || 'Database error'}` },
-        { status: 500 }
+        { status: 400 }
       );
     }
 
-    const userId = createdUserData.user.id;
+    const newUserId = createdUserData.user.id;
 
-    // Ensure Profile record
-    await adminSupabase.from('profiles').upsert({
-      id: userId,
-      email: payload.email,
-      name: payload.name,
-      role: 'normal',
-      wallet_balance: 0,
-      updated_at: new Date().toISOString(),
-    });
+    // 5. Ensure profile row exists in profiles table
+    await adminSupabase
+      .from('profiles')
+      .upsert({
+        id: newUserId,
+        email: payload.email,
+        name: payload.name,
+        role: 'normal',
+        wallet_balance: 0,
+        reseller_status: 'none',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
 
-    // Send Welcome / Thank You Email asynchronously
-    try {
-      await sendWelcomeEmail(payload.email, payload.name);
-    } catch (welcomeErr) {
-      console.warn('[verify-registration-otp] Welcome email note:', welcomeErr);
-    }
+    // 6. Send welcome email asynchronously
+    sendWelcomeEmail(payload.email, payload.name).catch((err) =>
+      console.warn('[verify-registration-otp] Welcome email note:', err)
+    );
 
     return NextResponse.json({
       success: true,
-      message: 'Account verified and created successfully! Welcome to Shadow Store.',
-      email: payload.email,
-      name: payload.name,
+      message: 'Account verified and registered successfully! You can now log in.',
     });
   } catch (err: any) {
     console.error('[verify-registration-otp] Exception:', err);
     return NextResponse.json(
-      { success: false, message: err.message || 'Verification failed' },
+      { success: false, message: err.message || 'Verification failed. Please try again.' },
       { status: 500 }
     );
   }

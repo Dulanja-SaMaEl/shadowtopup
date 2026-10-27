@@ -18,9 +18,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { orderId, shortId, receiptUrl } = await request.json();
-    const targetId = (orderId || shortId || '').replace('#', '').trim();
+    const cleanTargetId = (orderId || shortId || '').replace(/[^a-zA-Z0-9_-]/g, '').trim();
 
-    if (!targetId || !receiptUrl || typeof receiptUrl !== 'string') {
+    if (!cleanTargetId || !receiptUrl || typeof receiptUrl !== 'string') {
       return NextResponse.json({ success: false, message: 'orderId and valid receiptUrl are required' }, { status: 400 });
     }
 
@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
 
     const adminSupabase = createAdminClient(supabaseUrl, supabaseServiceKey);
 
-    // 3. Find matching order in database and verify ownership (Prevent IDOR)
+    // 3. Find matching order in database and verify ownership (Prevent IDOR & PostgREST filter injection)
     const { data: matchedOrders } = await adminSupabase
       .from('orders')
       .select('id, user_id, status')
-      .or(`id.eq.${targetId},id.ilike.${targetId}%`)
+      .or(`id.eq.${cleanTargetId},id.ilike.${cleanTargetId}%`)
       .limit(1);
 
     if (!matchedOrders || matchedOrders.length === 0) {

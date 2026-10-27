@@ -321,6 +321,7 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', authUser.id)
+          .eq('wallet_balance', currentWalletBalance)
           .gte('wallet_balance', totalAmount)
           .select();
 
@@ -562,10 +563,30 @@ export async function POST(request: NextRequest) {
           .ilike('admin_note', `%${cleanEzTrxId}%`)
           .limit(1);
 
-        if (existingLocalOrders && existingLocalOrders.length > 0) {
+        const { data: existingLocalWalletTx } = await adminSupabase
+          .from('wallet_transactions')
+          .select('id')
+          .ilike('description', `%${cleanEzTrxId}%`)
+          .limit(1);
+
+        let existingEzTx: any = null;
+        try {
+          const { data } = await adminSupabase
+            .from('ezcash_transactions')
+            .select('id')
+            .eq('trx_id', cleanEzTrxId)
+            .limit(1);
+          existingEzTx = data;
+        } catch {}
+
+        if (
+          (existingLocalOrders && existingLocalOrders.length > 0) ||
+          (existingLocalWalletTx && existingLocalWalletTx.length > 0) ||
+          (existingEzTx && existingEzTx.length > 0)
+        ) {
           return NextResponse.json({
             success: false,
-            message: 'This eZ Cash transaction ID has already been used for an order.',
+            message: 'This eZ Cash transaction ID has already been claimed for an order or wallet deposit.',
           }, { status: 400 });
         }
 
@@ -1005,6 +1026,7 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', effectiveUserId)
+        .eq('wallet_balance', currentWalletBalance)
         .gte('wallet_balance', amountToDeduct)
         .select();
 
@@ -1140,10 +1162,30 @@ export async function POST(request: NextRequest) {
         .ilike('admin_note', `%${cleanEzTrxId}%`)
         .limit(1);
 
-      if (existingLocalOrders && existingLocalOrders.length > 0) {
+      const { data: existingLocalWalletTx } = await adminSupabase
+        .from('wallet_transactions')
+        .select('id')
+        .ilike('description', `%${cleanEzTrxId}%`)
+        .limit(1);
+
+      let existingEzTx: any = null;
+      try {
+        const { data } = await adminSupabase
+          .from('ezcash_transactions')
+          .select('id')
+          .eq('trx_id', cleanEzTrxId)
+          .limit(1);
+        existingEzTx = data;
+      } catch {}
+
+      if (
+        (existingLocalOrders && existingLocalOrders.length > 0) ||
+        (existingLocalWalletTx && existingLocalWalletTx.length > 0) ||
+        (existingEzTx && existingEzTx.length > 0)
+      ) {
         return NextResponse.json({
           success: false,
-          message: 'This eZ Cash transaction ID has already been used for an order.',
+          message: 'This eZ Cash transaction ID has already been claimed for an order or wallet deposit.',
         }, { status: 400 });
       }
 

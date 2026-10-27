@@ -60,6 +60,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check orders table to prevent cross-flow replay
+    const { data: existingOrderWithTx } = await adminSupabase
+      .from('orders')
+      .select('id')
+      .ilike('admin_note', `%${cleanTrxId}%`)
+      .limit(1);
+
+    if (existingOrderWithTx && existingOrderWithTx.length > 0) {
+      return NextResponse.json(
+        { success: false, message: 'This eZ Cash transaction has already been used for a direct package order.' },
+        { status: 400 }
+      );
+    }
+
     // Also check dedicated ezcash_transactions table if present
     try {
       const { data: existingEzTx } = await adminSupabase
