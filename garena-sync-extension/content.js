@@ -4,7 +4,7 @@
  */
 
 const DEFAULT_SUPABASE_URL = 'https://vdqyxwenhzhucmqiyogi.supabase.co';
-
+const DEFAULT_ACCOUNT_USERNAME = 'SHADOW_TOPUP1';
 
 let lastSyncedBalance = null;
 
@@ -120,7 +120,7 @@ async function performAutoSync() {
 
     const supabaseUrl = config.supabaseUrl || DEFAULT_SUPABASE_URL;
     const supabaseKey = config.supabaseKey;
-    const syncUsername = config.accountUsername || username;
+    const syncUsername = config.accountUsername || username || DEFAULT_ACCOUNT_USERNAME;
 
     if (!supabaseKey || !syncUsername) {
       // Secret key or username not configured in extension popup

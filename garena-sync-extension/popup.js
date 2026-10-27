@@ -1,13 +1,70 @@
 const DEFAULT_SUPABASE_URL = 'https://vdqyxwenhzhucmqiyogi.supabase.co';
+const DEFAULT_ACCOUNT_USERNAME = 'SHADOW_TOPUP1';
 
 const syncBtn = document.getElementById('syncBtn');
 const statusBox = document.getElementById('statusBox');
+const primaryAccountVal = document.getElementById('primaryAccountVal');
+const toggleSettings = document.getElementById('toggleSettings');
+const settingsPanel = document.getElementById('settingsPanel');
+const inputUsername = document.getElementById('inputUsername');
+const inputSupabaseKey = document.getElementById('inputSupabaseKey');
+const inputSupabaseUrl = document.getElementById('inputSupabaseUrl');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 
 function showStatus(text, type) {
   statusBox.className = 'status ' + type;
   statusBox.textContent = text;
 }
 
+// 1. Initialize and auto-populate storage with local config or defaults
+chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'accountUsername'], (res) => {
+  const localConfig = (typeof window !== 'undefined' && window.SHADOW_LOCAL_CONFIG) || {};
+  const currentUrl = res?.supabaseUrl || localConfig.supabaseUrl || DEFAULT_SUPABASE_URL;
+  const currentKey = res?.supabaseKey || localConfig.supabaseKey || '';
+  const currentUsername = res?.accountUsername || localConfig.accountUsername || DEFAULT_ACCOUNT_USERNAME;
+
+  // Persist if found in local config or already present
+  if ((!res?.supabaseKey && currentKey) || !res?.accountUsername || !res?.supabaseUrl) {
+    chrome.storage.local.set({
+      supabaseUrl: currentUrl,
+      supabaseKey: currentKey,
+      accountUsername: currentUsername
+    });
+  }
+
+  if (primaryAccountVal) primaryAccountVal.textContent = currentUsername;
+  if (inputUsername) inputUsername.value = currentUsername;
+  if (inputSupabaseKey) inputSupabaseKey.value = currentKey;
+  if (inputSupabaseUrl) inputSupabaseUrl.value = currentUrl;
+});
+
+// 2. Settings toggle
+if (toggleSettings && settingsPanel) {
+  toggleSettings.addEventListener('click', () => {
+    settingsPanel.classList.toggle('open');
+  });
+}
+
+// 3. Save settings handler
+if (saveSettingsBtn) {
+  saveSettingsBtn.addEventListener('click', () => {
+    const newUsername = (inputUsername.value || DEFAULT_ACCOUNT_USERNAME).trim();
+    const newKey = (inputSupabaseKey.value || '').trim();
+    const newUrl = (inputSupabaseUrl.value || DEFAULT_SUPABASE_URL).trim();
+
+    chrome.storage.local.set({
+      supabaseUrl: newUrl,
+      supabaseKey: newKey,
+      accountUsername: newUsername
+    }, () => {
+      if (primaryAccountVal) primaryAccountVal.textContent = newUsername;
+      showStatus('✅ Settings saved to extension storage!', 'success');
+      settingsPanel.classList.remove('open');
+    });
+  });
+}
+
+// 4. Sync button handler
 syncBtn.addEventListener('click', async () => {
   syncBtn.disabled = true;
   showStatus('Detecting active Garena session on shop.garena.my...', 'info');
@@ -81,18 +138,43 @@ syncBtn.addEventListener('click', async () => {
           }
         }
 
+        // Method C: Check session API if DOM inspection failed
+        if (bal === null) {
+          try {
+            const sRes = await fetch('/api/auth/check_session', { credentials: 'include' });
+            if (sRes.ok) {
+              const sData = await sRes.json();
+              if (sData && sData.session_key) {
+                const ssoRes = await fetch('/api/auth/sso', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ session_key: sData.session_key }),
+                  credentials: 'include'
+                });
+                if (ssoRes.ok) {
+                  const ssoData = await ssoRes.json();
+                  if (typeof ssoData.shell_balance === 'number') {
+                    bal = ssoData.shell_balance;
+                    if (ssoData.username) username = ssoData.username;
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+        }
+
         return { bal, username };
       }
     });
 
     const data = results?.[0]?.result;
     if (!data || data.bal === null) {
-      showStatus('❌ Could not detect Shell balance. Please open the profile dropdown on shop.garena.my and click Sync again.', 'error');
+      showStatus('❌ Could not detect Shell balance. Please make sure you are logged into shop.garena.my with your profile menu visible.', 'error');
       syncBtn.disabled = false;
       return;
     }
 
-    const targetUsername = config.accountUsername || data.username;
+    const targetUsername = config.accountUsername || data.username || DEFAULT_ACCOUNT_USERNAME;
     if (!targetUsername) {
       showStatus('⚠️ Please configure your Shell Account username in extension storage.', 'error');
       syncBtn.disabled = false;

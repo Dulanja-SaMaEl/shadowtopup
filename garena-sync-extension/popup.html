@@ -76,6 +76,7 @@
       font-size: 11px;
       display: none;
       line-height: 1.4;
+      word-break: break-all;
     }
     .status.success {
       background: rgba(16, 185, 129, 0.15);
@@ -95,6 +96,69 @@
       color: #38bdf8;
       display: block;
     }
+    .settings-toggle {
+      text-align: center;
+      margin-top: 12px;
+    }
+    .settings-link {
+      font-size: 10px;
+      color: #94a3b8;
+      text-decoration: underline;
+      cursor: pointer;
+      font-family: monospace;
+    }
+    .settings-link:hover { color: #e2e8f0; }
+    .settings-panel {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #0f0d23;
+      border: 1px solid #2e1065;
+      border-radius: 8px;
+    }
+    .settings-panel.open { display: block; }
+    .input-group {
+      margin-bottom: 8px;
+    }
+    .input-label {
+      font-size: 9px;
+      color: #94a3b8;
+      margin-bottom: 3px;
+      display: block;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .input-field {
+      width: 100%;
+      background: #181534;
+      border: 1px solid #3b0764;
+      color: #fff;
+      font-size: 10px;
+      font-family: monospace;
+      padding: 6px 8px;
+      border-radius: 6px;
+      outline: none;
+    }
+    .input-field:focus {
+      border-color: #06b6d4;
+    }
+    .save-btn {
+      width: 100%;
+      background: #2e1065;
+      color: #c084fc;
+      border: 1px solid #7e22ce;
+      padding: 6px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+    .save-btn:hover {
+      background: #3b0764;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -113,7 +177,7 @@
     </div>
     <div class="row">
       <span class="label">Primary Account:</span>
-      <span class="val">Connected Account</span>
+      <span id="primaryAccountVal" class="val">SHADOW_TOPUP1</span>
     </div>
   </div>
 
@@ -121,6 +185,27 @@
 
   <div id="statusBox" class="status"></div>
 
+  <div class="settings-toggle">
+    <span id="toggleSettings" class="settings-link">⚙️ Configure Storage Keys</span>
+  </div>
+
+  <div id="settingsPanel" class="settings-panel">
+    <div class="input-group">
+      <label class="input-label">Account Username</label>
+      <input type="text" id="inputUsername" class="input-field" placeholder="SHADOW_TOPUP1" />
+    </div>
+    <div class="input-group">
+      <label class="input-label">Supabase Service Key</label>
+      <input type="password" id="inputSupabaseKey" class="input-field" placeholder="sb_secret_..." />
+    </div>
+    <div class="input-group">
+      <label class="input-label">Supabase URL</label>
+      <input type="text" id="inputSupabaseUrl" class="input-field" placeholder="https://....supabase.co" />
+    </div>
+    <button id="saveSettingsBtn" class="save-btn">Save to Extension Storage</button>
+  </div>
+
+  <script src="config.local.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
