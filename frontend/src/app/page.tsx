@@ -187,10 +187,19 @@ async function getFeaturedGames(): Promise<FeaturedGame[]> {
       const { data } = await supabase
         .from('games')
         .select('*')
+        .order('is_active', { ascending: false })
         .order('created_at', { ascending: true });
 
       if (data && data.length > 0) {
-        return data.map((g: any) => ({
+        const sortedGames = [...data].sort((a: any, b: any) => {
+          if (a.slug === 'free-fire') return -1;
+          if (b.slug === 'free-fire') return 1;
+          if (a.is_active && !b.is_active) return -1;
+          if (!a.is_active && b.is_active) return 1;
+          return 0;
+        });
+
+        return sortedGames.map((g: any) => ({
           title: g.title,
           slug: g.slug,
           category: g.category || 'Mobile',

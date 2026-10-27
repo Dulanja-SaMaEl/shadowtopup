@@ -14,13 +14,22 @@ export async function GET() {
     const { data: games, error } = await adminSupabase
       .from('games')
       .select('*')
+      .order('is_active', { ascending: false })
       .order('created_at', { ascending: true });
 
     if (error) {
       return NextResponse.json({ success: false, message: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, games: games || [] });
+    const sortedGames = (games || []).sort((a: any, b: any) => {
+      if (a.slug === 'free-fire') return -1;
+      if (b.slug === 'free-fire') return 1;
+      if (a.is_active && !b.is_active) return -1;
+      if (!a.is_active && b.is_active) return 1;
+      return 0;
+    });
+
+    return NextResponse.json({ success: true, games: sortedGames });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }

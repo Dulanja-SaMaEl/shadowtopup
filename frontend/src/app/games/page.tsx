@@ -104,10 +104,18 @@ async function getGamesCatalog(): Promise<GameItem[]> {
       const { data } = await supabase
         .from('games')
         .select('*')
+        .order('is_active', { ascending: false })
         .order('created_at', { ascending: true });
 
       if (data && data.length > 0) {
-        return data as GameItem[];
+        const sorted = [...data].sort((a: any, b: any) => {
+          if (a.slug === 'free-fire') return -1;
+          if (b.slug === 'free-fire') return 1;
+          if (a.is_active && !b.is_active) return -1;
+          if (!a.is_active && b.is_active) return 1;
+          return 0;
+        });
+        return sorted as GameItem[];
       }
     }
   } catch (e) {
