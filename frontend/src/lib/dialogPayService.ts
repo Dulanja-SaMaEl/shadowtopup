@@ -224,7 +224,8 @@ export function verifyDialogPayWebhookSignature(headers: Headers | Record<string
     return false;
   }
 
-  const signString = `${nonce}${timestamp}${config.apiKey}`;
+  const secretKey = (process.env.DIALOG_PAY_WEBHOOK_SECRET || config.apiKey).trim();
+  const signString = `${nonce}${timestamp}${secretKey}`;
   const generatedSignature = crypto.createHash('sha256').update(signString).digest('hex');
 
   // Case-insensitive hex string comparison

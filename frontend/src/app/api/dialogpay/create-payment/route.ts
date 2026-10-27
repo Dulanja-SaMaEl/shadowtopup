@@ -240,8 +240,8 @@ export async function POST(request: NextRequest) {
         : targetUid;
 
     const customerRef = uidLabel
-      ? `UID ${uidLabel} (${shortOrderId})`
-      : `Order ${shortOrderId}`;
+      ? `player ID ${uidLabel} reference (${shortOrderId})`
+      : `reference (${shortOrderId})`;
 
     const paymentRes = await createDialogPayTransaction({
       amountLkr: totalAmount,
