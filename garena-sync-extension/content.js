@@ -3,8 +3,9 @@
  * Runs silently in the background whenever shop.garena.my is open.
  */
 
-const DEFAULT_SUPABASE_URL = 'https://vdqyxwenhzhucmqiyogi.supabase.co';
+const DEFAULT_API_URL = 'https://www.shadowstorelk.com/api/admin/shell-accounts/sync';
 const DEFAULT_ACCOUNT_USERNAME = 'SHADOW_TOPUP1';
+const DEFAULT_SYNC_SECRET = '';
 
 let lastSyncedBalance = null;
 
@@ -30,138 +31,137 @@ function showSyncPill(text, isError = false) {
       letter-spacing: 0.3px;
       display: flex;
       align-items: center;
-      gap: 6px;
-      backdrop-filter: blur(8px);
-      transition: all 0.3s ease;
+      gap: 8px;
       pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(100px);
+      opacity: 0;
     `;
     document.body.appendChild(pill);
-  } else {
-    pill.style.borderColor = isError ? '#f43f5e' : '#10b981';
-    pill.style.boxShadow = isError ? '0 4px 20px rgba(244, 63, 94, 0.4)' : '0 4px 20px rgba(16, 185, 129, 0.4)';
-    pill.style.opacity = '1';
   }
 
-  pill.innerHTML = `<span>${isError ? '⚠️' : '⚡'}</span><span>${text}</span>`;
+  pill.style.borderColor = isError ? '#f43f5e' : '#10b981';
+  pill.style.boxShadow = `0 4px 20px ${isError ? 'rgba(244, 63, 94, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`;
+  pill.innerHTML = `
+    <span style="font-size: 14px;">${isError ? '⚠️' : '⚡'}</span>
+    <span>${text}</span>
+  `;
+
+  // Animate in
+  requestAnimationFrame(() => {
+    pill.style.transform = 'translateY(0)';
+    pill.style.opacity = '1';
+  });
 
   setTimeout(() => {
-    if (pill) {
-      pill.style.opacity = '0';
-    }
+    pill.style.transform = 'translateY(100px)';
+    pill.style.opacity = '0';
   }, 4000);
 }
 
-async function performAutoSync() {
-  let balance = null;
+function extractBalance() {
+  let bal = null;
   let username = '';
 
-  // 1. Try reading from visible DOM (if dropdown is open)
-  const shellSvg = document.querySelector('svg[aria-label="Shell"]');
+  // 1. Direct Shell SVG icon container
+  let shellSvg = document.querySelector('svg[aria-label="Shell"]');
   if (shellSvg && shellSvg.parentElement) {
     const numDiv = shellSvg.parentElement.querySelector('.text-ellipsis, [class*="font-bold"], div');
     if (numDiv) {
-      const parsed = parseFloat(numDiv.textContent.replace(/,/g, '').trim());
-      if (!isNaN(parsed) && parsed >= 0) balance = parsed;
+      const raw = numDiv.textContent.replace(/,/g, '').trim();
+      const parsed = parseFloat(raw);
+      if (!isNaN(parsed) && parsed >= 0) {
+        bal = parsed;
+      }
     }
   }
 
-  // 2. Try internal Garena Shop session API
-  if (balance === null) {
-    try {
-      const sRes = await fetch('/api/auth/check_session', { credentials: 'include' });
-      if (sRes.ok) {
-        const sData = await sRes.json();
-        if (sData && sData.login && sData.session_key) {
-          const ssoRes = await fetch('/api/auth/sso', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_key: sData.session_key }),
-            credentials: 'include'
-          });
-          if (ssoRes.ok) {
-            const ssoData = await ssoRes.json();
-            if (typeof ssoData.shell_balance === 'number') {
-              balance = ssoData.shell_balance;
-              if (ssoData.username) username = ssoData.username;
-            }
-          }
+  // 2. Element labeled "Garena Shells"
+  if (bal === null) {
+    const allDivs = Array.from(document.querySelectorAll('div'));
+    const labelDiv = allDivs.find(d => d.children.length === 0 && d.textContent.trim() === 'Garena Shells');
+    if (labelDiv && labelDiv.parentElement) {
+      const numDiv = labelDiv.parentElement.querySelector('.text-ellipsis, [class*="font-bold"]');
+      if (numDiv) {
+        const raw = numDiv.textContent.replace(/,/g, '').trim();
+        const parsed = parseFloat(raw);
+        if (!isNaN(parsed) && parsed >= 0) {
+          bal = parsed;
         }
       }
-    } catch (e) {
-      // API query fallback
     }
   }
 
-  // 3. Fallback: inspect page text
-  if (balance === null) {
-    const allText = document.body ? document.body.innerText : '';
-    const match = allText.match(/(\d[\d,\.]*)\s*(?:Shells?|GS)/i);
+  // 3. Fallback to searching page text
+  if (bal === null) {
+    const text = document.body ? document.body.innerText : '';
+    const match = text.match(/(\d[\d,\.]*)\s*(?:Shells?|GS)/i);
     if (match) {
       const num = parseFloat(match[1].replace(/,/g, ''));
-      if (!isNaN(num) && num >= 0) balance = num;
+      if (!isNaN(num) && num >= 0) {
+        bal = num;
+      }
     }
   }
 
-  // If no balance detected, don't spam
-  if (balance === null) return;
+  return { balance: bal, username };
+}
 
-  // Don't re-sync if balance hasn't changed
+async function performAutoSync() {
+  const { balance, username } = extractBalance();
+  if (balance === null) return;
   if (lastSyncedBalance === balance) return;
 
-  // Update Supabase directly if configured
   try {
     const config = await new Promise((resolve) => {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'accountUsername'], (res) => resolve(res || {}));
+        chrome.storage.local.get(['apiUrl', 'syncSecret', 'accountUsername'], (res) => resolve(res || {}));
       } else {
         resolve({});
       }
     });
 
-    const supabaseUrl = config.supabaseUrl || DEFAULT_SUPABASE_URL;
-    const supabaseKey = config.supabaseKey;
+    const apiUrl = config.apiUrl || DEFAULT_API_URL;
+    const syncSecret = config.syncSecret || DEFAULT_SYNC_SECRET;
     const syncUsername = config.accountUsername || username || DEFAULT_ACCOUNT_USERNAME;
 
-    if (!supabaseKey || !syncUsername) {
-      // Secret key or username not configured in extension popup
+    if (!syncSecret || !syncUsername) {
       return;
     }
 
-    const nowIso = new Date().toISOString();
-    const res = await fetch(`${supabaseUrl}/rest/v1/shell_accounts?account_username=eq.${encodeURIComponent(syncUsername)}`, {
-      method: 'PATCH',
+    const res = await fetch(apiUrl, {
+      method: 'POST',
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
+        'x-sync-secret': syncSecret
       },
       body: JSON.stringify({
-        available_balance: balance,
-        last_synced_at: nowIso,
-        updated_at: nowIso
+        username: syncUsername,
+        explicitBalance: balance,
+        syncSecret: syncSecret
       })
     });
 
-    if (res.ok) {
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.success) {
       lastSyncedBalance = balance;
-      showSyncPill(`Shadow Store: ${balance.toLocaleString()} Shells Synced`);
-      console.log(`[ShadowStore AutoSync] Successfully synced ${balance} Shells for ${syncUsername}.`);
+      showSyncPill(`Auto-Synced: ${balance.toLocaleString()} Shells`);
     }
   } catch (err) {
-    console.warn('[ShadowStore AutoSync] Failed to sync:', err);
+    console.warn('[Shadow Store Auto-Sync Error]', err);
   }
 }
 
-// Run 2 seconds after page load
-setTimeout(performAutoSync, 2000);
-
-// Auto-sync every 3 minutes while tab is open
-setInterval(performAutoSync, 3 * 60 * 1000);
-
-// Also sync whenever user switches back to the tab
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
+// Observe DOM changes on shop.garena.my
+let timeoutId = null;
+const observer = new MutationObserver(() => {
+  if (timeoutId) clearTimeout(timeoutId);
+  timeoutId = setTimeout(() => {
     performAutoSync();
-  }
+  }, 1000);
 });
+
+if (document.body) {
+  observer.observe(document.body, { childList: true, subtree: true });
+  setTimeout(performAutoSync, 2000);
+}

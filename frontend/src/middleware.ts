@@ -2,6 +2,18 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 export async function middleware(request: NextRequest) {
+  // Allow CORS preflight requests
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-sync-secret',
+      },
+    });
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -67,9 +79,19 @@ export async function middleware(request: NextRequest) {
       }
     }
   }
-
   // Protect /api/admin API routes
   if (path.startsWith('/api/admin')) {
+    // Allow external sync endpoint if valid sync secret is provided
+    if (path === '/api/admin/shell-accounts/sync') {
+      const secretHeader = request.headers.get('x-sync-secret') || '';
+      const authHeader = request.headers.get('authorization') || '';
+      const token = secretHeader || (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '');
+      const validSecret = (process.env.GARENA_SYNC_SECRET || process.env.UC_BOT_API_KEY || '').trim();
+      if (validSecret && token && token === validSecret) {
+        return response;
+      }
+    }
+
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized: Authentication required' },

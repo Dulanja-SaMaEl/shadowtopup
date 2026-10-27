@@ -2,77 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Shadow Store Garena Sync</title>
+  <title>Shadow Store Shell Sync</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
     body {
       width: 320px;
+      padding: 16px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #0d0b1d;
       color: #fff;
-      padding: 16px;
-      border: 1px solid #3b0764;
     }
     .header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      border-bottom: 1px solid #1e1b4b;
-      padding-bottom: 12px;
+      gap: 10px;
       margin-bottom: 14px;
+    }
+    .logo {
+      font-size: 20px;
     }
     .title {
       font-size: 13px;
-      font-weight: 900;
+      font-weight: 800;
       letter-spacing: 0.5px;
-      text-transform: uppercase;
-      background: linear-gradient(90deg, #38bdf8, #a855f7);
+      background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      font-size: 10px;
+      color: #94a3b8;
     }
     .card {
-      background: #141229;
+      background: #181534;
       border: 1px solid #2e1065;
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 12px;
-      margin-bottom: 14px;
-      font-size: 11px;
+      margin-bottom: 12px;
     }
     .row {
       display: flex;
       justify-content: space-between;
       margin-bottom: 6px;
+      font-size: 11px;
     }
-    .row:last-child { margin-bottom: 0; }
-    .label { color: #94a3b8; }
-    .val { font-weight: 700; color: #38bdf8; font-family: monospace; }
+    .row:last-child {
+      margin-bottom: 0;
+    }
+    .label {
+      color: #94a3b8;
+    }
+    .val {
+      font-weight: 700;
+      color: #38bdf8;
+      font-family: monospace;
+    }
     .btn {
       width: 100%;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid #06b6d4;
-      background: linear-gradient(135deg, #06b6d4, #6366f1, #a855f7);
+      background: linear-gradient(135deg, #0284c7, #6366f1);
       color: #fff;
-      font-size: 12px;
-      font-weight: 900;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 11px;
+      cursor: pointer;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(6, 182, 212, 0.35);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
       transition: all 0.2s ease;
     }
-    .btn:hover {
-      opacity: 0.95;
-      box-shadow: 0 6px 25px rgba(6, 182, 212, 0.5);
+    .btn:hover:not(:disabled) {
+      filter: brightness(1.15);
+      transform: translateY(-1px);
     }
     .btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
     .status {
-      margin-top: 12px;
-      padding: 10px;
-      border-radius: 8px;
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
       font-size: 11px;
       display: none;
       line-height: 1.4;
@@ -80,19 +96,19 @@
     }
     .status.success {
       background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      border: 1px solid #10b981;
       color: #34d399;
       display: block;
     }
     .status.error {
       background: rgba(244, 63, 94, 0.15);
-      border: 1px solid rgba(244, 63, 94, 0.4);
+      border: 1px solid #f43f5e;
       color: #fb7185;
       display: block;
     }
     .status.info {
-      background: rgba(6, 182, 212, 0.15);
-      border: 1px solid rgba(6, 182, 212, 0.4);
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid #38bdf8;
       color: #38bdf8;
       display: block;
     }
@@ -163,17 +179,17 @@
 </head>
 <body>
   <div class="header">
-    <span style="font-size: 18px;">⚡</span>
+    <div class="logo">⚡</div>
     <div>
-      <div class="title">Shadow Store Sync</div>
-      <div style="font-size: 9px; color: #94a3b8;">Garena Shell Live Inventory Engine</div>
+      <div class="title">SHADOW STORE SYNC</div>
+      <div class="subtitle">Garena Shell Live Inventory Engine</div>
     </div>
   </div>
 
   <div class="card">
     <div class="row">
       <span class="label">Target Server:</span>
-      <span class="val">shadowstorelk.com</span>
+      <span id="targetServerVal" class="val">shadowstorelk.com</span>
     </div>
     <div class="row">
       <span class="label">Primary Account:</span>
@@ -186,7 +202,7 @@
   <div id="statusBox" class="status"></div>
 
   <div class="settings-toggle">
-    <span id="toggleSettings" class="settings-link">⚙️ Configure Storage Keys</span>
+    <span id="toggleSettings" class="settings-link">⚙️ Configure Sync Settings</span>
   </div>
 
   <div id="settingsPanel" class="settings-panel">
@@ -195,12 +211,12 @@
       <input type="text" id="inputUsername" class="input-field" placeholder="SHADOW_TOPUP1" />
     </div>
     <div class="input-group">
-      <label class="input-label">Supabase Service Key</label>
-      <input type="password" id="inputSupabaseKey" class="input-field" placeholder="sb_secret_..." />
+      <label class="input-label">Shadow Store Sync Endpoint</label>
+      <input type="text" id="inputApiUrl" class="input-field" placeholder="https://www.shadowstorelk.com/api/admin/shell-accounts/sync" />
     </div>
     <div class="input-group">
-      <label class="input-label">Supabase URL</label>
-      <input type="text" id="inputSupabaseUrl" class="input-field" placeholder="https://....supabase.co" />
+      <label class="input-label">Sync Secret Key</label>
+      <input type="password" id="inputSyncSecret" class="input-field" placeholder="Enter sync secret" />
     </div>
     <button id="saveSettingsBtn" class="save-btn">Save to Extension Storage</button>
   </div>

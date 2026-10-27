@@ -1,14 +1,16 @@
-const DEFAULT_SUPABASE_URL = 'https://vdqyxwenhzhucmqiyogi.supabase.co';
+const DEFAULT_API_URL = 'https://www.shadowstorelk.com/api/admin/shell-accounts/sync';
 const DEFAULT_ACCOUNT_USERNAME = 'SHADOW_TOPUP1';
+const DEFAULT_SYNC_SECRET = '';
 
 const syncBtn = document.getElementById('syncBtn');
 const statusBox = document.getElementById('statusBox');
+const targetServerVal = document.getElementById('targetServerVal');
 const primaryAccountVal = document.getElementById('primaryAccountVal');
 const toggleSettings = document.getElementById('toggleSettings');
 const settingsPanel = document.getElementById('settingsPanel');
 const inputUsername = document.getElementById('inputUsername');
-const inputSupabaseKey = document.getElementById('inputSupabaseKey');
-const inputSupabaseUrl = document.getElementById('inputSupabaseUrl');
+const inputApiUrl = document.getElementById('inputApiUrl');
+const inputSyncSecret = document.getElementById('inputSyncSecret');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 
 function showStatus(text, type) {
@@ -16,26 +18,36 @@ function showStatus(text, type) {
   statusBox.textContent = text;
 }
 
+function updateServerDisplay(url) {
+  try {
+    const u = new URL(url);
+    if (targetServerVal) targetServerVal.textContent = u.hostname;
+  } catch (e) {
+    if (targetServerVal) targetServerVal.textContent = 'shadowstorelk.com';
+  }
+}
+
 // 1. Initialize and auto-populate storage with local config or defaults
-chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'accountUsername'], (res) => {
+chrome.storage.local.get(['apiUrl', 'syncSecret', 'accountUsername'], (res) => {
   const localConfig = (typeof window !== 'undefined' && window.SHADOW_LOCAL_CONFIG) || {};
-  const currentUrl = res?.supabaseUrl || localConfig.supabaseUrl || DEFAULT_SUPABASE_URL;
-  const currentKey = res?.supabaseKey || localConfig.supabaseKey || '';
+  const currentUrl = res?.apiUrl || localConfig.apiUrl || DEFAULT_API_URL;
+  const currentSecret = res?.syncSecret || localConfig.syncSecret || DEFAULT_SYNC_SECRET;
   const currentUsername = res?.accountUsername || localConfig.accountUsername || DEFAULT_ACCOUNT_USERNAME;
 
   // Persist if found in local config or already present
-  if ((!res?.supabaseKey && currentKey) || !res?.accountUsername || !res?.supabaseUrl) {
+  if ((!res?.syncSecret && currentSecret) || !res?.accountUsername || !res?.apiUrl) {
     chrome.storage.local.set({
-      supabaseUrl: currentUrl,
-      supabaseKey: currentKey,
+      apiUrl: currentUrl,
+      syncSecret: currentSecret,
       accountUsername: currentUsername
     });
   }
 
+  updateServerDisplay(currentUrl);
   if (primaryAccountVal) primaryAccountVal.textContent = currentUsername;
   if (inputUsername) inputUsername.value = currentUsername;
-  if (inputSupabaseKey) inputSupabaseKey.value = currentKey;
-  if (inputSupabaseUrl) inputSupabaseUrl.value = currentUrl;
+  if (inputApiUrl) inputApiUrl.value = currentUrl;
+  if (inputSyncSecret) inputSyncSecret.value = currentSecret;
 });
 
 // 2. Settings toggle
@@ -49,14 +61,15 @@ if (toggleSettings && settingsPanel) {
 if (saveSettingsBtn) {
   saveSettingsBtn.addEventListener('click', () => {
     const newUsername = (inputUsername.value || DEFAULT_ACCOUNT_USERNAME).trim();
-    const newKey = (inputSupabaseKey.value || '').trim();
-    const newUrl = (inputSupabaseUrl.value || DEFAULT_SUPABASE_URL).trim();
+    const newApiUrl = (inputApiUrl.value || DEFAULT_API_URL).trim();
+    const newSecret = (inputSyncSecret.value || '').trim();
 
     chrome.storage.local.set({
-      supabaseUrl: newUrl,
-      supabaseKey: newKey,
+      apiUrl: newApiUrl,
+      syncSecret: newSecret,
       accountUsername: newUsername
     }, () => {
+      updateServerDisplay(newApiUrl);
       if (primaryAccountVal) primaryAccountVal.textContent = newUsername;
       showStatus('✅ Settings saved to extension storage!', 'success');
       settingsPanel.classList.remove('open');
@@ -80,14 +93,14 @@ syncBtn.addEventListener('click', async () => {
 
     // 2. Load extension config
     const config = await new Promise((resolve) => {
-      chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'accountUsername'], (res) => resolve(res || {}));
+      chrome.storage.local.get(['apiUrl', 'syncSecret', 'accountUsername'], (res) => resolve(res || {}));
     });
 
-    const supabaseUrl = config.supabaseUrl || DEFAULT_SUPABASE_URL;
-    const supabaseKey = config.supabaseKey;
+    const apiUrl = config.apiUrl || DEFAULT_API_URL;
+    const syncSecret = config.syncSecret || (typeof window !== 'undefined' && window.SHADOW_LOCAL_CONFIG?.syncSecret) || '';
 
-    if (!supabaseKey) {
-      showStatus('⚠️ Please configure your SUPABASE_SERVICE_ROLE_KEY in extension storage.', 'error');
+    if (!syncSecret) {
+      showStatus('⚠️ Please configure your Sync Secret Key in extension storage.', 'error');
       syncBtn.disabled = false;
       return;
     }
@@ -175,36 +188,27 @@ syncBtn.addEventListener('click', async () => {
     }
 
     const targetUsername = config.accountUsername || data.username || DEFAULT_ACCOUNT_USERNAME;
-    if (!targetUsername) {
-      showStatus('⚠️ Please configure your Shell Account username in extension storage.', 'error');
-      syncBtn.disabled = false;
-      return;
-    }
+    showStatus(`Found ${data.bal.toLocaleString()} Shells! Updating Shadow Store server...`, 'info');
 
-    showStatus(`Found ${data.bal.toLocaleString()} Shells! Updating Shadow Store database...`, 'info');
-
-    // 4. Update Supabase Directly
-    const nowIso = new Date().toISOString();
-    const postRes = await fetch(`${supabaseUrl}/rest/v1/shell_accounts?account_username=eq.${encodeURIComponent(targetUsername)}`, {
-      method: 'PATCH',
+    // 4. Post to Shadow Store API
+    const postRes = await fetch(apiUrl, {
+      method: 'POST',
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
+        'x-sync-secret': syncSecret
       },
       body: JSON.stringify({
-        available_balance: data.bal,
-        last_synced_at: nowIso,
-        updated_at: nowIso
+        username: targetUsername,
+        explicitBalance: data.bal,
+        syncSecret: syncSecret
       })
     });
 
-    if (postRes.ok) {
+    const postData = await postRes.json().catch(() => null);
+    if (postRes.ok && postData && postData.success) {
       showStatus(`✅ Synced Successfully!\nAccount: ${targetUsername}\nBalance: ${data.bal.toLocaleString()} Shells`, 'success');
     } else {
-      const errTxt = await postRes.text();
-      showStatus(`❌ Server returned error: ${errTxt}`, 'error');
+      showStatus(`❌ Server returned error: ${postData?.message || postRes.statusText}`, 'error');
     }
   } catch (err) {
     showStatus(`❌ Error: ${err.message}`, 'error');
