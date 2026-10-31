@@ -138,7 +138,8 @@ export async function createDialogPayTransaction(
 
 /**
  * Retrieves transaction details directly from Genie Business Connect API
- * Endpoint: GET /public/v2/transactions/{transactionId} with fallback to GET /public/transactions/{transactionId}
+ * Documented OpenAPI Endpoint: GET /public/transactions/{transactionId}
+ * Fallback Endpoint: GET /public/v2/transactions/{transactionId}
  */
 export async function getDialogPayTransaction(
   transactionId: string
@@ -149,8 +150,11 @@ export async function getDialogPayTransaction(
     return { success: false, error: 'DIALOG_PAY_API_KEY is not configured.' };
   }
 
+  const cleanTxId = encodeURIComponent(String(transactionId).trim());
+
   try {
-    let res = await fetch(`${config.baseUrl}/public/v2/transactions/${encodeURIComponent(transactionId)}`, {
+    // 1. Try documented OpenAPI route: GET /public/transactions/{transactionId}
+    let res = await fetch(`${config.baseUrl}/public/transactions/${cleanTxId}`, {
       method: 'GET',
       headers: {
         Authorization: config.apiKey,
@@ -159,9 +163,18 @@ export async function getDialogPayTransaction(
       cache: 'no-store',
     });
 
-    // Fallback to V1 public path if V2 returns 404
-    if (res.status === 404) {
-      res = await fetch(`${config.baseUrl}/public/transactions/${encodeURIComponent(transactionId)}`, {
+    let data: any = null;
+    if (res.ok) {
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = null;
+      }
+    }
+
+    // 2. If primary route did not succeed, fallback to GET /public/v2/transactions/{transactionId}
+    if (!data) {
+      const fallbackRes = await fetch(`${config.baseUrl}/public/v2/transactions/${cleanTxId}`, {
         method: 'GET',
         headers: {
           Authorization: config.apiKey,
@@ -169,25 +182,40 @@ export async function getDialogPayTransaction(
         },
         cache: 'no-store',
       });
+
+      if (fallbackRes.ok) {
+        try {
+          data = await fallbackRes.json();
+          res = fallbackRes;
+        } catch (e) {
+          data = null;
+        }
+      } else if (!res.ok) {
+        // If neither was ok, attempt to parse error from the better response
+        try {
+          const errData = await fallbackRes.json();
+          return { success: false, error: errData?.message || `API error (${fallbackRes.status})` };
+        } catch {
+          return { success: false, error: `API error (${res.status || fallbackRes.status})` };
+        }
+      }
     }
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { success: false, error: data?.message || `API error (${res.status})` };
+    if (!data) {
+      return { success: false, error: `API error (${res.status})` };
     }
 
-    // In case the response wraps transaction or is direct object
-    const tx = Array.isArray(data) ? data[0] : (data.transaction || data);
+    // In case the response wraps transaction or is direct object or array
+    const tx = Array.isArray(data) ? data[0] : (data.transaction || data.data || data);
     return {
       success: true,
       transaction: {
-        id: tx.id || tx._id || transactionId,
+        id: tx.id || tx._id || tx.transactionId || transactionId,
         url: tx.url,
-        amount: tx.amount,
-        currency: tx.currency,
-        state: tx.state,
-        localId: tx.localId,
+        amount: typeof tx.amount === 'number' ? tx.amount : Number(tx.amount || 0),
+        currency: tx.currency || 'LKR',
+        state: tx.state || tx.status,
+        localId: tx.localId || tx.orderId,
         provider: tx.provider,
         payerId: tx.payerId,
       },

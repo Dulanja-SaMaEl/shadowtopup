@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
           const txLocalId = String(txCheck.transaction.localId || '').trim();
           const expectedOrderId = String(order.id).trim();
 
-          if (txLocalId && txLocalId !== expectedOrderId) {
+          if (txLocalId && txLocalId !== expectedOrderId && !expectedOrderId.startsWith(txLocalId)) {
             console.error(`[DialogPay Security Alert] Gateway transaction localId mismatch: Expected ${expectedOrderId}, got ${txLocalId}`);
             return NextResponse.redirect(`${appUrl}/dashboard?error=transaction_mismatch`);
           }
