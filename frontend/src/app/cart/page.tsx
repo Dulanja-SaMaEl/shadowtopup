@@ -634,7 +634,7 @@ export default function CartPage() {
                 {/* Payment Method Selection */}
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Select Payment Method</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2.5">
                     {/* 1. Visa / Mastercard (Dialog Pay) */}
                     <button
                       type="button"
@@ -671,7 +671,7 @@ export default function CartPage() {
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <EzCashLogo className="w-10 h-5" />
+                        <EzCashLogo className="w-10 h-5 shrink-0" />
                         <div className="min-w-0">
                           <span className="font-bold text-white block text-xs truncate">Dialog eZ Cash</span>
                           <span className="text-[10px] text-amber-300/90 font-mono block truncate">Direct SMS Verify</span>
@@ -693,7 +693,7 @@ export default function CartPage() {
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <ShadowWalletLogo className="w-8 h-5" />
+                        <ShadowWalletLogo className="w-8 h-5 shrink-0" />
                         <div className="min-w-0">
                           <span className="font-bold text-white block text-xs truncate">Shadow Wallet</span>
                           <span className="text-[10px] text-purple-300 font-mono block truncate">
@@ -717,7 +717,7 @@ export default function CartPage() {
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <BankTransferLogo className="w-8 h-5" />
+                        <BankTransferLogo className="w-8 h-5 shrink-0" />
                         <div className="min-w-0">
                           <span className="font-bold text-white block text-xs truncate">Bank Transfer</span>
                           <span className="text-[10px] text-slate-400 font-mono block truncate">Slip Upload</span>
