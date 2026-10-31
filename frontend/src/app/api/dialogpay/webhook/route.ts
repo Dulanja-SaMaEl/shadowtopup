@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     } else if (liveState === 'CANCELLED' || liveState === 'FAILED') {
       await adminSupabase.from('orders').update({
-        status: liveState.toLowerCase(),
+        status: 'rejected',
         admin_note: `Dialog Pay transaction marked ${liveState} by gateway.`,
         updated_at: new Date().toISOString(),
       }).eq('id', order.id);

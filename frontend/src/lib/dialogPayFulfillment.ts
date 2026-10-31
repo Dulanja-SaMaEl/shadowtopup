@@ -42,16 +42,21 @@ export async function fulfillDialogPayOrder(options: FulfillDialogPayOrderOption
     return { success: false, message: `Order was marked ${order.status}. Delivery blocked.`, order };
   }
 
-  // Atomically lock order from 'pending' -> 'processing' to prevent race conditions
+  // Atomically lock order to prevent race conditions (e.g. concurrent webhook + redirect verify)
+  // Note: We atomically flag admin_note with a lock token while status is 'pending' because PostgreSQL check constraint
+  // strictly permits status IN ('pending', 'completed', 'rejected').
+  const lockToken = `[FULFILLING_${Date.now()}]`;
   const { data: locked, error: lockErr } = await adminSupabase
     .from('orders')
     .update({
-      status: 'processing',
+      admin_note: `${order.admin_note || ''} | ${lockToken}`,
       updated_at: new Date().toISOString(),
     })
     .eq('id', orderId)
     .eq('status', 'pending')
-    .select()
+    .not('admin_note', 'ilike', '%[FULFILLING_%')
+    .not('admin_note', 'ilike', '%Garena Trx%')
+    .select('id, status, admin_note')
     .single();
 
   if (lockErr || !locked) {
@@ -217,7 +222,7 @@ export async function fulfillDialogPayOrder(options: FulfillDialogPayOrderOption
     }]);
 
     await adminSupabase.from('orders').update({
-      status: 'refunded',
+      status: 'rejected',
       admin_note: `Dialog Pay TxID: ${transactionId} confirmed, but Garena delivery failed. LKR ${refundAmount} auto-credited to customer Shadow Wallet. ${deliveryNotes.join('; ')}`,
       updated_at: new Date().toISOString(),
     }).eq('id', order.id);

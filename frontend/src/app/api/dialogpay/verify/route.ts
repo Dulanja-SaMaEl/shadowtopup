@@ -66,17 +66,21 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(`${appUrl}/dashboard?error=underpayment`);
           }
 
-          await fulfillDialogPayOrder({
+          const fulfillment = await fulfillDialogPayOrder({
             orderId: order.id,
             transactionId: txId,
             provider: txCheck.transaction.provider,
             payerId: txCheck.transaction.payerId,
           });
 
+          if (!fulfillment.success && fulfillment.refunded_to_wallet) {
+            return NextResponse.redirect(`${appUrl}/dashboard?dialogpay_refunded=true&order_id=${encodeURIComponent(orderId)}`);
+          }
+
           return NextResponse.redirect(`${appUrl}/dashboard?dialogpay_success=true&order_id=${encodeURIComponent(orderId)}`);
         } else if (liveState === 'CANCELLED' || liveState === 'FAILED') {
           await adminSupabase.from('orders').update({
-            status: liveState.toLowerCase(),
+            status: 'rejected',
             admin_note: `Payment was ${liveState.toLowerCase()} on Dialog Pay gateway.`,
             updated_at: new Date().toISOString(),
           }).eq('id', order.id);

@@ -255,9 +255,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (!paymentRes.success || !paymentRes.data?.url) {
-      // Mark order as failed in database
+      // Mark order as rejected in database (respecting orders_status_check constraint)
       await adminSupabase.from('orders').update({
-        status: 'failed',
+        status: 'rejected',
         admin_note: `Dialog Pay initiation failed: ${paymentRes.error}`,
       }).eq('id', newOrder.id);
 
