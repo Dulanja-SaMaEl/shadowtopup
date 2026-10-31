@@ -715,7 +715,6 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                   </div>
                   <div>
                     <span className="text-xs font-bold text-white block">Visa &amp; Mastercard Online Payment</span>
-
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/30">
@@ -725,6 +724,30 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
               <p className="text-[11px] text-slate-300 leading-relaxed">
                 Pay securely using any Sri Lankan or International <strong>Visa</strong> or <strong>Mastercard</strong> credit/debit card, or <strong>Genie Mobile Wallet</strong> through Dialog Axiata PLC. In-game diamonds are credited automatically upon 3DS confirmation.
               </p>
+
+              {selectedPkg && (() => {
+                const basePrice = calculatePackagePrice(selectedPkg, effectiveRole);
+                const gatewayFee = Math.round(basePrice * 0.0275 * 100) / 100;
+                const totalPayable = Math.round((basePrice + gatewayFee) * 100) / 100;
+                return (
+                  <div className="pt-2 border-t border-purple-950/50 space-y-1.5 text-xs font-mono">
+                    <div className="flex justify-between text-slate-400">
+                      <span>Package Price:</span>
+                      <span className="text-slate-200">{formatCurrency(basePrice)}</span>
+                    </div>
+                    <div className="flex justify-between text-cyan-400">
+                      <span>Gateway Processing Fee (2.75%):</span>
+                      <span>+{formatCurrency(gatewayFee)}</span>
+                    </div>
+                    <div className="flex justify-between text-white font-bold text-sm pt-1 border-t border-purple-950/40">
+                      <span>Total to Pay:</span>
+                      <span className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.35)]">
+                        {formatCurrency(totalPayable)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -933,6 +956,10 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                 </>
               ) : paymentMethod === 'ez_cash' ? (
                 <>Verify eZ Cash ({formatCurrency(calculatePackagePrice(selectedPkg, effectiveRole))}) & Top-Up</>
+              ) : paymentMethod === 'dialog_pay' ? (
+                <>
+                  Pay {formatCurrency(Math.round((calculatePackagePrice(selectedPkg, effectiveRole) + Math.round(calculatePackagePrice(selectedPkg, effectiveRole) * 0.0275 * 100) / 100) * 100) / 100)} & Recharge Now
+                </>
               ) : (
                 <>Pay {formatCurrency(calculatePackagePrice(selectedPkg, effectiveRole))} & Recharge Now</>
               )}
@@ -947,7 +974,13 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
         packageName={selectedPkg?.package_name}
         playerUid={verifiedPlayerUid || undefined}
         playerNickname={verifiedPlayerNickname || undefined}
-        amount={selectedPkg ? calculatePackagePrice(selectedPkg, effectiveRole) : undefined}
+        amount={
+          selectedPkg
+            ? paymentMethod === 'dialog_pay'
+              ? Math.round((calculatePackagePrice(selectedPkg, effectiveRole) + Math.round(calculatePackagePrice(selectedPkg, effectiveRole) * 0.0275 * 100) / 100) * 100) / 100
+              : calculatePackagePrice(selectedPkg, effectiveRole)
+            : undefined
+        }
         paymentMethod={paymentMethod}
       />
 

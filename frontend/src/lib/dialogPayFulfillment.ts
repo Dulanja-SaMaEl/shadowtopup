@@ -62,7 +62,7 @@ export async function fulfillDialogPayOrder(options: FulfillDialogPayOrderOption
   // 2. Parse cart or package details from admin_note
   let cartItems: any[] = [];
   try {
-    const match = order.admin_note?.match(/Cart:\s*(\[\{.*?\}\])/);
+    const match = order.admin_note?.match(/Cart:\s*(\[\s*\{[\s\S]*?\}\s*\])/) || order.admin_note?.match(/Cart:\s*(\[.*?\])(?:\s*\||$)/);
     if (match && match[1]) {
       cartItems = JSON.parse(match[1]);
     }

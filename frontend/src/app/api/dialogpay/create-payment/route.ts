@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
     const { data: allDbPackages } = await adminSupabase.from('packages').select('*');
     const catalog = allDbPackages && allDbPackages.length > 0 ? allDbPackages : OFFICIAL_GARENA_PACKAGES;
 
-    let totalAmount = 0;
+    const GATEWAY_FEE_PERCENT = 0.0275; // 2.75% gateway processing fee
+    let subtotalAmount = 0;
     let orderDescription = '';
     let targetUid = '';
     let targetNickname = playerNickname || '';
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
         }
 
         const qty = Math.max(1, Number(it.quantity) || 1);
-        totalAmount += unitPrice * qty;
+        subtotalAmount += unitPrice * qty;
 
         orderCartDetails.push({
           packageId: dbPkg.id,
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
         unitPrice = Number(dbPkg.normal_price || dbPkg.price);
       }
 
-      totalAmount = unitPrice;
+      subtotalAmount = unitPrice;
       targetUid = sanitizedUid;
       orderDescription = dbPkg.package_name;
       orderCartDetails.push({
@@ -147,9 +148,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (totalAmount <= 0) {
+    if (subtotalAmount <= 0) {
       return NextResponse.json({ success: false, message: 'Invalid order amount.' }, { status: 400 });
     }
+
+    // Apply 2.75% gateway processing fee
+    const gatewayFee = Math.round(subtotalAmount * GATEWAY_FEE_PERCENT * 100) / 100;
+    const finalAmount = Math.round((subtotalAmount + gatewayFee) * 100) / 100;
 
     // 2. Create a pending order in the database with schema-resilient columns
     let newOrder: any = null;
@@ -157,12 +162,12 @@ export async function POST(request: NextRequest) {
 
     const primaryPayload: any = {
       user_id: authUser.id,
-      total_amount: totalAmount,
+      total_amount: finalAmount,
       status: 'pending',
       package_name: orderDescription,
       free_fire_player_id: targetUid,
       payment_method: 'dialog_pay',
-      admin_note: `Dialog Pay initiated | Player: ${targetUid}${targetNickname ? ` (${targetNickname})` : ''} | Cart: ${JSON.stringify(orderCartDetails)}`,
+      admin_note: `Dialog Pay initiated | Subtotal: LKR ${subtotalAmount.toFixed(2)} + Gateway Fee (2.75%): LKR ${gatewayFee.toFixed(2)} = Total: LKR ${finalAmount.toFixed(2)} | Player: ${targetUid}${targetNickname ? ` (${targetNickname})` : ''} | Cart: ${JSON.stringify(orderCartDetails)}`,
     };
 
     // Attempt 1: Standard shadowtopup schema (free_fire_player_id, package_name)
@@ -179,12 +184,12 @@ export async function POST(request: NextRequest) {
       // Attempt 2: Schema with player_uid
       const fallbackPayload: any = {
         user_id: authUser.id,
-        total_amount: totalAmount,
+        total_amount: finalAmount,
         status: 'pending',
         package_name: orderDescription,
         player_uid: targetUid,
         payment_method: 'dialog_pay',
-        admin_note: `Dialog Pay initiated | Player: ${targetUid} | Cart: ${JSON.stringify(orderCartDetails)}`,
+        admin_note: `Dialog Pay initiated | Subtotal: LKR ${subtotalAmount.toFixed(2)} + Gateway Fee (2.75%): LKR ${gatewayFee.toFixed(2)} = Total: LKR ${finalAmount.toFixed(2)} | Player: ${targetUid} | Cart: ${JSON.stringify(orderCartDetails)}`,
       };
 
       const { data: ord2, error: err2 } = await adminSupabase
@@ -199,12 +204,12 @@ export async function POST(request: NextRequest) {
         // Attempt 3: Universal minimal core schema with UID
         const minimalPayload: any = {
           user_id: authUser.id,
-          total_amount: totalAmount,
+          total_amount: finalAmount,
           status: 'pending',
           package_name: orderDescription,
           free_fire_player_id: targetUid,
           payment_method: 'dialog_pay',
-          admin_note: `Dialog Pay initiated | Player: ${targetUid} | Cart: ${JSON.stringify(orderCartDetails)}`,
+          admin_note: `Dialog Pay initiated | Subtotal: LKR ${subtotalAmount.toFixed(2)} + Gateway Fee (2.75%): LKR ${gatewayFee.toFixed(2)} = Total: LKR ${finalAmount.toFixed(2)} | Player: ${targetUid} | Cart: ${JSON.stringify(orderCartDetails)}`,
         };
 
         const { data: ord3, error: err3 } = await adminSupabase
@@ -244,7 +249,7 @@ export async function POST(request: NextRequest) {
       : `reference (${shortOrderId})`;
 
     const paymentRes = await createDialogPayTransaction({
-      amountLkr: totalAmount,
+      amountLkr: finalAmount,
       orderId: newOrder.id,
       customerReference: customerRef,
     });
@@ -264,7 +269,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Update order with Genie Business transaction ID / note
     const updatePayload: any = {
-      admin_note: `Dialog Pay TxID: ${paymentRes.data.id} | Portal URL: ${paymentRes.data.url} | Cart: ${JSON.stringify(orderCartDetails)}`,
+      admin_note: `Dialog Pay TxID: ${paymentRes.data.id} | Subtotal: LKR ${subtotalAmount.toFixed(2)} + Fee (2.75%): LKR ${gatewayFee.toFixed(2)} = Total: LKR ${finalAmount.toFixed(2)} | Portal URL: ${paymentRes.data.url} | Cart: ${JSON.stringify(orderCartDetails)}`,
       updated_at: new Date().toISOString(),
     };
 
@@ -283,7 +288,9 @@ export async function POST(request: NextRequest) {
       transactionId: paymentRes.data.id,
       paymentUrl: paymentRes.data.url,
       shortUrl: paymentRes.data.shortUrl,
-      amount: totalAmount,
+      subtotal: subtotalAmount,
+      gatewayFee: gatewayFee,
+      amount: finalAmount,
     });
   } catch (err: any) {
     console.error('[DialogPay Create Error]:', err);

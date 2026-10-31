@@ -131,6 +131,8 @@ export default function CartPage() {
   };
 
   const effectiveCartTotal = cartItems.reduce((acc, item) => acc + getItemPrice(item) * item.quantity, 0);
+  const gatewayFee = paymentMethod === 'dialog_pay' ? Math.round(effectiveCartTotal * 0.0275 * 100) / 100 : 0;
+  const finalPayableTotal = Math.round((effectiveCartTotal + gatewayFee) * 100) / 100;
 
   const handleBatchCheckout = async () => {
     if (isRestocking) {
@@ -617,9 +619,15 @@ export default function CartPage() {
                       </span>
                     </div>
                   )}
+                  {paymentMethod === 'dialog_pay' && (
+                    <div className="flex justify-between text-cyan-400 font-mono">
+                      <span>Gateway Processing Fee (2.75%)</span>
+                      <span>+ LKR {gatewayFee.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between border-t border-white/[0.08] pt-3 text-sm font-bold text-white">
-                    <span>Grand Total</span>
-                    <span className="text-emerald-400 font-mono font-bold text-base">LKR {effectiveCartTotal.toFixed(2)}</span>
+                    <span>{paymentMethod === 'dialog_pay' ? 'Total to Pay' : 'Grand Total'}</span>
+                    <span className="text-emerald-400 font-mono font-bold text-base">LKR {finalPayableTotal.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -734,7 +742,6 @@ export default function CartPage() {
                         </div>
                         <div>
                           <span className="text-xs font-bold text-white block">Visa &amp; Mastercard Online Payment</span>
-
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/30">
@@ -744,6 +751,23 @@ export default function CartPage() {
                     <p className="text-[11px] text-slate-300 leading-relaxed">
                       Pay instantly with any <strong>Visa</strong> or <strong>Mastercard</strong> credit/debit card, or <strong>Genie Mobile Wallet</strong> through Dialog Axiata PLC&apos;s secure gateway. Your Free Fire packages are auto-delivered immediately upon payment confirmation.
                     </p>
+
+                    <div className="pt-2 border-t border-purple-950/50 space-y-1.5 text-xs font-mono">
+                      <div className="flex justify-between text-slate-400">
+                        <span>Cart Subtotal:</span>
+                        <span className="text-slate-200">LKR {effectiveCartTotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-cyan-400">
+                        <span>Gateway Processing Fee (2.75%):</span>
+                        <span>+ LKR {gatewayFee.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-white font-bold text-sm pt-1 border-t border-purple-950/40">
+                        <span>Total to Pay:</span>
+                        <span className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.35)]">
+                          LKR {finalPayableTotal.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -952,6 +976,11 @@ export default function CartPage() {
                       <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
                       <span>Checkout Paused (Restocking)</span>
                     </>
+                  ) : paymentMethod === 'dialog_pay' ? (
+                    <>
+                      <CreditCard className="w-4 h-4 text-cyan-300" />
+                      <span>Pay LKR {finalPayableTotal.toFixed(2)} & Recharge Now</span>
+                    </>
                   ) : paymentMethod === 'ez_cash' ? (
                     <>
                       <ShieldCheck className="w-4 h-4 text-purple-200" />
@@ -980,7 +1009,7 @@ export default function CartPage() {
         isOpen={isProcessingOrder}
         packageName={cartItems.length === 1 ? cartItems[0].packageName : `Batch Top-Up (${totalCount} Items)`}
         playerUid={cartItems[0]?.playerUid}
-        amount={effectiveCartTotal}
+        amount={paymentMethod === 'dialog_pay' ? finalPayableTotal : effectiveCartTotal}
         paymentMethod={paymentMethod}
       />
 
