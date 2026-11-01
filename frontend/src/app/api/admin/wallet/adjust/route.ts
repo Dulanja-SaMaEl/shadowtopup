@@ -66,12 +66,12 @@ export async function POST(request: NextRequest) {
 
     const currentBalance = parseFloat(profile.wallet_balance || 0);
     let newBalance = currentBalance;
-    let trxType = 'ADMIN_CREDIT';
+    const trxType = 'ADMIN_ADJUSTMENT';
     let defaultDesc = '';
+    const signedAmount = action === 'add' ? numAmount : -numAmount;
 
     if (action === 'add') {
       newBalance = currentBalance + numAmount;
-      trxType = 'ADMIN_CREDIT';
       defaultDesc = reason
         ? `Admin Top-Up: ${reason}`
         : `Admin Top-Up by ${adminUser.email || 'Administrator'}`;
@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
         );
       }
       newBalance = currentBalance - numAmount;
-      trxType = 'ADMIN_DEBIT';
       defaultDesc = reason
         ? `Admin Deduction: ${reason}`
         : `Admin Deduction by ${adminUser.email || 'Administrator'}`;
@@ -109,20 +108,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Record audit transaction in wallet_transactions
+    // 3. Record audit transaction in wallet_transactions (Using ADMIN_ADJUSTMENT to strictly satisfy DB constraint)
     try {
-      await adminSupabase.from('wallet_transactions').insert([
+      const { error: txErr } = await adminSupabase.from('wallet_transactions').insert([
         {
           user_id: userId,
           type: trxType,
-          amount: numAmount,
+          amount: signedAmount,
           balance_after: newBalance,
           description: defaultDesc,
           created_at: new Date().toISOString(),
         },
       ]);
+      if (txErr) {
+        console.error('[Admin Wallet Adjust] Failed to insert audit record:', txErr);
+      }
     } catch (txErr) {
-      console.warn('[Admin Wallet Adjust] Could not insert wallet_transaction record:', txErr);
+      console.warn('[Admin Wallet Adjust] Exception inserting wallet_transaction record:', txErr);
     }
 
     return NextResponse.json({

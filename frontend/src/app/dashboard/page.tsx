@@ -142,6 +142,7 @@ export default function UserDashboardPage() {
                 items: '1X ITEMS',
                 amount: o.totalAmount,
                 status: o.fulfillmentStatus,
+                payment_method: o.payment_method || (o.paymentReceipt ? 'bank_transfer' : 'shadow_wallet'),
                 time: '11:30 AM',
                 date: (o.date || '').toUpperCase(),
                 created_at: o.created_at || o.date,
@@ -1367,55 +1368,90 @@ export default function UserDashboardPage() {
                 </div>
               )}
 
-              {/* Upload Receipt Action Card with EXPLICIT SUBMIT BUTTON */}
-              <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-800/50 space-y-3">
-                <label className="block text-xs font-bold text-purple-300 uppercase">
-                  {selectedOrder.receipt_url ? 'Replace Bank Receipt' : 'Upload Bank Transfer Receipt'}
-                </label>
+              {/* Conditional Display: Upload Box (only for pending bank transfers) vs Automated Delivery Confirmation */}
+              {(() => {
+                const isCompleted = selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'completed';
+                const isBank = selectedOrder.payment_method === 'bank_transfer' || (!selectedOrder.payment_method && Boolean(selectedOrder.receipt_url));
 
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    disabled={uploadingReceipt}
-                    className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer disabled:opacity-50"
-                  />
-                </div>
+                if (!isCompleted && isBank) {
+                  return (
+                    <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-800/50 space-y-3">
+                      <label className="block text-xs font-bold text-purple-300 uppercase">
+                        {selectedOrder.receipt_url ? 'Replace Bank Receipt' : 'Upload Bank Transfer Receipt'}
+                      </label>
 
-                {receiptPreview && (
-                  <div className="space-y-2 pt-2 border-t border-purple-900/40">
-                    <span className="text-[10px] font-mono text-slate-400">SELECTED IMAGE PREVIEW:</span>
-                    <div className="h-28 rounded-xl bg-slate-950 overflow-hidden border border-slate-800 flex items-center justify-center">
-                      <img src={receiptPreview} alt="Selected file" className="h-full object-contain" />
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileSelect}
+                          disabled={uploadingReceipt}
+                          className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer disabled:opacity-50"
+                        />
+                      </div>
+
+                      {receiptPreview && (
+                        <div className="space-y-2 pt-2 border-t border-purple-900/40">
+                          <span className="text-[10px] font-mono text-slate-400">SELECTED IMAGE PREVIEW:</span>
+                          <div className="h-28 rounded-xl bg-slate-950 overflow-hidden border border-slate-800 flex items-center justify-center">
+                            <img src={receiptPreview} alt="Selected file" className="h-full object-contain" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Explicit Submit Button */}
+                      <button
+                        type="button"
+                        onClick={handleSubmitReceipt}
+                        disabled={!receiptFile || uploadingReceipt}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {uploadingReceipt ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" /> SUBMITTING TO DATABASE...
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud className="w-4 h-4" /> SUBMIT BANK RECEIPT
+                          </>
+                        )}
+                      </button>
+
+                      {uploadSuccess && (
+                        <p className="text-xs text-emerald-400 font-mono font-bold flex items-center gap-1">
+                          <Check className="w-4 h-4 text-emerald-400" /> Receipt uploaded successfully & saved to Supabase!
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 shadow-[0_0_12px_rgba(52,211,153,0.2)]">
+                      {isCompleted ? <ShieldCheck className="w-5 h-5 text-emerald-400" /> : <Zap className="w-5 h-5 text-emerald-400" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs font-bold text-white block">
+                        {selectedOrder.payment_method === 'shadow_wallet'
+                          ? 'Shadow Wallet Instant Delivery'
+                          : selectedOrder.payment_method === 'dialog_pay'
+                          ? 'Dialog Pay Online Payment'
+                          : selectedOrder.payment_method === 'ez_cash'
+                          ? 'Dialog eZ Cash Instant Verification'
+                          : isCompleted
+                          ? 'Bank Transfer Verified & Completed'
+                          : 'Automated Instant Fulfillment'}
+                      </span>
+                      <span className="text-[11px] text-emerald-300/90 font-mono block">
+                        {isCompleted
+                          ? 'Package delivered to Free Fire account • No further action required.'
+                          : 'Automated processing active • No receipt upload required.'}
+                      </span>
                     </div>
                   </div>
-                )}
-
-                {/* Explicit Submit Button */}
-                <button
-                  type="button"
-                  onClick={handleSubmitReceipt}
-                  disabled={!receiptFile || uploadingReceipt}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {uploadingReceipt ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> SUBMITTING TO DATABASE...
-                    </>
-                  ) : (
-                    <>
-                      <UploadCloud className="w-4 h-4" /> SUBMIT BANK RECEIPT
-                    </>
-                  )}
-                </button>
-
-                {uploadSuccess && (
-                  <p className="text-xs text-emerald-400 font-mono font-bold flex items-center gap-1">
-                    <Check className="w-4 h-4 text-emerald-400" /> Receipt uploaded successfully & saved to Supabase!
-                  </p>
-                )}
-              </div>
+                );
+              })()}
 
               <div className="flex justify-between items-center p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-slate-400 font-mono text-[10px]">VERIFICATION STATUS</span>
@@ -1442,7 +1478,15 @@ export default function UserDashboardPage() {
                     packageName: selectedOrder.package_name,
                     playerUid: selectedOrder.player_uid || 'N/A',
                     amount: Number(selectedOrder.amount),
-                    paymentMethod: selectedOrder.receipt_url ? 'Bank Transfer' : 'Shadow Wallet',
+                    paymentMethod: selectedOrder.payment_method === 'shadow_wallet'
+                      ? 'Shadow Wallet'
+                      : selectedOrder.payment_method === 'dialog_pay'
+                      ? 'Dialog Pay (Genie Business)'
+                      : selectedOrder.payment_method === 'ez_cash'
+                      ? 'Dialog eZ Cash'
+                      : selectedOrder.receipt_url
+                      ? 'Bank Transfer'
+                      : 'Shadow Wallet',
                     status: selectedOrder.status === 'COMPLETED' ? 'COMPLETED' : (selectedOrder.status === 'REFUNDED' || selectedOrder.status === 'refunded') ? 'REFUNDED' : 'PENDING VERIFICATION',
                     date: selectedOrder.date || new Date().toLocaleDateString(),
                     customerName: profile?.name || profile?.email?.split('@')[0].toUpperCase(),

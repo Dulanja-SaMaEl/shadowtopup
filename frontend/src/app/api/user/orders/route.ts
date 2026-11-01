@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
         totalAmount: Number(row.total_amount || row.price_paid || row.amount || 0),
         fulfillmentStatus: normStatus,
         paymentReceipt: receiptUrl,
+        payment_method: row.payment_method || (receiptUrl ? 'bank_transfer' : 'shadow_wallet'),
         created_at: row.created_at || new Date().toISOString(),
         date: row.created_at
           ? new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
