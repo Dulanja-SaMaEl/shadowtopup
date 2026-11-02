@@ -83,7 +83,7 @@ export default function PagePreloader() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-950/60 border border-purple-800/50 shadow-[0_0_15px_rgba(168,85,247,0.25)] backdrop-blur-md">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
             <span className="text-[11px] font-semibold text-purple-200 tracking-wider uppercase font-mono">
-              Sri Lanka&apos;s #1 Instant Gaming Store
+              Sri Lanka&apos;s No 1 Instant Gaming Store
             </span>
           </div>
         </div>
