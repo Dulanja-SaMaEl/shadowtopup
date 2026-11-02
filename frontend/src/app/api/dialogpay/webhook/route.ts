@@ -97,8 +97,8 @@ export async function POST(request: NextRequest) {
     // Channel C: Match by customerReference shortOrderId
     if (!order && body.customerReference) {
       const refMatch =
-        String(body.customerReference).match(/reference\s*\(([a-zA-Z0-9_-]+)\)/i) ||
-        String(body.customerReference).match(/\(([a-zA-Z0-9_-]{6,10})\)/);
+        String(body.customerReference).match(/\(([a-zA-Z0-9_-]{6,10})\)/) ||
+        String(body.customerReference).match(/reference\s*\(([a-zA-Z0-9_-]+)\)/i);
       if (refMatch && refMatch[1]) {
         const shortId = refMatch[1].toLowerCase();
         const { data: candidates } = await adminSupabase
