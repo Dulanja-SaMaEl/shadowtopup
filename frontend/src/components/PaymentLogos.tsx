@@ -46,7 +46,7 @@ export function BankTransferLogo({ className = 'w-9 h-6' }: { className?: string
   return (
     <div className={`${className} rounded-md bg-white border border-slate-300 flex items-center justify-center p-0.5 shadow-sm shrink-0 overflow-hidden`}>
       <img
-        src="/images/bank-transfer.jpg"
+        src="/images/bank-transfer.png"
         alt="Bank Transfer"
         className="w-full h-full object-contain"
       />

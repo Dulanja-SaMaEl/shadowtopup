@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Package, UserRole } from '@/types/database';
 import { calculatePackagePrice, formatCurrency } from '@/lib/pricing';
-import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap, Smartphone, Copy, X, RefreshCw } from 'lucide-react';
+import { Diamond, Check, ShieldAlert, CreditCard, Landmark, Upload, Loader2, Crown, Calendar, Sparkles, Wallet, ShoppingCart, CheckCircle2, XCircle, AlertTriangle, Zap, Smartphone, Copy, X, RefreshCw, Clock } from 'lucide-react';
 import TransactionReceiptModal from './TransactionReceiptModal';
 import OrderProcessingModal from './OrderProcessingModal';
 import { useCart } from '@/context/CartContext';
@@ -698,8 +698,9 @@ export default function PackageSelector({ packages, userRole, verifiedPlayerUid,
                   <span className="text-[10px] text-slate-400 font-mono block truncate">Slip Upload</span>
                 </div>
               </div>
-              <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-medium">
-                Manual
+              <span className="shrink-0 text-[9px] font-mono px-2 py-0.5 rounded bg-yellow-500/15 text-yellow-300 border border-yellow-500/40 font-bold flex items-center gap-1">
+                <Clock className="w-2.5 h-2.5 text-yellow-400" />
+                <span>Manual ( 5m-3h Delay )</span>
               </span>
             </button>
           </div>

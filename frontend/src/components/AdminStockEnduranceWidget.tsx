@@ -146,7 +146,7 @@ export default function AdminStockEnduranceWidget({ compact = false, refreshKey 
                 ? 'LOW RUNWAY (< 12H)'
                 : isModerate
                 ? 'MODERATE RUNWAY'
-                : 'HEALTHY STOCK (> 24H)'}
+                : 'HEALTHY STOCK'}
             </span>
           </div>
           <p className="text-xs text-slate-400">

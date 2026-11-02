@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShieldCheck, Check, Wallet, Landmark, Loader2, Zap, AlertCircle, Smartphone, Copy, Sparkles, Upload, RefreshCw, CreditCard } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShieldCheck, Check, Wallet, Landmark, Loader2, Zap, AlertCircle, Smartphone, Copy, Sparkles, Upload, RefreshCw, CreditCard, Clock } from 'lucide-react';
 import { formatCurrency, calculatePackagePrice } from '@/lib/pricing';
 import { Package, UserRole } from '@/types/database';
 import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
@@ -723,8 +723,9 @@ export default function CartPage() {
                           <span className="text-[10px] text-slate-400 font-mono block truncate">Slip Upload</span>
                         </div>
                       </div>
-                      <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-medium">
-                        Manual
+                      <span className="shrink-0 text-[9px] font-mono px-2 py-0.5 rounded bg-yellow-500/15 text-yellow-300 border border-yellow-500/40 font-bold flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5 text-yellow-400" />
+                        <span>Manual ( 5m-3h Delay )</span>
                       </span>
                     </button>
                   </div>
