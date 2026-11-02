@@ -21,7 +21,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getRestockAlert } from '@/lib/restockAlertService';
 import { formatCurrency } from '@/lib/pricing';
 import { OFFICIAL_GARENA_PACKAGES } from '@/lib/garenaPackages';
-import { VisaLogo, MastercardLogo } from '@/components/PaymentLogos';
+import { VisaLogo, MastercardLogo, EzCashLogo } from '@/components/PaymentLogos';
 import {
   SITE_NAME,
   createCanonicalUrl,
@@ -376,7 +376,7 @@ export default async function HomePage() {
                     <ShieldCheck className="w-4 h-4 text-purple-400" /> Live Nickname Check
                   </span>
                   <span className="flex items-center gap-1.5 text-slate-300 font-mono">
-                    <Lock className="w-4 h-4 text-cyan-400" /> Dialog eZ Cash
+                    <EzCashLogo className="w-8 h-4 shrink-0" /> Dialog eZ Cash
                   </span>
                 </div>
               </div>

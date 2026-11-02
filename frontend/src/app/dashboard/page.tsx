@@ -656,12 +656,12 @@ export default function UserDashboardPage() {
         {/* Metrics Summary Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">TOTAL ORDERS</span>
-            <h3 className="text-3xl font-black text-white">{transactions.length}</h3>
-          </div>
-          <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
             <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">TOTAL SPENT</span>
             <h3 className="text-3xl font-black text-white">LKR {totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
+          </div>
+          <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">TOTAL ORDERS</span>
+            <h3 className="text-3xl font-black text-white">{transactions.length}</h3>
           </div>
           <div className="p-6 rounded-3xl bg-[#141229] border border-purple-950/40 space-y-1">
             <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">ACTIVE PENDING ORDERS</span>
@@ -831,9 +831,13 @@ export default function UserDashboardPage() {
                   type="button"
                   onClick={() => {
                     const el = document.getElementById('shadow-wallet-widget');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      el.classList.add('ring-2', 'ring-purple-400');
+                      setTimeout(() => el.classList.remove('ring-2', 'ring-purple-400'), 2500);
+                    }
                   }}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-purple-600/30"
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-purple-600/30 active:scale-95"
                 >
                   <PlusCircle className="w-3.5 h-3.5" /> Top Up Balance
                 </button>

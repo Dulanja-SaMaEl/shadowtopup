@@ -127,7 +127,7 @@ export default function ShadowWalletWidget({ userId }: ShadowWalletWidgetProps) 
   };
 
   return (
-    <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#141229] via-[#0c0a1a] to-[#120f26] border border-purple-950/60 space-y-6 shadow-2xl relative overflow-hidden">
+    <div id="shadow-wallet-widget" className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#141229] via-[#0c0a1a] to-[#120f26] border border-purple-950/60 space-y-6 shadow-2xl relative overflow-hidden scroll-mt-24 transition-all duration-300">
       <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}

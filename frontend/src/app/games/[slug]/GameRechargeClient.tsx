@@ -138,19 +138,14 @@ export default function GameRechargeClient({ slug }: { slug: string }) {
           )}
         </div>
         <div className="relative z-10 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
-              Singapore & Malaysia Servers
-            </span>
-
-            {/* Restock Warning Badge next to server badge */}
-            {isRestocking && (
+          {isRestocking && (
+            <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.3)] flex items-center gap-1.5 animate-pulse">
                 <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
                 <span>Restocking</span>
               </span>
-            )}
-          </div>
+            </div>
+          )}
           <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">{gameTitle}</h1>
           <p className="text-slate-300 text-xs leading-relaxed max-w-2xl">
             Direct player UID top-up portal. Enter your in-game player ID below to verify your nickname before selecting diamonds or memberships.

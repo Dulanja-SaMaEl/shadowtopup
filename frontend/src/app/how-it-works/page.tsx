@@ -158,7 +158,7 @@ export default function HowItWorksPage() {
             <Zap className="w-3.5 h-3.5 text-purple-400" /> Step-by-Step Guide
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
-            How Free Fire Top-Up Works
+            How Top Up Works
           </h1>
           <p className="max-w-2xl mx-auto text-slate-300 text-sm sm:text-base leading-relaxed">
             Recharge your Free Fire account in 5 simple steps. We never ask for your game password, Facebook login, or Google account credentials.
